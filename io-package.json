@@ -90,7 +90,9 @@
         ]
     },
     "native": {
-        "shutters": []
+        "shutters": [],
+        "areas": [],
+        "publicHolidayFederalState": ""
     },
     "objects": [],
     "instanceObjects": []

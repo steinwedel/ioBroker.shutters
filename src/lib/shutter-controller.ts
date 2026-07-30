@@ -13,6 +13,7 @@ export class ShutterController {
     private readonly driver: IShutterDriver;
     private readonly basePath: string;
     private readonly curve: ICalibrationPoint[];
+    private automationEnabled: boolean;
 
     /**
      * @param adapter - Adapter instance, used for state/object access.
@@ -25,6 +26,7 @@ export class ShutterController {
         this.basePath = `shutters.${config.id}`;
         this.driver = createDriver(adapter, config);
         this.curve = normalizeCurve(config.calibrationCurve);
+        this.automationEnabled = config.automationEnabled;
     }
 
     /** Creates/updates all objects for this covering. Safe to call repeatedly (uses setObjectNotExists). */
@@ -164,7 +166,18 @@ export class ShutterController {
             `${this.basePath}.close`,
             `${this.basePath}.stop`,
             `${this.basePath}.calibrate`,
+            `${this.basePath}.automationEnabled`,
         ];
+    }
+
+    /** @returns The area/zone name configured for this covering, used to group schedule triggers. */
+    public getArea(): string | undefined {
+        return this.config.area;
+    }
+
+    /** @returns Whether automation (schedule, sun/rain/wind/frost protection) is currently enabled for this covering. */
+    public isAutomationEnabled(): boolean {
+        return this.automationEnabled;
     }
 
     /**
@@ -207,9 +220,31 @@ export class ShutterController {
                     `Covering "${this.config.id}": guided calibration run is not implemented yet - configure calibrationCurve manually for now.`,
                 );
                 return true;
+            case `${this.basePath}.automationEnabled`:
+                this.automationEnabled = Boolean(state.val);
+                await this.acknowledge('automationEnabled', this.automationEnabled);
+                return true;
             default:
                 return false;
         }
+    }
+
+    /**
+     * Drives to a target covering position on behalf of an automation module
+     * (schedule, sun/rain/wind/frost protection - not a direct user
+     * command). Unlike `handleStateChange()`, this always runs regardless of
+     * `automationEnabled`/priority resolution; callers are responsible for
+     * checking those before calling this method (see scheduler.ts / a future
+     * automation.ts, plan section 8).
+     *
+     * @param coveringPercent - Target covering height/extension, 0-100.
+     * @param reason - Human-readable reason shown in `statusText`, e.g. "Schedule: close".
+     */
+    public async applyAutomatedPosition(coveringPercent: number, reason: string): Promise<void> {
+        await this.driver.setPosition(coveringToRuntime(coveringPercent, this.curve));
+        await this.adapter.setStateAsync(`${this.basePath}.position`, { val: coveringPercent, ack: true });
+        await this.adapter.setStateAsync(`${this.basePath}.statusText`, { val: reason, ack: true });
+        await this.refreshPosition();
     }
 
     /**

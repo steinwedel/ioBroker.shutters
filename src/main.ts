@@ -4,6 +4,8 @@
  */
 
 import * as utils from '@iobroker/adapter-core';
+import { HolidayChecker } from './lib/holiday';
+import { Scheduler } from './lib/scheduler';
 import { ShutterController } from './lib/shutter-controller';
 
 class Shutters extends utils.Adapter {
@@ -12,6 +14,7 @@ class Shutters extends utils.Adapter {
     private readonly stateIdToCoveringId = new Map<string, string>();
     /** Periodic driver -> positionActual/positionRaw sync, see `dataSource: poll` in io-package.json. */
     private positionRefreshTimer: ioBroker.Interval | undefined;
+    private scheduler: Scheduler | undefined;
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -75,6 +78,31 @@ class Shutters extends utils.Adapter {
                 });
             }
         }, 5000);
+
+        const holidayChecker = new HolidayChecker(this.config.publicHolidayFederalState);
+        this.scheduler = new Scheduler(this, this.config.areas ?? [], holidayChecker, (areaName, action) => {
+            this.onScheduleTrigger(areaName, action);
+        });
+        this.scheduler.start();
+    }
+
+    /**
+     * Applies a schedule-triggered open/close action to every covering in
+     * the given area that currently has automation enabled.
+     *
+     * @param areaName - Area/zone name as configured on the triggered coverings.
+     * @param action - Whether to open (0%) or close (100%) the affected coverings.
+     */
+    private onScheduleTrigger(areaName: string, action: 'open' | 'close'): void {
+        const targetPercent = action === 'open' ? 0 : 100;
+        for (const controller of this.controllers.values()) {
+            if (controller.getArea() !== areaName || !controller.isAutomationEnabled()) {
+                continue;
+            }
+            controller.applyAutomatedPosition(targetPercent, `Schedule: ${action}`).catch(err => {
+                this.log.error(`Scheduled ${action} for area "${areaName}" failed: ${(err as Error).message}`);
+            });
+        }
     }
 
     /**
@@ -111,6 +139,7 @@ class Shutters extends utils.Adapter {
      */
     private onUnload(callback: () => void): void {
         try {
+            this.scheduler?.stop();
             if (this.positionRefreshTimer) {
                 this.clearInterval(this.positionRefreshTimer);
             }

@@ -50,6 +50,59 @@
                 { "type": "text", "attr": "states.close", "title": "stateClose", "width": "15%" },
                 { "type": "text", "attr": "states.stop", "title": "stateStop", "width": "15%" }
             ]
+        },
+        "areasHint": {
+            "type": "staticText",
+            "text": "areasHintText",
+            "newLine": true
+        },
+        "publicHolidayFederalState": {
+            "type": "select",
+            "label": "publicHolidayFederalState",
+            "newLine": true,
+            "xs": 12,
+            "sm": 6,
+            "md": 4,
+            "lg": 3,
+            "xl": 3,
+            "options": [
+                { "label": "publicHolidayFederalStateNone", "value": "" },
+                { "label": "publicHolidayFederalStateBW", "value": "BW" },
+                { "label": "publicHolidayFederalStateBY", "value": "BY" },
+                { "label": "publicHolidayFederalStateBE", "value": "BE" },
+                { "label": "publicHolidayFederalStateBB", "value": "BB" },
+                { "label": "publicHolidayFederalStateHB", "value": "HB" },
+                { "label": "publicHolidayFederalStateHH", "value": "HH" },
+                { "label": "publicHolidayFederalStateHE", "value": "HE" },
+                { "label": "publicHolidayFederalStateMV", "value": "MV" },
+                { "label": "publicHolidayFederalStateNI", "value": "NI" },
+                { "label": "publicHolidayFederalStateNW", "value": "NW" },
+                { "label": "publicHolidayFederalStateRP", "value": "RP" },
+                { "label": "publicHolidayFederalStateSL", "value": "SL" },
+                { "label": "publicHolidayFederalStateSN", "value": "SN" },
+                { "label": "publicHolidayFederalStateST", "value": "ST" },
+                { "label": "publicHolidayFederalStateSH", "value": "SH" },
+                { "label": "publicHolidayFederalStateTH", "value": "TH" }
+            ]
+        },
+        "areas": {
+            "type": "table",
+            "label": "areas",
+            "newLine": true,
+            "xs": 12,
+            "sm": 12,
+            "md": 12,
+            "lg": 12,
+            "xl": 12,
+            "items": [
+                { "type": "text", "attr": "name", "title": "areaName", "width": "15%" },
+                { "type": "text", "attr": "weekday.open", "title": "weekdayOpen", "width": "14%" },
+                { "type": "text", "attr": "weekday.close", "title": "weekdayClose", "width": "14%" },
+                { "type": "text", "attr": "weekend.open", "title": "weekendOpen", "width": "14%" },
+                { "type": "text", "attr": "weekend.close", "title": "weekendClose", "width": "14%" },
+                { "type": "text", "attr": "holiday.open", "title": "holidayOpen", "width": "14%" },
+                { "type": "text", "attr": "holiday.close", "title": "holidayClose", "width": "14%" }
+            ]
         }
     }
 }
