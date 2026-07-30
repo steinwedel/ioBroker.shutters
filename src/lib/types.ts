@@ -52,6 +52,89 @@ export interface IShutterConfig {
     calibrationCurve?: ICalibrationPoint[];
     /** Foreign state IDs used by the driver. Which keys are relevant depends on `driverType`. */
     states: Record<string, string | undefined>;
+
+    /** Whether sun protection (plan section 6) is enabled for this covering. Default: true. */
+    sunProtectionEnabled?: boolean;
+    /** Target covering position while sun protection is active, 0-100. Default: 70. */
+    sunTargetPercent?: number;
+    /** Start of the daily time window sun protection may apply in, "HH:MM". */
+    sunWindowStart?: string;
+    /** End of the daily time window sun protection may apply in, "HH:MM". */
+    sunWindowEnd?: string;
+
+    /** Whether rain protection (plan section 7) is enabled for this covering. Default: true. */
+    rainProtectionEnabled?: boolean;
+    /** Target covering position while rain protection is active, 0-100. Default: 100. */
+    rainTargetPercent?: number;
+
+    /**
+     * Whether wind/storm protection (plan section 7a) is enabled for this
+     * covering. Default depends on `coveringType`: enabled for
+     * rolladen/raffstore/markise, disabled for lamellen (typically indoor).
+     */
+    windProtectionEnabled?: boolean;
+
+    /**
+     * Whether frost protection (plan section 7b) is enabled for this
+     * covering. Same default rule as `windProtectionEnabled`.
+     */
+    frostProtectionEnabled?: boolean;
+
+    /**
+     * Foreign boolean state of a door/window contact (e.g. a terrace door)
+     * that, while open, suppresses automated closing actions for this
+     * covering (plan section 7e). Undefined disables door protection.
+     */
+    doorContactStateId?: string;
+
+    /**
+     * Expected time (seconds) for a full 0-100 traversal, used by the
+     * watchdog (plan section 9a.1) to detect a covering that stopped
+     * responding. Default: 60.
+     */
+    maxRuntimeSecs?: number;
+}
+
+/** Central weather inputs shared by all protection modules (plan section 5a). All are optional; a missing value simply disables the modules that need it. */
+export interface IWeatherConfig {
+    /** Foreign state, solar radiation in W/m², used by sun protection (6.1). */
+    solarRadiationStateId?: string;
+    /** Foreign state, wind speed (or gust) in km/h, used by wind protection (7a). */
+    windSpeedStateId?: string;
+    /** Foreign state, boolean rain indicator, used by rain protection (7). */
+    rainStateId?: string;
+    /** Foreign state, outdoor temperature in °C, used by frost protection (7b). */
+    outdoorTempStateId?: string;
+    /** Foreign state, relative humidity in %, used together with `outdoorTempStateId` by frost protection (7b). */
+    humidityStateId?: string;
+}
+
+/** One covering/target-position pair used by a group or scene action. */
+export interface ISceneTarget {
+    /** `IShutterConfig.id` of the affected covering. */
+    coveringId: string;
+    /** Target covering position to drive to, 0-100. */
+    percent: number;
+}
+
+/** A named collection of coverings with combined open/close/position control (plan section 3/M7). */
+export interface IGroupConfig {
+    /** Stable identifier used to derive the object ID (`groups.<id>`). */
+    id: string;
+    /** Display name shown in the object tree and admin UI. */
+    name: string;
+    /** `IShutterConfig.id`s of the member coverings; may mix different driver types. */
+    memberIds: string[];
+}
+
+/** A named preset that drives one or more coverings to specific positions at once (plan section 9b/M7b). */
+export interface ISceneConfig {
+    /** Stable identifier used to derive the object ID (`scenes.<id>`). */
+    id: string;
+    /** Display name shown in the object tree and admin UI. */
+    name: string;
+    /** Coverings and target positions applied when this scene is activated. */
+    targets: ISceneTarget[];
 }
 
 /** Root shape of `native` for this adapter. */
@@ -67,6 +150,38 @@ export interface IShuttersNativeConfig {
      * schedule on public holidays, see scheduler.ts).
      */
     publicHolidayFederalState?: string;
+    /** Location used for dusk-based closing times (plan section 5); read from `system.config` if not set here. */
+    latitude?: number;
+    /** See `latitude`. */
+    longitude?: number;
+
+    /** Central weather inputs (plan section 5a). */
+    weather?: IWeatherConfig;
+
+    /** Solar radiation (W/m²) at/above which sun protection closes. Default: 200. */
+    sunCloseThreshold?: number;
+    /** Solar radiation (W/m²) below which sun protection may open again, after `sunOpenMinDurationMs`. Default: 150. */
+    sunOpenThreshold?: number;
+    /** How long solar radiation must stay below `sunOpenThreshold` before opening again (hysteresis, plan section 6.1). Default: 600000 (10 min). */
+    sunOpenMinDurationMs?: number;
+
+    /** Wind speed (km/h) at/above which wind protection activates. Default: 40. */
+    windOpenThreshold?: number;
+    /** Wind speed (km/h) below which wind protection may deactivate again, after `windCalmMinDurationMs`. Default: 25. */
+    windCloseAllowedThreshold?: number;
+    /** How long wind speed must stay below `windCloseAllowedThreshold` before deactivating wind protection (hysteresis, plan section 7a). Default: 600000 (10 min). */
+    windCalmMinDurationMs?: number;
+
+    /** Outdoor temperature (°C) at/below which frost protection may activate (combined with humidity/rain, plan section 7b). Default: 2. */
+    frostThreshold?: number;
+
+    /** How often the automation engine re-evaluates sun/rain/wind/frost/door protection, in ms. Default: 30000. */
+    automationTickMs?: number;
+
+    /** Groups of coverings with combined control (plan section 3/M7). */
+    groups?: IGroupConfig[];
+    /** Named position presets (plan section 9b/M7b). */
+    scenes?: ISceneConfig[];
 }
 
 /** Opening/closing time for one day category, as "HH:MM" (24h), or undefined to skip that action. */
@@ -87,4 +202,10 @@ export interface IAreaScheduleConfig {
     weekend: IDaySchedule;
     /** Falls back to `weekend` if undefined. */
     holiday?: IDaySchedule;
+    /**
+     * Minutes to add to civil dusk to compute the closing time for this
+     * area, overriding the static `close` time of the applicable day
+     * schedule above. Undefined disables dusk coupling for this area.
+     */
+    duskOffsetMinutes?: number;
 }

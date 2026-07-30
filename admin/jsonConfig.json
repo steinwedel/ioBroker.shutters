@@ -48,7 +48,15 @@
                 { "type": "text", "attr": "states.positionActual", "title": "statePositionActual", "width": "15%" },
                 { "type": "text", "attr": "states.open", "title": "stateOpen", "width": "15%" },
                 { "type": "text", "attr": "states.close", "title": "stateClose", "width": "15%" },
-                { "type": "text", "attr": "states.stop", "title": "stateStop", "width": "15%" }
+                { "type": "text", "attr": "states.stop", "title": "stateStop", "width": "15%" },
+                { "type": "checkbox", "attr": "sunProtectionEnabled", "title": "sunProtectionEnabled", "width": "8%" },
+                { "type": "number", "attr": "sunTargetPercent", "title": "sunTargetPercent", "width": "8%" },
+                { "type": "text", "attr": "sunWindowStart", "title": "sunWindowStart", "width": "8%" },
+                { "type": "text", "attr": "sunWindowEnd", "title": "sunWindowEnd", "width": "8%" },
+                { "type": "checkbox", "attr": "rainProtectionEnabled", "title": "rainProtectionEnabled", "width": "8%" },
+                { "type": "checkbox", "attr": "windProtectionEnabled", "title": "windProtectionEnabled", "width": "8%" },
+                { "type": "checkbox", "attr": "frostProtectionEnabled", "title": "frostProtectionEnabled", "width": "8%" },
+                { "type": "text", "attr": "doorContactStateId", "title": "doorContactStateId", "width": "15%" }
             ]
         },
         "areasHint": {
@@ -102,6 +110,145 @@
                 { "type": "text", "attr": "weekend.close", "title": "weekendClose", "width": "14%" },
                 { "type": "text", "attr": "holiday.open", "title": "holidayOpen", "width": "14%" },
                 { "type": "text", "attr": "holiday.close", "title": "holidayClose", "width": "14%" }
+            ]
+        },
+        "weatherHint": {
+            "type": "staticText",
+            "text": "weatherHintText",
+            "newLine": true
+        },
+        "weather.solarRadiationStateId": {
+            "type": "text",
+            "label": "weatherSolarRadiation",
+            "newLine": true,
+            "xs": 12,
+            "sm": 6,
+            "md": 4,
+            "lg": 3,
+            "xl": 3
+        },
+        "weather.windSpeedStateId": {
+            "type": "text",
+            "label": "weatherWindSpeed",
+            "xs": 12,
+            "sm": 6,
+            "md": 4,
+            "lg": 3,
+            "xl": 3
+        },
+        "weather.rainStateId": {
+            "type": "text",
+            "label": "weatherRain",
+            "xs": 12,
+            "sm": 6,
+            "md": 4,
+            "lg": 3,
+            "xl": 3
+        },
+        "weather.outdoorTempStateId": {
+            "type": "text",
+            "label": "weatherOutdoorTemp",
+            "xs": 12,
+            "sm": 6,
+            "md": 4,
+            "lg": 3,
+            "xl": 3
+        },
+        "weather.humidityStateId": {
+            "type": "text",
+            "label": "weatherHumidity",
+            "newLine": true,
+            "xs": 12,
+            "sm": 6,
+            "md": 4,
+            "lg": 3,
+            "xl": 3
+        },
+        "sunCloseThreshold": {
+            "type": "number",
+            "label": "sunCloseThreshold",
+            "newLine": true,
+            "xs": 12,
+            "sm": 6,
+            "md": 3,
+            "lg": 2,
+            "xl": 2
+        },
+        "sunOpenThreshold": {
+            "type": "number",
+            "label": "sunOpenThreshold",
+            "xs": 12,
+            "sm": 6,
+            "md": 3,
+            "lg": 2,
+            "xl": 2
+        },
+        "windOpenThreshold": {
+            "type": "number",
+            "label": "windOpenThreshold",
+            "xs": 12,
+            "sm": 6,
+            "md": 3,
+            "lg": 2,
+            "xl": 2
+        },
+        "windCloseAllowedThreshold": {
+            "type": "number",
+            "label": "windCloseAllowedThreshold",
+            "xs": 12,
+            "sm": 6,
+            "md": 3,
+            "lg": 2,
+            "xl": 2
+        },
+        "frostThreshold": {
+            "type": "number",
+            "label": "frostThreshold",
+            "newLine": true,
+            "xs": 12,
+            "sm": 6,
+            "md": 3,
+            "lg": 2,
+            "xl": 2
+        },
+        "groupsHint": {
+            "type": "staticText",
+            "text": "groupsHintText",
+            "newLine": true
+        },
+        "groups": {
+            "type": "table",
+            "label": "groups",
+            "newLine": true,
+            "xs": 12,
+            "sm": 12,
+            "md": 12,
+            "lg": 12,
+            "xl": 12,
+            "items": [
+                { "type": "text", "attr": "id", "title": "id", "width": "20%" },
+                { "type": "text", "attr": "name", "title": "name", "width": "30%" },
+                { "type": "text", "attr": "memberIds", "title": "groupMemberIds", "width": "50%" }
+            ]
+        },
+        "scenesHint": {
+            "type": "staticText",
+            "text": "scenesHintText",
+            "newLine": true
+        },
+        "scenes": {
+            "type": "table",
+            "label": "scenes",
+            "newLine": true,
+            "xs": 12,
+            "sm": 12,
+            "md": 12,
+            "lg": 12,
+            "xl": 12,
+            "items": [
+                { "type": "text", "attr": "id", "title": "id", "width": "20%" },
+                { "type": "text", "attr": "name", "title": "name", "width": "30%" },
+                { "type": "text", "attr": "targets", "title": "sceneTargets", "width": "50%" }
             ]
         }
     }

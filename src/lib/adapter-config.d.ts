@@ -1,6 +1,6 @@
 // This file extends the AdapterConfig type from "@iobroker/types"
 
-import type { IShutterConfig, IAreaScheduleConfig } from './types';
+import type { IAreaScheduleConfig, IGroupConfig, ISceneConfig, IShutterConfig, IWeatherConfig } from './types';
 
 // Augment the globally declared type ioBroker.AdapterConfig
 declare global {
@@ -9,6 +9,19 @@ declare global {
             shutters: IShutterConfig[];
             areas: IAreaScheduleConfig[];
             publicHolidayFederalState?: string;
+            latitude?: number;
+            longitude?: number;
+            weather?: IWeatherConfig;
+            sunCloseThreshold?: number;
+            sunOpenThreshold?: number;
+            sunOpenMinDurationMs?: number;
+            windOpenThreshold?: number;
+            windCloseAllowedThreshold?: number;
+            windCalmMinDurationMs?: number;
+            frostThreshold?: number;
+            automationTickMs?: number;
+            groups?: IGroupConfig[];
+            scenes?: ISceneConfig[];
         }
     }
 }

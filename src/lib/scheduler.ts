@@ -1,5 +1,6 @@
 import type { HolidayChecker } from './holiday';
 import type { IAreaScheduleConfig, IDaySchedule } from './types';
+import { computeDuskTime } from './twilight';
 
 const TIME_RE = /^([01]?\d|2[0-3]):([0-5]\d)$/;
 
@@ -26,10 +27,11 @@ export type ScheduleAction = 'open' | 'close';
  * applicable open/close times (weekday/weekend/public holiday) and fires a
  * callback at those times. Recomputes itself once per day shortly after
  * midnight, so day-category changes (e.g. into/out of a public holiday) are
- * picked up automatically.
+ * picked up automatically. Areas with `duskOffsetMinutes` set use civil dusk
+ * (offset by that many minutes) as their closing time instead of the static
+ * "close" time of the day schedule.
  *
- * Dusk/dawn coupling and iCal overrides are added on top of this in a later
- * milestone (plan section 5, M4) and are not part of this class.
+ * iCal calendar overrides are not implemented yet, see plan section 5 (M4).
  */
 export class Scheduler {
     private timers: ioBroker.Timeout[] = [];
@@ -38,12 +40,14 @@ export class Scheduler {
      * @param adapter - Adapter instance, used for `setTimeout`/`clearTimeout` (never native Node timers, see AGENTS.md).
      * @param areas - Areas to schedule.
      * @param holidayChecker - Used to decide whether "today" counts as a public holiday.
+     * @param location - Latitude/longitude used for dusk-coupled areas; undefined disables dusk coupling entirely.
      * @param onTrigger - Called when an area's open/close time is reached.
      */
     public constructor(
         private readonly adapter: ioBroker.Adapter,
         private readonly areas: IAreaScheduleConfig[],
         private readonly holidayChecker: HolidayChecker,
+        private readonly location: { latitude: number; longitude: number } | undefined,
         private readonly onTrigger: (areaName: string, action: ScheduleAction) => void,
     ) {}
 
@@ -64,7 +68,12 @@ export class Scheduler {
         for (const area of this.areas) {
             const daySchedule = this.resolveTodaySchedule(area, now);
             this.scheduleAction(area.name, 'open', daySchedule.open, now);
-            this.scheduleAction(area.name, 'close', daySchedule.close, now);
+
+            if (area.duskOffsetMinutes !== undefined && this.location) {
+                this.scheduleDuskClose(area, now);
+            } else {
+                this.scheduleAction(area.name, 'close', daySchedule.close, now);
+            }
         }
 
         this.scheduleMidnightRecompute(now);
@@ -97,6 +106,37 @@ export class Scheduler {
             );
             return;
         }
+        this.scheduleAt(areaName, action, target, now);
+    }
+
+    private scheduleDuskClose(area: IAreaScheduleConfig, now: Date): void {
+        if (!this.location) {
+            return;
+        }
+        const target = computeDuskTime(
+            now,
+            this.location.latitude,
+            this.location.longitude,
+            area.duskOffsetMinutes ?? 0,
+        );
+        if (!target) {
+            this.adapter.log.warn(
+                `Scheduler: could not compute dusk time for area "${area.name}" at the configured location today - skipping dusk-coupled close.`,
+            );
+            return;
+        }
+        this.scheduleAt(area.name, 'close', target, now);
+    }
+
+    /**
+     * Schedules `onTrigger` to fire at `target`, unless it already lies in the past for today.
+     *
+     * @param areaName - Area name to pass through to `onTrigger`.
+     * @param action - Action to pass through to `onTrigger`.
+     * @param target - Absolute time to fire at.
+     * @param now - Current time, used to decide whether `target` already lies in the past.
+     */
+    private scheduleAt(areaName: string, action: ScheduleAction, target: Date, now: Date): void {
         if (target.getTime() <= now.getTime()) {
             // Already past for today; will apply again from tomorrow's recompute.
             return;

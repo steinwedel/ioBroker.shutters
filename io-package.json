@@ -92,7 +92,10 @@
     "native": {
         "shutters": [],
         "areas": [],
-        "publicHolidayFederalState": ""
+        "publicHolidayFederalState": "",
+        "weather": {},
+        "groups": [],
+        "scenes": []
     },
     "objects": [],
     "instanceObjects": []
