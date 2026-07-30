@@ -7,6 +7,19 @@
             "text": "shuttersHintText",
             "newLine": true
         },
+        "scanForShutters": {
+            "type": "sendTo",
+            "command": "scanForShutters",
+            "jsonData": "{}",
+            "label": "scanButtonLabel",
+            "showProcess": true,
+            "newLine": true
+        },
+        "scanHint": {
+            "type": "staticText",
+            "text": "scanHintText",
+            "newLine": true
+        },
         "shutters": {
             "type": "table",
             "label": "shutters",

@@ -2,6 +2,8 @@
     "shutters adapter settings": "Adapter settings for shutters",
     "shutters": "Coverings",
     "shuttersHintText": "Configure your roller shutters, blinds and awnings here. Auto-discovery and a setup wizard are not implemented yet - enter the id, name, covering type, driver and the relevant foreign state IDs manually for now.",
+    "scanButtonLabel": "Scan for coverings",
+    "scanHintText": "Scans connected adapter instances for foreign states with a covering-related role (level.blind, button.open.blind/button.close.blind/button.stop) and lists candidates in the log and in the \"info.lastScanResult\" state (expert mode) as JSON, ready to copy into the table below. Only candidates usable with the generic drivers are found so far; system-specific drivers (Homematic, KNX, Shelly, Zigbee, ...) are not implemented yet. There is no automatic import into the table yet - copy the relevant fields manually.",
     "id": "ID",
     "name": "Name",
     "coveringType": "Covering type",

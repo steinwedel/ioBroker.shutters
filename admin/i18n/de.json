@@ -2,6 +2,8 @@
     "shutters adapter settings": "Adaptereinstellungen für shutters",
     "shutters": "Behänge",
     "shuttersHintText": "Hier werden Rolläden, Raffstores und Markisen konfiguriert. Autoscan und Einrichtungsassistent sind noch nicht umgesetzt - bitte ID, Name, Behangtyp, System und die relevanten Fremd-State-IDs vorerst manuell eintragen.",
+    "scanButtonLabel": "Nach Rolläden suchen",
+    "scanHintText": "Durchsucht verbundene Adapterinstanzen nach Fremd-States mit einer rolladenbezogenen Rolle (level.blind, button.open.blind/button.close.blind/button.stop) und listet Kandidaten im Log sowie im State \"info.lastScanResult\" (Expertenmodus) als JSON auf, zum Kopieren in die Tabelle unten. Bisher werden nur mit den generischen Drivern nutzbare Kandidaten gefunden; systemspezifische Driver (Homematic, KNX, Shelly, Zigbee, ...) sind noch nicht umgesetzt. Ein automatischer Import in die Tabelle ist noch nicht möglich - die relevanten Felder bitte manuell übertragen.",
     "id": "ID",
     "name": "Name",
     "coveringType": "Behangtyp",

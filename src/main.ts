@@ -9,6 +9,7 @@ import { GroupController } from './lib/group-controller';
 import { HolidayChecker } from './lib/holiday';
 import { Scheduler } from './lib/scheduler';
 import { SceneController } from './lib/scene-manager';
+import { scanForShutters } from './lib/shutter-scanner';
 import { ShutterController } from './lib/shutter-controller';
 import { WeatherSource } from './lib/weather-source';
 
@@ -36,6 +37,7 @@ class Shutters extends utils.Adapter {
         });
         this.on('ready', this.onReady.bind(this));
         this.on('stateChange', this.onStateChange.bind(this));
+        this.on('message', this.onMessage.bind(this));
         this.on('unload', this.onUnload.bind(this));
     }
 
@@ -52,6 +54,19 @@ class Shutters extends utils.Adapter {
                 role: 'indicator.connected',
                 read: true,
                 write: false,
+            },
+            native: {},
+        });
+
+        await this.setObjectNotExistsAsync('info.lastScanResult', {
+            type: 'state',
+            common: {
+                name: 'Result of the last covering auto-discovery scan (JSON)',
+                type: 'string',
+                role: 'json',
+                read: true,
+                write: false,
+                expert: true,
             },
             native: {},
         });
@@ -206,6 +221,64 @@ class Shutters extends utils.Adapter {
             }
             this.automationEngine?.setScheduleTarget(id, targetPercent);
         }
+    }
+
+    /**
+     * Handles `sendTo` messages from the admin UI. Currently only
+     * `scanForShutters` (plan section 2b) is supported: runs the
+     * auto-discovery scan, writes the result to `info.lastScanResult`, logs
+     * a summary and each candidate for manual copy-paste into the
+     * `shutters` table (there is no interactive import wizard yet), and
+     * replies with a short summary the admin UI can display.
+     *
+     * @param obj - Message object as delivered by `js-controller`.
+     */
+    private onMessage(obj: ioBroker.Message): void {
+        if (obj.command !== 'scanForShutters') {
+            return;
+        }
+
+        void this.runShutterScan()
+            .then(result => {
+                if (obj.callback) {
+                    const summary =
+                        result.shutters.length > 0
+                            ? `Found ${result.shutters.length} candidate(s). See info.lastScanResult and the log for details.`
+                            : 'No new coverings found.';
+                    this.sendTo(obj.from, obj.command, { result: summary, errors: result.errors }, obj.callback);
+                }
+            })
+            .catch(err => {
+                this.log.error(`Covering scan failed: ${(err as Error).message}`);
+                if (obj.callback) {
+                    this.sendTo(obj.from, obj.command, { error: (err as Error).message }, obj.callback);
+                }
+            });
+    }
+
+    /** Runs the auto-discovery scan and persists/logs its result; see `onMessage()`. */
+    private async runShutterScan(): Promise<{ shutters: unknown[]; errors: string[] }> {
+        const alreadyConfigured = new Set<string>();
+        for (const shutterConfig of this.config.shutters ?? []) {
+            for (const stateId of Object.values(shutterConfig.states)) {
+                if (stateId) {
+                    alreadyConfigured.add(stateId);
+                }
+            }
+        }
+
+        const result = await scanForShutters(this, alreadyConfigured);
+        await this.setStateAsync('info.lastScanResult', JSON.stringify(result), true);
+
+        this.log.info(`Covering scan found ${result.shutters.length} candidate(s).`);
+        for (const shutter of result.shutters) {
+            this.log.info(`  - ${JSON.stringify(shutter)}`);
+        }
+        for (const error of result.errors) {
+            this.log.warn(`Covering scan error: ${error}`);
+        }
+
+        return result;
     }
 
     /**

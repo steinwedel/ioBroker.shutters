@@ -72,6 +72,7 @@
         "compact": true,
         "connectionType": "local",
         "dataSource": "poll",
+        "messagebox": true,
         "supportedMessages": {
             "custom": true
         },
