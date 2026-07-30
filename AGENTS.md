@@ -22,8 +22,14 @@ Diese Regeln stammen aus dem [ioBroker AI Developer Guide](https://github.com/Je
 
 - **NIE** ein Adapter-Projekt von Grund auf generieren oder von einem anderen Adapter kopieren
 - **IMMER** den offiziellen Adapter Creator verwenden: `npx @iobroker/create-adapter@latest`
-- GitHub-Repo-Name: `ioBroker.irrigation` (großes B)
-- npm-Paketname: `iobroker.irrigation` (lowercase)
+- GitHub-Repo-Name: `ioBroker.shutters` (großes B)
+- npm-Paketname: `iobroker.shutters` (lowercase)
+
+### Repository-Einrichtung (lokal vs. GitHub)
+
+- Enthält `.env` **keine** GitHub-Zugangsdaten (`GITHUB_TOKEN` und `GITHUB_REPO_OWNER` fehlen oder sind leer), wird **nur ein lokales Git-Repository** angelegt (`git init` + initialer Commit im Projektverzeichnis) — **kein** Remote-Repository auf GitHub erstellen oder pushen.
+- Sind in `.env` `GITHUB_TOKEN` und `GITHUB_REPO_OWNER` gesetzt, wird zusätzlich ein Remote-Repository auf GitHub angelegt (per `gh repo create` oder GitHub-API mit dem hinterlegten Token) und der initiale Commit dorthin gepusht (Repo-Name wie oben: `ioBroker.shutters`).
+- Diese Prüfung erfolgt einmalig bei der ersten Repository-Einrichtung des Projekts, nicht bei jedem einzelnen Commit.
 
 ### Objekt-Hierarchie (CRITICAL)
 
