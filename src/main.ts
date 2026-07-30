@@ -8,8 +8,10 @@ import { ShutterController } from './lib/shutter-controller';
 
 class Shutters extends utils.Adapter {
     private readonly controllers = new Map<string, ShutterController>();
-    /** Maps an own state ID (e.g. "shutters.0.shutters.wz.position") to the covering ID that owns it. */
+    /** Maps a full state ID (e.g. "shutters.0.shutters.wz.position") to the covering ID that owns it. */
     private readonly stateIdToCoveringId = new Map<string, string>();
+    /** Periodic driver -> positionActual/positionRaw sync, see `dataSource: poll` in io-package.json. */
+    private positionRefreshTimer: ioBroker.Interval | undefined;
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -63,6 +65,16 @@ class Shutters extends utils.Adapter {
         }
 
         await this.setStateAsync('info.connection', shutterConfigs.length > 0, true);
+
+        // Periodically sync each covering's actual position from its driver,
+        // since not every system pushes changes immediately/reliably.
+        this.positionRefreshTimer = this.setInterval(() => {
+            for (const controller of this.controllers.values()) {
+                controller.refreshPosition().catch(err => {
+                    this.log.warn(`Position refresh failed: ${(err as Error).message}`);
+                });
+            }
+        }, 5000);
     }
 
     /**
@@ -76,8 +88,8 @@ class Shutters extends utils.Adapter {
             return;
         }
 
-        // The state ID passed here is namespace-relative to `<adapter>.<instance>.`,
-        // e.g. "shutters.wz.position", matching what getOwnStateIds() returns.
+        // `id` here is the fully qualified state ID (`<namespace>.<relativeId>`),
+        // matching the keys stored in stateIdToCoveringId above.
         const coveringId = this.stateIdToCoveringId.get(id);
         if (!coveringId) {
             return;
@@ -99,6 +111,9 @@ class Shutters extends utils.Adapter {
      */
     private onUnload(callback: () => void): void {
         try {
+            if (this.positionRefreshTimer) {
+                this.clearInterval(this.positionRefreshTimer);
+            }
             for (const controller of this.controllers.values()) {
                 controller.destroy();
             }

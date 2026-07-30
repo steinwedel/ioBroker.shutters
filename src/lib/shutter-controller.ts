@@ -1,5 +1,6 @@
 import { createDriver } from './drivers/driver-factory';
 import type { IShutterDriver } from './drivers/types';
+import { coveringToRuntime, type ICalibrationPoint, normalizeCurve, runtimeToCovering } from './position-mapping';
 import type { IShutterConfig } from './types';
 
 /**
@@ -11,6 +12,7 @@ import type { IShutterConfig } from './types';
 export class ShutterController {
     private readonly driver: IShutterDriver;
     private readonly basePath: string;
+    private readonly curve: ICalibrationPoint[];
 
     /**
      * @param adapter - Adapter instance, used for state/object access.
@@ -22,6 +24,7 @@ export class ShutterController {
     ) {
         this.basePath = `shutters.${config.id}`;
         this.driver = createDriver(adapter, config);
+        this.curve = normalizeCurve(config.calibrationCurve);
     }
 
     /** Creates/updates all objects for this covering. Safe to call repeatedly (uses setObjectNotExists). */
@@ -64,6 +67,22 @@ export class ShutterController {
             native: {},
         });
 
+        await adapter.setObjectNotExistsAsync(`${basePath}.positionRaw`, {
+            type: 'state',
+            common: {
+                name: `${config.name} - raw motor runtime`,
+                type: 'number',
+                role: 'value',
+                unit: '%',
+                min: 0,
+                max: 100,
+                read: true,
+                write: false,
+                expert: true,
+            },
+            native: {},
+        });
+
         await adapter.setObjectNotExistsAsync(`${basePath}.open`, {
             type: 'state',
             common: {
@@ -94,6 +113,19 @@ export class ShutterController {
             native: {},
         });
 
+        await adapter.setObjectNotExistsAsync(`${basePath}.calibrate`, {
+            type: 'state',
+            common: {
+                name: `${config.name} - start guided calibration run`,
+                type: 'boolean',
+                role: 'button',
+                read: true,
+                write: true,
+                expert: true,
+            },
+            native: {},
+        });
+
         await adapter.setObjectNotExistsAsync(`${basePath}.automationEnabled`, {
             type: 'state',
             common: {
@@ -121,10 +153,7 @@ export class ShutterController {
         await adapter.setStateAsync(`${basePath}.automationEnabled`, config.automationEnabled, true);
         await adapter.setStateAsync(`${basePath}.statusText`, 'Idle', true);
 
-        const currentPosition = this.driver.getCurrentPosition();
-        if (currentPosition !== undefined) {
-            await adapter.setStateAsync(`${basePath}.positionActual`, currentPosition, true);
-        }
+        await this.refreshPosition();
     }
 
     /** IDs of the own states this controller reacts to; use with `adapter.subscribeStates`. */
@@ -134,6 +163,7 @@ export class ShutterController {
             `${this.basePath}.open`,
             `${this.basePath}.close`,
             `${this.basePath}.stop`,
+            `${this.basePath}.calibrate`,
         ];
     }
 
@@ -150,25 +180,55 @@ export class ShutterController {
         }
 
         switch (id) {
-            case `${this.basePath}.position`:
-                await this.driver.setPosition(Number(state.val));
-                await this.acknowledge('position', state.val);
+            case `${this.basePath}.position`: {
+                const coveringPercent = Number(state.val);
+                await this.driver.setPosition(coveringToRuntime(coveringPercent, this.curve));
+                await this.acknowledge('position', coveringPercent);
+                await this.refreshPosition();
                 return true;
+            }
             case `${this.basePath}.open`:
                 await this.driver.open();
                 await this.acknowledge('open', false);
+                await this.refreshPosition();
                 return true;
             case `${this.basePath}.close`:
                 await this.driver.close();
                 await this.acknowledge('close', false);
+                await this.refreshPosition();
                 return true;
             case `${this.basePath}.stop`:
                 await this.driver.stop();
                 await this.acknowledge('stop', false);
                 return true;
+            case `${this.basePath}.calibrate`:
+                await this.acknowledge('calibrate', false);
+                this.adapter.log.warn(
+                    `Covering "${this.config.id}": guided calibration run is not implemented yet - configure calibrationCurve manually for now.`,
+                );
+                return true;
             default:
                 return false;
         }
+    }
+
+    /**
+     * Re-reads the driver's actual position (if it reports one) and updates
+     * `positionRaw`/`positionActual` accordingly. Drivers without position
+     * feedback (e.g. generic-relay) leave these states at their last known
+     * value.
+     */
+    public async refreshPosition(): Promise<void> {
+        const runtimePercent = this.driver.getCurrentPosition();
+        if (runtimePercent === undefined) {
+            return;
+        }
+        await this.adapter.setStateChangedAsync(`${this.basePath}.positionRaw`, runtimePercent, true);
+        await this.adapter.setStateChangedAsync(
+            `${this.basePath}.positionActual`,
+            runtimeToCovering(runtimePercent, this.curve),
+            true,
+        );
     }
 
     /** Releases the driver's subscriptions. Call on adapter unload. */

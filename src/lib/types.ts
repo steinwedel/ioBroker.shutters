@@ -4,6 +4,8 @@
  * See plans/shutters-adapter-plan.md for the full design.
  */
 
+import type { ICalibrationPoint } from './position-mapping';
+
 /** Which physical system controls a covering. Additional systems are added here without touching automation logic. */
 export type DriverType =
     | 'homematic'
@@ -42,6 +44,12 @@ export interface IShutterConfig {
     orientation?: number;
     /** Whether this covering participates in automated control at all. */
     automationEnabled: boolean;
+    /**
+     * Calibration curve mapping covering height/extension (%) to motor
+     * runtime (%), see position-mapping.ts. Undefined/too short falls back
+     * to a 1:1 identity curve (no calibration needed).
+     */
+    calibrationCurve?: ICalibrationPoint[];
     /** Foreign state IDs used by the driver. Which keys are relevant depends on `driverType`. */
     states: Record<string, string | undefined>;
 }
