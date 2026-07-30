@@ -1,0 +1,23 @@
+{
+    "shutters adapter settings": "Adapter settings for shutters",
+    "shutters": "Coverings",
+    "shuttersHintText": "Configure your roller shutters, blinds and awnings here. Auto-discovery and a setup wizard are not implemented yet - enter the id, name, covering type, driver and the relevant foreign state IDs manually for now.",
+    "id": "ID",
+    "name": "Name",
+    "coveringType": "Covering type",
+    "coveringTypeRolladen": "Roller shutter",
+    "coveringTypeRaffstore": "External venetian blind",
+    "coveringTypeMarkise": "Awning",
+    "coveringTypeLamellen": "Vertical lamella blind",
+    "driverType": "System",
+    "driverTypeGenericPosition": "Generic (position state)",
+    "driverTypeGenericRelay": "Generic (open/close relay)",
+    "area": "Area",
+    "orientation": "Orientation (°)",
+    "automationEnabled": "Automation enabled",
+    "statePosition": "Position state ID",
+    "statePositionActual": "Actual position state ID",
+    "stateOpen": "Open state ID",
+    "stateClose": "Close state ID",
+    "stateStop": "Stop state ID"
+}

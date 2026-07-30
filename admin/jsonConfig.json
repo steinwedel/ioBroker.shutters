@@ -1,0 +1,55 @@
+{
+    "i18n": true,
+    "type": "panel",
+    "items": {
+        "shuttersHint": {
+            "type": "staticText",
+            "text": "shuttersHintText",
+            "newLine": true
+        },
+        "shutters": {
+            "type": "table",
+            "label": "shutters",
+            "newLine": true,
+            "xs": 12,
+            "sm": 12,
+            "md": 12,
+            "lg": 12,
+            "xl": 12,
+            "items": [
+                { "type": "text", "attr": "id", "title": "id", "width": "10%" },
+                { "type": "text", "attr": "name", "title": "name", "width": "20%" },
+                {
+                    "type": "select",
+                    "attr": "coveringType",
+                    "title": "coveringType",
+                    "width": "15%",
+                    "options": [
+                        { "label": "coveringTypeRolladen", "value": "rolladen" },
+                        { "label": "coveringTypeRaffstore", "value": "raffstore" },
+                        { "label": "coveringTypeMarkise", "value": "markise" },
+                        { "label": "coveringTypeLamellen", "value": "lamellen" }
+                    ]
+                },
+                {
+                    "type": "select",
+                    "attr": "driverType",
+                    "title": "driverType",
+                    "width": "15%",
+                    "options": [
+                        { "label": "driverTypeGenericPosition", "value": "generic-position" },
+                        { "label": "driverTypeGenericRelay", "value": "generic-relay" }
+                    ]
+                },
+                { "type": "text", "attr": "area", "title": "area", "width": "10%" },
+                { "type": "number", "attr": "orientation", "title": "orientation", "width": "10%" },
+                { "type": "checkbox", "attr": "automationEnabled", "title": "automationEnabled", "width": "5%" },
+                { "type": "text", "attr": "states.position", "title": "statePosition", "width": "15%" },
+                { "type": "text", "attr": "states.positionActual", "title": "statePositionActual", "width": "15%" },
+                { "type": "text", "attr": "states.open", "title": "stateOpen", "width": "15%" },
+                { "type": "text", "attr": "states.close", "title": "stateClose", "width": "15%" },
+                { "type": "text", "attr": "states.stop", "title": "stateStop", "width": "15%" }
+            ]
+        }
+    }
+}

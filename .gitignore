@@ -1,0 +1,22 @@
+# No dot-directories except github/vscode
+.*/
+!.vscode/
+!.github/
+
+# Zugangsdaten für den Deploy auf den echten ioBroker-Server (siehe .env)
+.env
+
+*.code-workspace
+node_modules
+nbproject
+build
+
+# npm package files
+iobroker.*.tgz
+
+Thumbs.db
+.commitinfo
+
+# i18n intermediate files
+admin/i18n/flat.txt
+admin/i18n/*/flat.txt

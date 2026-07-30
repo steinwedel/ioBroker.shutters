@@ -1,0 +1,116 @@
+# ioBroker.shutters
+
+[![NPM version](https://img.shields.io/npm/v/iobroker.shutters.svg)](https://www.npmjs.com/package/iobroker.shutters)
+[![Downloads](https://img.shields.io/npm/dm/iobroker.shutters.svg)](https://www.npmjs.com/package/iobroker.shutters)
+![Number of Installations](https://iobroker.live/badges/shutters-installed.svg)
+![Current version in stable repository](https://iobroker.live/badges/shutters-stable.svg)
+
+[![NPM](https://nodei.co/npm/iobroker.shutters.png?downloads=true)](https://nodei.co/npm/iobroker.shutters/)
+
+**Tests:** ![Test and Release](https://github.com/steinwedel/ioBroker.shutters/workflows/Test%20and%20Release/badge.svg)
+
+## shutters adapter for ioBroker
+
+Unified control and automation for roller shutters, external venetian blinds, awnings and vertical lamella blinds, across multiple smart home systems.
+
+### Features
+
+- **One control interface for many systems** — Homematic (CCU and Homematic IP), KNX, Shelly, Zigbee (`ioBroker.zigbee` and `ioBroker.zigbee2mqtt`), Tuya, Somfy, Velux, EnOcean, Velbus, Loxone, Homey, generic MQTT covers and generic relay/position outputs are all controlled through the same set of states — mix and match systems freely, even within the same group.
+- **Auto-discovery** — scans the object tree of connected adapter instances to find existing shutters/blinds/awnings automatically and suggests them for import instead of requiring every state ID to be entered by hand.
+- **Multiple covering types** — Roller shutter, external venetian blind (with slat tilt), awning and vertical lamella blind are each handled with the correct movement/safety logic for that type (e.g. an awning must retract in wind, not extend, unlike a roller shutter).
+- **Height-to-runtime calibration** — a configurable calibration curve compensates for coverings where covering height is not proportional to motor runtime, with a guided calibration run.
+- **Daily schedule** — automatic opening/closing per area, with separate times for weekdays, weekends and public holidays, optional calendar (iCal) override for individual days, and dusk/dawn-based timing with a configurable offset.
+- **Sun protection** — automatically lowers coverings to a configurable intermediate position on hot, sunny days within a configurable time window, with flicker-free behavior when clouds pass by. An optional geometry-based mode (window orientation and sun position) is available for coverings without a fixed sun-facing time window.
+- **Rain protection** — closes coverings automatically when rain is detected.
+- **Storm/wind protection** — immediately moves coverings to their safe position when wind speed exceeds a configurable limit, overriding every other rule; can be enabled/disabled per covering since wind relevance depends heavily on the covering type.
+- **Frost protection** — pauses automated movement during freezing, damp conditions to avoid ice damage, can be enabled/disabled per covering.
+- **Door contact protection** — prevents a shutter above a terrace/balcony door from closing automatically while the door is open; manual commands are never blocked.
+- **Summer night cooling** — optionally keeps coverings open overnight when it is warm inside and cooler outside, to help rooms cool down (opt-in, disabled by default).
+- **Manual override awareness** — a manual command issued while sun protection is active suspends sun protection for that covering until midnight, so it does not immediately re-close after you open it.
+- **Weather data with fallback** — uses your own weather station if configured; any missing weather value (solar radiation, wind, rain, temperature, forecast) can optionally be fetched from a free external weather service, so the adapter works even without your own weather station.
+- **Groups** — combine any number of coverings, even from different systems, into a group with combined open/close/position control.
+- **Human-readable status per covering** — always shows in plain language why a covering is in its current position (schedule, sun protection, wind protection, etc.).
+- **Notifications** — optional alerts (e.g. via Pushover/Telegram) for a covering that stops responding, or when storm protection activates.
+
+### Covering types
+
+| Type | Typical use |
+|---|---|
+| Roller shutter | Standard exterior roller shutter |
+| External venetian blind (Raffstore) | Height + slat tilt |
+| Awning | Extension length instead of height; safe direction is retracted, not extended |
+| Vertical lamella blind | Horizontal travel + slat rotation, usually indoor, wind/rain protection typically not applicable |
+
+---
+
+## Quick Start
+
+1. **Add your coverings** — open the covering configuration and click **Scan** to auto-discover connected shutters/blinds/awnings, or add one manually by entering its covering type and the relevant state IDs.
+2. **Set a schedule** — configure opening and closing times per area (or accept the defaults).
+3. Save. The adapter immediately opens/closes coverings on schedule; sun, rain, wind and frost protection use sensible default thresholds and can be fine-tuned later.
+
+Advanced settings (calibration, sun/wind/frost protection thresholds, groups, scenes) are optional and can be configured later — the adapter works with sensible defaults right after the initial scan.
+
+---
+
+## Configuration Overview
+
+### Coverings
+
+Each covering is configured with:
+
+- A display name and area/zone.
+- A covering type (roller shutter, external venetian blind, awning, vertical lamella blind).
+- The connected system (driver) and the relevant state IDs — filled in automatically by the scan, or entered manually.
+- Optional window orientation, used by sun protection.
+- Optional calibration curve, if covering height is not proportional to motor runtime.
+- Optional protection toggles (wind, frost, night cooling), each enabled/disabled per covering with sensible defaults based on the covering type.
+
+### Areas / Zones
+
+Each area has its own opening/closing schedule (weekday, weekend, public holiday), an optional dusk/dawn offset, and an optional calendar (iCal) integration.
+
+### Sun / Rain / Wind / Frost Protection
+
+Global and per-covering thresholds control when each protection function activates. All protections work with sensible built-in defaults; no configuration is required to get useful behavior out of the box.
+
+### Groups
+
+Group multiple coverings — even from different connected systems — for combined control (e.g. "all shutters downstairs").
+
+### Weather Data
+
+Configure your own weather station states where available. Any weather value that is not configured can optionally be retrieved from a free external weather service instead, without requiring an API key.
+
+---
+
+## Known limitations
+
+- Auto-discovery is best-effort and depends on the connected adapter using standard object roles; unusual third-party device setups may need to be added manually.
+- Systems without a position feedback (e.g. simple open/close/stop relays) estimate the current position from runtime rather than a real sensor value.
+
+## Changelog
+See [CHANGELOG.md](CHANGELOG.md)
+
+## License
+MIT License
+
+Copyright (c) 2026 Gerhard Steinwedel <dev@steinwedel.de>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

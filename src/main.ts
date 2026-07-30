@@ -1,0 +1,119 @@
+/*
+ * ioBroker Shutters Adapter
+ * See plans/shutters-adapter-plan.md for the full design.
+ */
+
+import * as utils from '@iobroker/adapter-core';
+import { ShutterController } from './lib/shutter-controller';
+
+class Shutters extends utils.Adapter {
+    private readonly controllers = new Map<string, ShutterController>();
+    /** Maps an own state ID (e.g. "shutters.0.shutters.wz.position") to the covering ID that owns it. */
+    private readonly stateIdToCoveringId = new Map<string, string>();
+
+    public constructor(options: Partial<utils.AdapterOptions> = {}) {
+        super({
+            ...options,
+            name: 'shutters',
+        });
+        this.on('ready', this.onReady.bind(this));
+        this.on('stateChange', this.onStateChange.bind(this));
+        this.on('unload', this.onUnload.bind(this));
+    }
+
+    /**
+     * Is called when databases are connected and adapter received configuration.
+     */
+    private async onReady(): Promise<void> {
+        await this.setObjectNotExistsAsync('info', { type: 'channel', common: { name: 'Information' }, native: {} });
+        await this.setObjectNotExistsAsync('info.connection', {
+            type: 'state',
+            common: {
+                name: 'Connected to all configured systems',
+                type: 'boolean',
+                role: 'indicator.connected',
+                read: true,
+                write: false,
+            },
+            native: {},
+        });
+
+        const shutterConfigs = this.config.shutters ?? [];
+        const idsToSubscribe: string[] = [];
+
+        for (const shutterConfig of shutterConfigs) {
+            try {
+                const controller = new ShutterController(this, shutterConfig);
+                await controller.createObjects();
+                this.controllers.set(shutterConfig.id, controller);
+
+                for (const ownStateId of controller.getOwnStateIds()) {
+                    this.stateIdToCoveringId.set(`${this.namespace}.${ownStateId}`, shutterConfig.id);
+                    idsToSubscribe.push(ownStateId);
+                }
+            } catch (err) {
+                // A single misconfigured covering must not prevent the rest of
+                // the adapter from starting up (plan section: startup validation).
+                this.log.error(`Skipping covering "${shutterConfig.id}": ${(err as Error).message}`);
+            }
+        }
+
+        for (const stateId of idsToSubscribe) {
+            this.subscribeStates(stateId);
+        }
+
+        await this.setStateAsync('info.connection', shutterConfigs.length > 0, true);
+    }
+
+    /**
+     * Is called if a subscribed state changes.
+     *
+     * @param id - State ID
+     * @param state - State object
+     */
+    private onStateChange(id: string, state: ioBroker.State | null | undefined): void {
+        if (!state) {
+            return;
+        }
+
+        // The state ID passed here is namespace-relative to `<adapter>.<instance>.`,
+        // e.g. "shutters.wz.position", matching what getOwnStateIds() returns.
+        const coveringId = this.stateIdToCoveringId.get(id);
+        if (!coveringId) {
+            return;
+        }
+
+        const controller = this.controllers.get(coveringId);
+        // ShutterController compares against the relative state IDs it created
+        // itself (see getOwnStateIds()), so strip the "<namespace>." prefix here.
+        const relativeId = id.startsWith(`${this.namespace}.`) ? id.slice(this.namespace.length + 1) : id;
+        controller?.handleStateChange(relativeId, state).catch(err => {
+            this.log.error(`Error handling state change for "${id}": ${(err as Error).message}`);
+        });
+    }
+
+    /**
+     * Is called when adapter shuts down - callback has to be called under any circumstances!
+     *
+     * @param callback - Callback function
+     */
+    private onUnload(callback: () => void): void {
+        try {
+            for (const controller of this.controllers.values()) {
+                controller.destroy();
+            }
+            callback();
+        } catch (error) {
+            this.log.error(`Error during unloading: ${(error as Error).message}`);
+            callback();
+        }
+    }
+}
+
+if (require.main !== module) {
+    // Export the constructor in compact mode
+    module.exports = (options: Partial<utils.AdapterOptions> | undefined) => new Shutters(options);
+} else {
+    // otherwise start the instance directly
+    (() => new Shutters())();
+}

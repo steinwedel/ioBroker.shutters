@@ -1,0 +1,23 @@
+{
+    "shutters adapter settings": "Adaptereinstellungen für shutters",
+    "shutters": "Behänge",
+    "shuttersHintText": "Hier werden Rolläden, Raffstores und Markisen konfiguriert. Autoscan und Einrichtungsassistent sind noch nicht umgesetzt - bitte ID, Name, Behangtyp, System und die relevanten Fremd-State-IDs vorerst manuell eintragen.",
+    "id": "ID",
+    "name": "Name",
+    "coveringType": "Behangtyp",
+    "coveringTypeRolladen": "Rolladen",
+    "coveringTypeRaffstore": "Raffstore",
+    "coveringTypeMarkise": "Markise",
+    "coveringTypeLamellen": "Lamellenvorhang",
+    "driverType": "System",
+    "driverTypeGenericPosition": "Generisch (Positions-State)",
+    "driverTypeGenericRelay": "Generisch (Auf/Zu-Relais)",
+    "area": "Bereich",
+    "orientation": "Ausrichtung (°)",
+    "automationEnabled": "Automatik aktiviert",
+    "statePosition": "Positions-State-ID",
+    "statePositionActual": "Ist-Positions-State-ID",
+    "stateOpen": "Auf-State-ID",
+    "stateClose": "Zu-State-ID",
+    "stateStop": "Stopp-State-ID"
+}
