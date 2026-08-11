@@ -103,6 +103,56 @@ function findStopSibling(positionStateId: string, objectsById: Map<string, ioBro
 }
 
 /**
+ * German label used for the Homematic/CCU "Gewerk" (function/`enum.functions.*`
+ * category) that groups shutter/blind actuators - typically named
+ * "Verschluss" in German CCU/ioBroker setups. Devices tagged with this
+ * function are proposed as Homematic candidates even if their `LEVEL`
+ * state is missing the `level.blind` role (plan: Homematic detection via
+ * `enum.functions.*`, analogous to the irrigation adapter's valve
+ * detection).
+ */
+const HOMEMATIC_SHUTTER_FUNCTION_NAME = 'verschluss';
+
+/** Minimal shape read from `enum.functions.*` objects - `@iobroker/types` does not model enum objects' `common.members`. */
+interface IFunctionEnumObject {
+    common?: { name?: ioBroker.StateCommon['name']; members?: string[] };
+}
+
+/**
+ * Finds all `enum.functions.*` members belonging to a function named
+ * "Verschluss" (case-insensitive, any language), for the Homematic
+ * Gewerk-based detection described above. Errors are swallowed and logged
+ * to `errors` rather than aborting the whole scan, since this is a
+ * best-effort enhancement on top of the role-based detection.
+ *
+ * @param adapter - Adapter instance, used for object access.
+ * @param errors - Collected scan errors; a fetch failure here is appended instead of thrown.
+ */
+async function findHomematicShutterFunctionMembers(adapter: ioBroker.Adapter, errors: string[]): Promise<Set<string>> {
+    const members = new Set<string>();
+    try {
+        const enums = (await adapter.getForeignObjectsAsync('enum.functions.*')) as unknown as Record<
+            string,
+            IFunctionEnumObject | undefined
+        >;
+
+        for (const enumObj of Object.values(enums)) {
+            const name = resolveName(enumObj?.common?.name, '');
+            if (name.toLowerCase() !== HOMEMATIC_SHUTTER_FUNCTION_NAME) {
+                continue;
+            }
+            for (const member of enumObj?.common?.members ?? []) {
+                members.add(member);
+            }
+        }
+    } catch (err) {
+        errors.push(`"Verschluss" function scan failed: ${(err as Error).message}`);
+    }
+
+    return members;
+}
+
+/**
  * Derives a stable, valid `IShutterConfig.id` from a foreign state ID.
  *
  * @param stateId - Full foreign state ID to derive an ID from.
@@ -115,7 +165,7 @@ function deriveCoveringId(stateId: string): string {
  * @param name - `common.name`, which may be a plain string or a per-language object.
  * @param fallback - Value to use if `name` is empty/not resolvable.
  */
-function resolveName(name: ioBroker.StateCommon['name'], fallback: string): string {
+function resolveName(name: ioBroker.StateCommon['name'] | undefined, fallback: string): string {
     if (typeof name === 'string' && name.trim()) {
         return name;
     }
@@ -197,6 +247,44 @@ export async function scanForShutters(
                 entry.name ??= resolveName(obj.common.name, parentId);
                 relayCandidatesByParent.set(parentId, entry);
             }
+        }
+
+        // Homematic "Verschluss" Gewerk pass: some CCU/hm-rpc setups tag
+        // shutter/blind channels with the "Verschluss" function instead of
+        // (or in addition to) a `level.blind` role on the LEVEL state. Catch
+        // those here so they are not missed by the role-based pass above.
+        const shutterFunctionMembers = await findHomematicShutterFunctionMembers(adapter, errors);
+        for (const member of shutterFunctionMembers) {
+            const adapterName = member.split('.')[0] ?? '';
+            if (!(adapterName === 'hm-rpc' || adapterName === 'hm-rega')) {
+                continue; // "Verschluss" Gewerk lookup only implemented for Homematic so far.
+            }
+            const levelStateId = `${member}.LEVEL`;
+            if (!objectsById.has(levelStateId)) {
+                continue;
+            }
+            if (isForbidden(levelStateId, adapter.namespace) || alreadyConfiguredStateIds.has(levelStateId)) {
+                continue;
+            }
+            const coveringId = deriveCoveringId(levelStateId);
+            if (seenCoveringIds.has(coveringId)) {
+                continue; // Already found via the role-based pass above.
+            }
+            seenCoveringIds.add(coveringId);
+            const levelObj = objectsById.get(levelStateId);
+            const stopStateId = findStopSibling(levelStateId, objectsById);
+            const states: Record<string, string> = { position: levelStateId, positionActual: levelStateId };
+            if (stopStateId) {
+                states.stop = stopStateId;
+            }
+            shutters.push({
+                id: coveringId,
+                name: resolveName(levelObj?.common.name, coveringId),
+                driverType: 'homematic',
+                coveringType: 'rolladen',
+                automationEnabled: true,
+                states,
+            });
         }
 
         for (const [parentId, entry] of relayCandidatesByParent) {

@@ -7,16 +7,24 @@ interface IFakeRow {
     value: { type: 'state'; common: Partial<ioBroker.StateCommon> };
 }
 
+/** Fake `enum.functions.*` object, loosely typed for the `IFunctionEnumObject` shape actually read. */
+interface IFakeFunctionEnum {
+    common: { name?: ioBroker.StateCommon['name']; members?: string[] };
+}
+
 /**
  * Minimal fake adapter exposing only what `scanForShutters()` needs.
  *
  * @param rows - Fake object-view rows to return from `getObjectViewAsync()`.
+ * @param functionEnums - Fake `enum.functions.*` objects to return from `getForeignObjectsAsync()`; defaults to none.
  */
-function createFakeAdapter(rows: IFakeRow[]): ioBroker.Adapter {
+function createFakeAdapter(rows: IFakeRow[], functionEnums: Record<string, IFakeFunctionEnum> = {}): ioBroker.Adapter {
     return {
         namespace: 'shutters.0',
         // eslint-disable-next-line @typescript-eslint/require-await -- intentionally synchronous test double for an async adapter method
         getObjectViewAsync: async () => ({ rows }),
+        // eslint-disable-next-line @typescript-eslint/require-await -- intentionally synchronous test double for an async adapter method
+        getForeignObjectsAsync: async () => functionEnums,
     } as unknown as ioBroker.Adapter;
 }
 
@@ -66,6 +74,63 @@ describe('shutter-scanner', () => {
 
         expect(result.shutters).to.have.lengthOf(1);
         expect(result.shutters[0].states).to.not.have.property('stop');
+    });
+
+    it('proposes a homematic candidate for a "Verschluss" Gewerk member even without a level.blind role', async () => {
+        const adapter = createFakeAdapter(
+            [
+                { id: 'hm-rpc.0.ABC.1.LEVEL', value: { type: 'state', common: { name: 'Rolladen' } } },
+                { id: 'hm-rpc.0.ABC.1.STOP', value: { type: 'state', common: { role: 'button.stop' } } },
+            ],
+            {
+                'enum.functions.shutters': { common: { name: 'Verschluss', members: ['hm-rpc.0.ABC.1'] } },
+            },
+        );
+
+        const result = await scanForShutters(adapter, new Set());
+
+        expect(result.shutters).to.have.lengthOf(1);
+        expect(result.shutters[0]).to.include({ driverType: 'homematic' });
+        expect(result.shutters[0].states).to.deep.equal({
+            position: 'hm-rpc.0.ABC.1.LEVEL',
+            positionActual: 'hm-rpc.0.ABC.1.LEVEL',
+            stop: 'hm-rpc.0.ABC.1.STOP',
+        });
+    });
+
+    it('matches the "Verschluss" Gewerk name case-insensitively and ignores unrelated functions', async () => {
+        const adapter = createFakeAdapter([{ id: 'hm-rpc.0.DEF.1.LEVEL', value: { type: 'state', common: {} } }], {
+            'enum.functions.lighting': { common: { name: 'Licht', members: ['hm-rpc.0.OTHER.1'] } },
+            'enum.functions.shutters': { common: { name: 'VERSCHLUSS', members: ['hm-rpc.0.DEF.1'] } },
+        });
+
+        const result = await scanForShutters(adapter, new Set());
+
+        expect(result.shutters).to.have.lengthOf(1);
+        expect(result.shutters[0].states.position).to.equal('hm-rpc.0.DEF.1.LEVEL');
+    });
+
+    it('ignores "Verschluss" Gewerk members without a LEVEL state or from a non-Homematic adapter', async () => {
+        const adapter = createFakeAdapter([{ id: 'knx.0.somestate', value: { type: 'state', common: {} } }], {
+            'enum.functions.shutters': {
+                common: { name: 'Verschluss', members: ['hm-rpc.0.NOLEVEL.1', 'knx.0.somestate'] },
+            },
+        });
+
+        const result = await scanForShutters(adapter, new Set());
+
+        expect(result.shutters).to.have.lengthOf(0);
+    });
+
+    it('does not duplicate a candidate already found via the level.blind role in the "Verschluss" Gewerk', async () => {
+        const adapter = createFakeAdapter(
+            [{ id: 'hm-rpc.0.ABC.1.LEVEL', value: { type: 'state', common: { role: 'level.blind', write: true } } }],
+            { 'enum.functions.shutters': { common: { name: 'Verschluss', members: ['hm-rpc.0.ABC.1'] } } },
+        );
+
+        const result = await scanForShutters(adapter, new Set());
+
+        expect(result.shutters).to.have.lengthOf(1);
     });
 
     it('proposes a knx candidate for a knx-namespaced level.blind state', async () => {
