@@ -131,7 +131,9 @@ interface IFunctionEnumObject {
 async function findHomematicShutterFunctionMembers(adapter: ioBroker.Adapter, errors: string[]): Promise<Set<string>> {
     const members = new Set<string>();
     try {
-        const enums = (await adapter.getForeignObjectsAsync('enum.functions.*')) as unknown as Record<
+        // The `type` argument is required here: without it, `getForeignObjectsAsync`
+        // defaults to type "state" and would never return `enum` objects.
+        const enums = (await adapter.getForeignObjectsAsync('enum.functions.*', 'enum')) as unknown as Record<
             string,
             IFunctionEnumObject | undefined
         >;

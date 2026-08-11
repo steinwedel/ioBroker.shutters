@@ -17,14 +17,22 @@ interface IFakeFunctionEnum {
  *
  * @param rows - Fake object-view rows to return from `getObjectViewAsync()`.
  * @param functionEnums - Fake `enum.functions.*` objects to return from `getForeignObjectsAsync()`; defaults to none.
+ * @param getForeignObjectsAsyncCalls - If provided, every `getForeignObjectsAsync()` call's arguments are appended here.
  */
-function createFakeAdapter(rows: IFakeRow[], functionEnums: Record<string, IFakeFunctionEnum> = {}): ioBroker.Adapter {
+function createFakeAdapter(
+    rows: IFakeRow[],
+    functionEnums: Record<string, IFakeFunctionEnum> = {},
+    getForeignObjectsAsyncCalls?: unknown[][],
+): ioBroker.Adapter {
     return {
         namespace: 'shutters.0',
         // eslint-disable-next-line @typescript-eslint/require-await -- intentionally synchronous test double for an async adapter method
         getObjectViewAsync: async () => ({ rows }),
         // eslint-disable-next-line @typescript-eslint/require-await -- intentionally synchronous test double for an async adapter method
-        getForeignObjectsAsync: async () => functionEnums,
+        getForeignObjectsAsync: async (...args: unknown[]) => {
+            getForeignObjectsAsyncCalls?.push(args);
+            return functionEnums;
+        },
     } as unknown as ioBroker.Adapter;
 }
 
@@ -240,6 +248,20 @@ describe('shutter-scanner', () => {
         const result = await scanForShutters(adapter, new Set());
 
         expect(result.shutters).to.have.lengthOf(0);
+    });
+
+    it('requests enum.functions.* with the "enum" object type (regression: omitting it defaults to type "state" and returns no enums)', async () => {
+        const calls: unknown[][] = [];
+        const adapter = createFakeAdapter(
+            [],
+            { 'enum.functions.shutters': { common: { name: 'Verschluss', members: [] } } },
+            calls,
+        );
+
+        await scanForShutters(adapter, new Set());
+
+        expect(calls).to.have.lengthOf(1);
+        expect(calls[0]).to.deep.equal(['enum.functions.*', 'enum']);
     });
 
     it('reports scan errors instead of throwing', async () => {
