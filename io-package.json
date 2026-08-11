@@ -77,7 +77,7 @@
             "custom": true
         },
         "adminUI": {
-            "config": "html"
+            "config": "materialize"
         },
         "dependencies": [
             {
