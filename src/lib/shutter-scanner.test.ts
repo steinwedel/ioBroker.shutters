@@ -21,10 +21,10 @@ function createFakeAdapter(rows: IFakeRow[]): ioBroker.Adapter {
 }
 
 describe('shutter-scanner', () => {
-    it('proposes a generic-position candidate for a writable level.blind state', async () => {
+    it('proposes a generic-position candidate for a writable level.blind state on an unrecognized adapter', async () => {
         const adapter = createFakeAdapter([
             {
-                id: 'knx.0.livingroom.shutter_position',
+                id: 'mqtt.0.livingroom.shutter_position',
                 value: { type: 'state', common: { name: 'Living room shutter', role: 'level.blind', write: true } },
             },
         ]);
@@ -35,9 +35,81 @@ describe('shutter-scanner', () => {
         expect(result.shutters).to.have.lengthOf(1);
         expect(result.shutters[0]).to.include({ driverType: 'generic-position', coveringType: 'rolladen' });
         expect(result.shutters[0].states).to.deep.equal({
-            position: 'knx.0.livingroom.shutter_position',
-            positionActual: 'knx.0.livingroom.shutter_position',
+            position: 'mqtt.0.livingroom.shutter_position',
+            positionActual: 'mqtt.0.livingroom.shutter_position',
         });
+    });
+
+    it('proposes a homematic candidate with its STOP sibling for a hm-rpc LEVEL state', async () => {
+        const adapter = createFakeAdapter([
+            { id: 'hm-rpc.0.ABC.1.LEVEL', value: { type: 'state', common: { role: 'level.blind', write: true } } },
+            { id: 'hm-rpc.0.ABC.1.STOP', value: { type: 'state', common: { role: 'button.stop' } } },
+        ]);
+
+        const result = await scanForShutters(adapter, new Set());
+
+        expect(result.shutters).to.have.lengthOf(1);
+        expect(result.shutters[0]).to.include({ driverType: 'homematic' });
+        expect(result.shutters[0].states).to.deep.equal({
+            position: 'hm-rpc.0.ABC.1.LEVEL',
+            positionActual: 'hm-rpc.0.ABC.1.LEVEL',
+            stop: 'hm-rpc.0.ABC.1.STOP',
+        });
+    });
+
+    it('proposes a homematic candidate without a stop state if no STOP sibling exists', async () => {
+        const adapter = createFakeAdapter([
+            { id: 'hm-rpc.0.ABC.1.LEVEL', value: { type: 'state', common: { role: 'level.blind', write: true } } },
+        ]);
+
+        const result = await scanForShutters(adapter, new Set());
+
+        expect(result.shutters).to.have.lengthOf(1);
+        expect(result.shutters[0].states).to.not.have.property('stop');
+    });
+
+    it('proposes a knx candidate for a knx-namespaced level.blind state', async () => {
+        const adapter = createFakeAdapter([
+            {
+                id: 'knx.0.livingroom.shutter_position',
+                value: { type: 'state', common: { role: 'level.blind', write: true } },
+            },
+        ]);
+
+        const result = await scanForShutters(adapter, new Set());
+
+        expect(result.shutters).to.have.lengthOf(1);
+        expect(result.shutters[0]).to.include({ driverType: 'knx' });
+    });
+
+    it('proposes a shelly candidate for a shelly-namespaced level.blind state', async () => {
+        const adapter = createFakeAdapter([
+            {
+                id: 'shelly.0.SHSW-25.Cover.Pos',
+                value: { type: 'state', common: { role: 'level.blind', write: true } },
+            },
+        ]);
+
+        const result = await scanForShutters(adapter, new Set());
+
+        expect(result.shutters).to.have.lengthOf(1);
+        expect(result.shutters[0]).to.include({ driverType: 'shelly' });
+    });
+
+    it('proposes zigbee/zigbee2mqtt candidates for their respective namespaces', async () => {
+        const adapter = createFakeAdapter([
+            { id: 'zigbee.0.device1.position', value: { type: 'state', common: { role: 'level.blind', write: true } } },
+            {
+                id: 'zigbee2mqtt.0.device2.position',
+                value: { type: 'state', common: { role: 'level.blind', write: true } },
+            },
+        ]);
+
+        const result = await scanForShutters(adapter, new Set());
+
+        expect(result.shutters).to.have.lengthOf(2);
+        const driverTypes = result.shutters.map(s => s.driverType).sort();
+        expect(driverTypes).to.deep.equal(['zigbee', 'zigbee2mqtt']);
     });
 
     it('proposes a generic-relay candidate when open+close roles share a parent', async () => {

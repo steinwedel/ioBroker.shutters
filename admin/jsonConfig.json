@@ -50,6 +50,11 @@
                     "title": "driverType",
                     "width": "15%",
                     "options": [
+                        { "label": "driverTypeHomematic", "value": "homematic" },
+                        { "label": "driverTypeKnx", "value": "knx" },
+                        { "label": "driverTypeShelly", "value": "shelly" },
+                        { "label": "driverTypeZigbee", "value": "zigbee" },
+                        { "label": "driverTypeZigbee2Mqtt", "value": "zigbee2mqtt" },
                         { "label": "driverTypeGenericPosition", "value": "generic-position" },
                         { "label": "driverTypeGenericRelay", "value": "generic-relay" }
                     ]
