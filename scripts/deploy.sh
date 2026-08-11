@@ -32,7 +32,7 @@ source "$ENV_FILE"
 : "${SERVER_USER:?SERVER_USER muss in .env gesetzt sein}"
 SERVER_PORT="${SERVER_PORT:-22}"
 IOBROKER_PATH="${IOBROKER_PATH:-/opt/iobroker}"
-DAVIS_INSTANCE="${DAVIS_INSTANCE:-0}"
+SHUTTERS_INSTANCE="${SHUTTERS_INSTANCE:-0}"
 
 if [[ -z "${SERVER_SSH_KEY_PATH:-}" && -z "${SERVER_PASSWORD:-}" ]]; then
     echo "Fehler: Entweder SERVER_SSH_KEY_PATH oder SERVER_PASSWORD muss in .env gesetzt sein." >&2
@@ -98,25 +98,25 @@ echo "==> [5/6] Synchronisiere Objekt-Datenbank (iobroker upload)"
 "${SSH_CMD[@]}" "$SERVER_USER@$SERVER_HOST" "
     set -e
     cd '$IOBROKER_PATH'
-    echo '$SUDO_PASSWORD' | sudo -S -u iobroker ./iobroker upload davis
+    echo '$SUDO_PASSWORD' | sudo -S -u iobroker ./iobroker upload shutters
 "
 
-echo "==> [6/6] Starte Instanz davis.$DAVIS_INSTANCE neu"
+echo "==> [6/6] Starte Instanz shutters.$SHUTTERS_INSTANCE neu"
 "${SSH_CMD[@]}" "$SERVER_USER@$SERVER_HOST" "
     set -e
     cd '$IOBROKER_PATH'
-    echo '$SUDO_PASSWORD' | sudo -S -u iobroker ./iobroker restart davis.$DAVIS_INSTANCE
+    echo '$SUDO_PASSWORD' | sudo -S -u iobroker ./iobroker restart shutters.$SHUTTERS_INSTANCE
 "
 
 echo "==> Verifiziere installierte Version"
 INSTALLED_VERSION="$("${SSH_CMD[@]}" "$SERVER_USER@$SERVER_HOST" "
     cd '$IOBROKER_PATH'
-    echo '$SUDO_PASSWORD' | sudo -S -u iobroker ./iobroker version davis
+    echo '$SUDO_PASSWORD' | sudo -S -u iobroker ./iobroker version shutters
 " | tail -1)"
 
 echo ""
 if [[ "$INSTALLED_VERSION" == "$VERSION" ]]; then
-    echo "✅ Erfolgreich aktualisiert: davis.$DAVIS_INSTANCE läuft jetzt mit Version $INSTALLED_VERSION"
+    echo "✅ Erfolgreich aktualisiert: shutters.$SHUTTERS_INSTANCE läuft jetzt mit Version $INSTALLED_VERSION"
 else
     echo "⚠️  Warnung: erwartete Version $VERSION, Server meldet $INSTALLED_VERSION" >&2
     exit 1

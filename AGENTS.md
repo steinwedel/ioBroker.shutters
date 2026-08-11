@@ -31,6 +31,13 @@ Diese Regeln stammen aus dem [ioBroker AI Developer Guide](https://github.com/Je
 - Sind in `.env` `GITHUB_TOKEN` und `GITHUB_REPO_OWNER` gesetzt, wird zusätzlich ein Remote-Repository auf GitHub angelegt (per `gh repo create` oder GitHub-API mit dem hinterlegten Token) und der initiale Commit dorthin gepusht (Repo-Name wie oben: `ioBroker.shutters`).
 - Diese Prüfung erfolgt einmalig bei der ersten Repository-Einrichtung des Projekts, nicht bei jedem einzelnen Commit.
 
+### Server-Zugangsdaten für Deployment (`.env` oberhalb des Projekt-Roots)
+
+- Die tatsächlichen Zugangsdaten zum ioBroker-Zielserver (`haus20a.steinwedel.de`) liegen zentral, projektübergreifend, in `/Users/steinwedel/Programming/ioBroker.adapter/.env` — **eine Ebene über** allen einzelnen Adapter-Projektverzeichnissen (`ioBroker.shutters`, `ioBroker.irrigation`, `ioBroker.davis`, ...).
+- Das projekteigene `.env` (im jeweiligen Adapter-Root) enthält meist eine Kopie derselben Werte (Kopierartefakt aus dem Template), ist aber **nicht** die verbindliche Quelle — bei Abweichungen oder fehlenden Werten gilt das übergeordnete `.env`.
+- `scripts/deploy.sh` liest `.env` aus dem eigenen Projekt-Root; falls dort Werte fehlen/veraltet sind, die übergeordnete `.env` (`../.env` relativ zum Adapter-Projekt) als Referenz konsultieren bzw. die relevanten Werte von dort übernehmen.
+- Enthält kein `SERVER_SSH_KEY_PATH`, wird `SERVER_PASSWORD` per `sshpass` verwendet (macOS: `brew install sshpass`, ist bereits installiert).
+
 ### Objekt-Hierarchie (CRITICAL)
 
 ```text
