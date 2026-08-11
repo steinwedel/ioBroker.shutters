@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" type="text/css" href="../../css/adapter.css" />
+    <link rel="stylesheet" type="text/css" href="../../lib/css/materialize.css" />
+
+    <script type="text/javascript" src="../../lib/js/jquery-3.2.1.min.js"></script>
+    <script type="text/javascript" src="../../socket.io/socket.io.js"></script>
+
+    <script type="text/javascript" src="../../js/translate.js"></script>
+    <script type="text/javascript" src="../../lib/js/materialize.js"></script>
+    <script type="text/javascript" src="../../js/adapter-settings.js"></script>
+
+    <script type="text/javascript" src="words.js"></script>
+    <script type="text/javascript" src="shutters.js"></script>
+
+    <style>
+        .shutters-tabs { margin-bottom: 10px; }
+        .shutters-hint { font-size: 13px; color: #666; margin: 4px 0 14px 0; }
+        .shutters-card {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            background: #fafafa;
+        }
+        .shutters-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .shutters-card-header h6 { margin: 0; }
+        .shutters-row { display: flex; flex-wrap: wrap; margin: 0 -8px; }
+        .shutters-row .input-field { padding: 0 8px; box-sizing: border-box; }
+        .shutters-section-title {
+            font-weight: bold;
+            margin-top: 10px;
+            margin-bottom: 4px;
+            font-size: 13px;
+            color: #555;
+        }
+        .shutters-remove-btn { margin-left: 8px; }
+        .shutters-add-btn { margin: 6px 0 20px 0; }
+        table.shutters-simple-table { width: 100%; }
+        table.shutters-simple-table td { padding: 2px 6px; }
+    </style>
+
+    <script type="text/javascript">
+        // The load()/save() contract is required by the ioBroker "html" admin UI.
+        function load(settings, onChange) {
+            shuttersInitAdmin(settings || {}, onChange);
+        }
+
+        function save(callback) {
+            callback(shuttersGetNativeConfig());
+        }
+    </script>
+</head>
+
+<body>
+<div class="m adapter-container">
+    <ul class="tabs shutters-tabs">
+        <li class="tab col s2"><a href="#tab-coverings" class="translate">shutters</a></li>
+        <li class="tab col s2"><a href="#tab-areas" class="translate">areas</a></li>
+        <li class="tab col s2"><a href="#tab-weather" class="translate">weather</a></li>
+        <li class="tab col s2"><a href="#tab-thresholds" class="translate">thresholds</a></li>
+        <li class="tab col s2"><a href="#tab-groups" class="translate">groups</a></li>
+        <li class="tab col s2"><a href="#tab-scenes" class="translate">scenes</a></li>
+    </ul>
+
+    <div id="tab-coverings" class="col s12">
+        <p class="shutters-hint translate">shuttersHintText</p>
+        <p>
+            <button class="btn waves-effect" id="shutters-scan-btn" type="button">
+                <span class="translate">scanButtonLabel</span>
+            </button>
+            <span id="shutters-scan-status" style="margin-left: 10px;"></span>
+        </p>
+        <p class="shutters-hint translate">scanHintText</p>
+        <div id="shutters-coverings-container"></div>
+        <button class="btn waves-effect shutters-add-btn" id="shutters-add-covering-btn" type="button">
+            <span class="translate">addCoveringButton</span>
+        </button>
+    </div>
+
+    <div id="tab-areas" class="col s12">
+        <p class="shutters-hint translate">areasHintText</p>
+        <div class="row">
+            <div class="input-field col s6">
+                <select id="shutters-holiday-state">
+                </select>
+                <label class="translate" for="shutters-holiday-state">publicHolidayFederalState</label>
+            </div>
+        </div>
+        <div id="shutters-areas-container"></div>
+        <button class="btn waves-effect shutters-add-btn" id="shutters-add-area-btn" type="button">
+            <span class="translate">addAreaButton</span>
+        </button>
+    </div>
+
+    <div id="tab-weather" class="col s12">
+        <p class="shutters-hint translate">weatherHintText</p>
+        <div id="shutters-weather-container"></div>
+    </div>
+
+    <div id="tab-thresholds" class="col s12">
+        <div id="shutters-thresholds-container"></div>
+    </div>
+
+    <div id="tab-groups" class="col s12">
+        <p class="shutters-hint translate">groupsHintText</p>
+        <div id="shutters-groups-container"></div>
+        <button class="btn waves-effect shutters-add-btn" id="shutters-add-group-btn" type="button">
+            <span class="translate">addGroupButton</span>
+        </button>
+    </div>
+
+    <div id="tab-scenes" class="col s12">
+        <p class="shutters-hint translate">scenesHintText</p>
+        <div id="shutters-scenes-container"></div>
+        <button class="btn waves-effect shutters-add-btn" id="shutters-add-scene-btn" type="button">
+            <span class="translate">addSceneButton</span>
+        </button>
+    </div>
+</div>
+</body>
+</html>

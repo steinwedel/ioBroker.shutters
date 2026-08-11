@@ -77,7 +77,7 @@
             "custom": true
         },
         "adminUI": {
-            "config": "json"
+            "config": "html"
         },
         "dependencies": [
             {
