@@ -6,6 +6,75 @@
 var shuttersConfig = null; // working copy of native config, mutated in place
 var shuttersOnChange = null;
 
+// Collapse state for the accordion-style cards (coverings/areas/groups/scenes), keyed by list name and
+// index. Missing entries default to collapsed (closed), as required: every card can be expanded/collapsed
+// and is closed by default. Kept outside shuttersConfig so it never gets persisted to native.
+var shuttersCollapsed = { coverings: [], areas: [], groups: [], scenes: [] };
+
+function isCardCollapsed(listName, index) {
+    if (shuttersCollapsed[listName][index] === undefined) {
+        shuttersCollapsed[listName][index] = true;
+    }
+    return shuttersCollapsed[listName][index];
+}
+
+function setCardCollapsed(listName, index, collapsed) {
+    shuttersCollapsed[listName][index] = collapsed;
+}
+
+function removeCardCollapsed(listName, index) {
+    shuttersCollapsed[listName].splice(index, 1);
+}
+
+// Builds a card with a clickable header (toggle) and a collapsible body. `collapsed` is the initial state;
+// the body's actual visibility is toggled in the DOM directly so re-renders triggered by other cards don't
+// need to touch this card at all.
+function buildAccordionCard(titleText, collapsed, onToggle, onRemove) {
+    var card = document.createElement('div');
+    card.className = 'shutters-card';
+
+    var header = document.createElement('div');
+    header.className = 'shutters-card-header';
+
+    var toggleArea = document.createElement('div');
+    toggleArea.className = 'shutters-card-header-toggle';
+    var icon = document.createElement('span');
+    icon.className = 'shutters-toggle-icon';
+    icon.innerText = collapsed ? '\u25B6' : '\u25BC';
+    var title = document.createElement('h6');
+    title.innerText = titleText;
+    toggleArea.appendChild(icon);
+    toggleArea.appendChild(title);
+
+    var body = document.createElement('div');
+    body.className = 'shutters-card-body';
+    body.style.display = collapsed ? 'none' : '';
+
+    toggleArea.onclick = function () {
+        var nowCollapsed = body.style.display !== 'none';
+        body.style.display = nowCollapsed ? 'none' : '';
+        icon.innerText = nowCollapsed ? '\u25B6' : '\u25BC';
+        onToggle(nowCollapsed);
+    };
+
+    var removeBtn = document.createElement('a');
+    removeBtn.className = 'btn-flat shutters-remove-btn';
+    removeBtn.innerText = _('removeButton');
+    removeBtn.href = '#';
+    removeBtn.onclick = function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        onRemove();
+    };
+
+    header.appendChild(toggleArea);
+    header.appendChild(removeBtn);
+    card.appendChild(header);
+    card.appendChild(body);
+
+    return { card: card, body: body, title: title };
+}
+
 var FEDERAL_STATES = [
     ['', 'publicHolidayFederalStateNone'],
     ['BW', 'publicHolidayFederalStateBW'],
@@ -104,21 +173,25 @@ function shuttersInitAdmin(settings, onChange) {
             automationEnabled: true,
             states: {},
         });
+        setCardCollapsed('coverings', shuttersConfig.shutters.length - 1, false);
         renderCoverings();
         onChangeFired();
     };
     document.getElementById('shutters-add-area-btn').onclick = function () {
         shuttersConfig.areas.push({ name: '', weekday: {}, weekend: {} });
+        setCardCollapsed('areas', shuttersConfig.areas.length - 1, false);
         renderAreas();
         onChangeFired();
     };
     document.getElementById('shutters-add-group-btn').onclick = function () {
         shuttersConfig.groups.push({ id: 'group' + Date.now(), name: '', memberIds: [] });
+        setCardCollapsed('groups', shuttersConfig.groups.length - 1, false);
         renderGroups();
         onChangeFired();
     };
     document.getElementById('shutters-add-scene-btn').onclick = function () {
         shuttersConfig.scenes.push({ id: 'scene' + Date.now(), name: '', targets: [] });
+        setCardCollapsed('scenes', shuttersConfig.scenes.length - 1, false);
         renderScenes();
         onChangeFired();
     };
@@ -235,26 +308,21 @@ function renderCoverings() {
 }
 
 function renderCoveringCard(covering, index) {
-    var card = document.createElement('div');
-    card.className = 'shutters-card';
-
-    var header = document.createElement('div');
-    header.className = 'shutters-card-header';
-    var title = document.createElement('h6');
-    title.innerText = covering.name || covering.id || '(' + _('name') + ')';
-    var removeBtn = document.createElement('a');
-    removeBtn.className = 'btn-flat shutters-remove-btn';
-    removeBtn.innerText = _('removeButton');
-    removeBtn.href = '#';
-    removeBtn.onclick = function (ev) {
-        ev.preventDefault();
-        shuttersConfig.shutters.splice(index, 1);
-        renderCoverings();
-        onChangeFired();
-    };
-    header.appendChild(title);
-    header.appendChild(removeBtn);
-    card.appendChild(header);
+    var built = buildAccordionCard(
+        covering.name || covering.id || '(' + _('name') + ')',
+        isCardCollapsed('coverings', index),
+        function (collapsed) {
+            setCardCollapsed('coverings', index, collapsed);
+        },
+        function () {
+            shuttersConfig.shutters.splice(index, 1);
+            removeCardCollapsed('coverings', index);
+            renderCoverings();
+            onChangeFired();
+        },
+    );
+    var card = built.body;
+    var title = built.title;
 
     var row1 = document.createElement('div');
     row1.className = 'shutters-row row';
@@ -408,7 +476,7 @@ function renderCoveringCard(covering, index) {
     );
     card.appendChild(doorRow);
 
-    return card;
+    return built.card;
 }
 
 function onScanClicked() {
@@ -433,26 +501,21 @@ function renderAreas() {
         area.weekday = area.weekday || {};
         area.weekend = area.weekend || {};
         area.holiday = area.holiday || {};
-        var card = document.createElement('div');
-        card.className = 'shutters-card';
-
-        var header = document.createElement('div');
-        header.className = 'shutters-card-header';
-        var title = document.createElement('h6');
-        title.innerText = area.name || '(' + _('areaName') + ')';
-        var removeBtn = document.createElement('a');
-        removeBtn.className = 'btn-flat shutters-remove-btn';
-        removeBtn.innerText = _('removeButton');
-        removeBtn.href = '#';
-        removeBtn.onclick = function (ev) {
-            ev.preventDefault();
-            shuttersConfig.areas.splice(index, 1);
-            renderAreas();
-            onChangeFired();
-        };
-        header.appendChild(title);
-        header.appendChild(removeBtn);
-        card.appendChild(header);
+        var built = buildAccordionCard(
+            area.name || '(' + _('areaName') + ')',
+            isCardCollapsed('areas', index),
+            function (collapsed) {
+                setCardCollapsed('areas', index, collapsed);
+            },
+            function () {
+                shuttersConfig.areas.splice(index, 1);
+                removeCardCollapsed('areas', index);
+                renderAreas();
+                onChangeFired();
+            },
+        );
+        var card = built.body;
+        var title = built.title;
 
         var row0 = document.createElement('div');
         row0.className = 'shutters-row row';
@@ -509,7 +572,7 @@ function renderAreas() {
         );
         card.appendChild(row2);
 
-        container.appendChild(card);
+        container.appendChild(built.card);
     });
     if (typeof translateAll === 'function') translateAll();
 }
@@ -580,26 +643,21 @@ function renderGroups() {
     var container = document.getElementById('shutters-groups-container');
     container.innerHTML = '';
     shuttersConfig.groups.forEach(function (group, index) {
-        var card = document.createElement('div');
-        card.className = 'shutters-card';
-
-        var header = document.createElement('div');
-        header.className = 'shutters-card-header';
-        var title = document.createElement('h6');
-        title.innerText = group.name || group.id || '(' + _('name') + ')';
-        var removeBtn = document.createElement('a');
-        removeBtn.className = 'btn-flat shutters-remove-btn';
-        removeBtn.innerText = _('removeButton');
-        removeBtn.href = '#';
-        removeBtn.onclick = function (ev) {
-            ev.preventDefault();
-            shuttersConfig.groups.splice(index, 1);
-            renderGroups();
-            onChangeFired();
-        };
-        header.appendChild(title);
-        header.appendChild(removeBtn);
-        card.appendChild(header);
+        var built = buildAccordionCard(
+            group.name || group.id || '(' + _('name') + ')',
+            isCardCollapsed('groups', index),
+            function (collapsed) {
+                setCardCollapsed('groups', index, collapsed);
+            },
+            function () {
+                shuttersConfig.groups.splice(index, 1);
+                removeCardCollapsed('groups', index);
+                renderGroups();
+                onChangeFired();
+            },
+        );
+        var card = built.body;
+        var title = built.title;
 
         var row = document.createElement('div');
         row.className = 'shutters-row row';
@@ -637,7 +695,7 @@ function renderGroups() {
         );
         card.appendChild(row);
 
-        container.appendChild(card);
+        container.appendChild(built.card);
     });
     if (typeof translateAll === 'function') translateAll();
 }
@@ -648,26 +706,21 @@ function renderScenes() {
     var container = document.getElementById('shutters-scenes-container');
     container.innerHTML = '';
     shuttersConfig.scenes.forEach(function (scene, index) {
-        var card = document.createElement('div');
-        card.className = 'shutters-card';
-
-        var header = document.createElement('div');
-        header.className = 'shutters-card-header';
-        var title = document.createElement('h6');
-        title.innerText = scene.name || scene.id || '(' + _('name') + ')';
-        var removeBtn = document.createElement('a');
-        removeBtn.className = 'btn-flat shutters-remove-btn';
-        removeBtn.innerText = _('removeButton');
-        removeBtn.href = '#';
-        removeBtn.onclick = function (ev) {
-            ev.preventDefault();
-            shuttersConfig.scenes.splice(index, 1);
-            renderScenes();
-            onChangeFired();
-        };
-        header.appendChild(title);
-        header.appendChild(removeBtn);
-        card.appendChild(header);
+        var built = buildAccordionCard(
+            scene.name || scene.id || '(' + _('name') + ')',
+            isCardCollapsed('scenes', index),
+            function (collapsed) {
+                setCardCollapsed('scenes', index, collapsed);
+            },
+            function () {
+                shuttersConfig.scenes.splice(index, 1);
+                removeCardCollapsed('scenes', index);
+                renderScenes();
+                onChangeFired();
+            },
+        );
+        var card = built.body;
+        var title = built.title;
 
         var row = document.createElement('div');
         row.className = 'shutters-row row';
@@ -713,7 +766,7 @@ function renderScenes() {
         );
         card.appendChild(row);
 
-        container.appendChild(card);
+        container.appendChild(built.card);
     });
     if (typeof translateAll === 'function') translateAll();
 }
