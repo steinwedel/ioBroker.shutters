@@ -9,8 +9,9 @@ import { GroupController } from './lib/group-controller';
 import { HolidayChecker } from './lib/holiday';
 import { Scheduler } from './lib/scheduler';
 import { SceneController } from './lib/scene-manager';
-import { scanForShutters } from './lib/shutter-scanner';
+import { scanForShutters, type IScannedShutter } from './lib/shutter-scanner';
 import { ShutterController } from './lib/shutter-controller';
+import type { IShutterConfig } from './lib/types';
 import { WeatherSource } from './lib/weather-source';
 
 /** Anything that can handle a state change for its own, relative state IDs - implemented by ShutterController, GroupController and SceneController. */
@@ -226,10 +227,10 @@ class Shutters extends utils.Adapter {
     /**
      * Handles `sendTo` messages from the admin UI. Currently only
      * `scanForShutters` (plan section 2b) is supported: runs the
-     * auto-discovery scan, writes the result to `info.lastScanResult`, logs
-     * a summary and each candidate for manual copy-paste into the
-     * `shutters` table (there is no interactive import wizard yet), and
-     * replies with a short summary the admin UI can display.
+     * auto-discovery scan, automatically adds every found candidate to
+     * `native.shutters[]` (which restarts the adapter instance, like any
+     * other config change made in the admin UI), and replies with a short
+     * summary the admin UI can display.
      *
      * @param obj - Message object as delivered by `js-controller`.
      */
@@ -239,11 +240,12 @@ class Shutters extends utils.Adapter {
         }
 
         void this.runShutterScan()
-            .then(result => {
+            .then(async result => {
+                const addedCount = await this.addScannedShuttersToConfig(result.shutters);
                 if (obj.callback) {
                     const summary =
-                        result.shutters.length > 0
-                            ? `Found ${result.shutters.length} candidate(s). See info.lastScanResult and the log for details.`
+                        addedCount > 0
+                            ? `Added ${addedCount} covering(s) to the configuration. The adapter instance will restart to apply the change.`
                             : 'No new coverings found.';
                     this.sendTo(obj.from, obj.command, { result: summary, errors: result.errors }, obj.callback);
                 }
@@ -257,7 +259,7 @@ class Shutters extends utils.Adapter {
     }
 
     /** Runs the auto-discovery scan and persists/logs its result; see `onMessage()`. */
-    private async runShutterScan(): Promise<{ shutters: unknown[]; errors: string[] }> {
+    private async runShutterScan(): Promise<{ shutters: IScannedShutter[]; errors: string[] }> {
         const alreadyConfigured = new Set<string>();
         for (const shutterConfig of this.config.shutters ?? []) {
             for (const stateId of Object.values(shutterConfig.states)) {
@@ -279,6 +281,47 @@ class Shutters extends utils.Adapter {
         }
 
         return result;
+    }
+
+    /**
+     * Adds every scanned candidate to `native.shutters[]` and persists it
+     * via `extendForeignObjectAsync`, which merges only the `shutters` key
+     * within `native` (leaving areas/weather/groups/scenes untouched) and
+     * triggers the usual adapter restart for a config change. Coverings
+     * whose `id` already exists (e.g. a duplicate within the same scan
+     * result) are skipped defensively, even though `scanForShutters()`
+     * already excludes states already referenced by an existing covering.
+     *
+     * @param scanned - Candidates returned by `scanForShutters()`.
+     * @returns The number of coverings actually added.
+     */
+    private async addScannedShuttersToConfig(scanned: IScannedShutter[]): Promise<number> {
+        if (scanned.length === 0) {
+            return 0;
+        }
+
+        const existing = this.config.shutters ?? [];
+        const existingIds = new Set(existing.map(s => s.id));
+        const newConfigs: IShutterConfig[] = scanned
+            .filter(s => !existingIds.has(s.id))
+            .map(s => ({
+                id: s.id,
+                name: s.name,
+                driverType: s.driverType,
+                coveringType: s.coveringType,
+                automationEnabled: s.automationEnabled,
+                states: s.states,
+            }));
+
+        if (newConfigs.length === 0) {
+            return 0;
+        }
+
+        await this.extendForeignObjectAsync(`system.adapter.${this.namespace}`, {
+            native: { shutters: [...existing, ...newConfigs] },
+        });
+
+        return newConfigs.length;
     }
 
     /**
