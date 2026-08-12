@@ -685,17 +685,35 @@ function renderAreas() {
 
             var perWeekdayHolidayRow = document.createElement('div');
             perWeekdayHolidayRow.className = 'shutters-row row';
+
+            var holidayLabelDiv = document.createElement('div');
+            holidayLabelDiv.className = 'col s2 shutters-weekday-label';
+            holidayLabelDiv.innerText = _('weekdayHoliday');
+            perWeekdayHolidayRow.appendChild(holidayLabelDiv);
+
             perWeekdayHolidayRow.appendChild(
-                makeText('area-' + index + '-holidayOpen', 'holidayOpen', area.holiday.open, 3, function (v) {
-                    area.holiday.open = v;
-                    onChangeFired();
-                }),
+                makeText(
+                    'area-' + index + '-holidayOpen',
+                    'weekdayOverrideOpen',
+                    area.holiday.open,
+                    5,
+                    function (v) {
+                        area.holiday.open = v;
+                        onChangeFired();
+                    },
+                ),
             );
             perWeekdayHolidayRow.appendChild(
-                makeText('area-' + index + '-holidayClose', 'holidayClose', area.holiday.close, 3, function (v) {
-                    area.holiday.close = v;
-                    onChangeFired();
-                }),
+                makeText(
+                    'area-' + index + '-holidayClose',
+                    'weekdayOverrideClose',
+                    area.holiday.close,
+                    5,
+                    function (v) {
+                        area.holiday.close = v;
+                        onChangeFired();
+                    },
+                ),
             );
             card.appendChild(perWeekdayHolidayRow);
         } else {

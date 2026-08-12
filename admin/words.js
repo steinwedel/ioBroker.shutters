@@ -97,6 +97,7 @@ systemDictionary = {
     weekdayFriday: { en: 'Friday', de: 'Freitag' },
     weekdaySaturday: { en: 'Saturday', de: 'Samstag' },
     weekdaySunday: { en: 'Sunday', de: 'Sonntag' },
+    weekdayHoliday: { en: 'Public holiday', de: 'Feiertag' },
     addAreaButton: { en: '+ Add plan', de: '+ Plan hinzufügen' },
     weather: { en: 'Weather data', de: 'Wetterdaten' },
     weatherHintText: {
