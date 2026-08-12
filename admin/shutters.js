@@ -399,8 +399,21 @@ function makeCheckbox(id, label, checked, onChangeCb) {
 function renderCoverings() {
     var container = document.getElementById('shutters-coverings-container');
     container.innerHTML = '';
-    shuttersConfig.shutters.forEach(function (covering, index) {
-        container.appendChild(renderCoveringCard(covering, index));
+
+    // Render the cards alphabetically (by name, falling back to id), while every callback/collapse-state
+    // lookup still uses the covering's actual index in shuttersConfig.shutters, so editing/removing keeps
+    // working correctly regardless of display order.
+    var order = shuttersConfig.shutters.map(function (covering, index) {
+        return index;
+    });
+    order.sort(function (indexA, indexB) {
+        var nameA = (shuttersConfig.shutters[indexA].name || shuttersConfig.shutters[indexA].id || '').toLowerCase();
+        var nameB = (shuttersConfig.shutters[indexB].name || shuttersConfig.shutters[indexB].id || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+    });
+
+    order.forEach(function (index) {
+        container.appendChild(renderCoveringCard(shuttersConfig.shutters[index], index));
     });
     if (typeof translateAll === 'function') translateAll();
     if (typeof $ !== 'undefined' && $.fn.material_select) $('select').material_select();
