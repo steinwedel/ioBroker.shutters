@@ -299,6 +299,57 @@ function makeSelect(id, label, value, options, onChangeCb) {
     return wrap;
 }
 
+// Like makeSelect, but the option values themselves are the display text (raw user data, e.g. plan
+// names) instead of translation keys. Always includes an empty "none" option, and keeps the current
+// value selectable even if it is no longer part of `optionValues` (e.g. a renamed/removed plan), so no
+// data is silently lost.
+function makeSelectPlain(id, label, value, optionValues, colWidth, onChangeCb) {
+    var wrap = document.createElement('div');
+    wrap.className = 'input-field col s' + (colWidth || 3);
+    var select = document.createElement('select');
+    select.id = id;
+
+    var values = optionValues.slice();
+    if (value && values.indexOf(value) === -1) {
+        values.push(value);
+    }
+
+    var emptyOpt = document.createElement('option');
+    emptyOpt.value = '';
+    emptyOpt.text = '-';
+    if (!value) emptyOpt.selected = true;
+    select.appendChild(emptyOpt);
+
+    values.forEach(function (v) {
+        var opt = document.createElement('option');
+        opt.value = v;
+        opt.text = v;
+        if (v === value) opt.selected = true;
+        select.appendChild(opt);
+    });
+    select.onchange = function () {
+        onChangeCb(select.value === '' ? undefined : select.value);
+    };
+    var labelEl = document.createElement('label');
+    labelEl.setAttribute('for', id);
+    labelEl.className = 'active';
+    labelEl.innerText = _(label);
+    wrap.appendChild(select);
+    wrap.appendChild(labelEl);
+    return wrap;
+}
+
+// Returns the configured plan (area) names, excluding empty ones, for the covering's plan dropdown.
+function getPlanNames() {
+    return shuttersConfig.areas
+        .map(function (a) {
+            return a.name;
+        })
+        .filter(function (n) {
+            return !!n;
+        });
+}
+
 function makeText(id, label, value, colWidth, onChangeCb, type) {
     var wrap = document.createElement('div');
     wrap.className = 'input-field col s' + (colWidth || 3);
@@ -405,7 +456,7 @@ function renderCoveringCard(covering, index) {
     var row2 = document.createElement('div');
     row2.className = 'shutters-row row';
     row2.appendChild(
-        makeText('cov-' + index + '-area', 'area', covering.area, 3, function (v) {
+        makeSelectPlain('cov-' + index + '-area', 'area', covering.area, getPlanNames(), 3, function (v) {
             covering.area = v;
             onChangeFired();
         }),
@@ -561,6 +612,7 @@ function renderAreas() {
                 removeCardCollapsed('areas', index);
                 removeCardCollapsed('areaWeekdays', index);
                 renderAreas();
+                renderCoverings(); // refresh the plan dropdown on covering cards
                 onChangeFired();
             },
         );
@@ -573,6 +625,7 @@ function renderAreas() {
             makeText('area-' + index + '-name', 'areaName', area.name, 4, function (v) {
                 area.name = v;
                 title.innerText = v;
+                renderCoverings(); // refresh the plan dropdown on covering cards
                 onChangeFired();
             }),
         );

@@ -46,7 +46,7 @@ Unified control and automation for roller shutters, external venetian blinds, aw
 ## Quick Start
 
 1. **Add your coverings** — open the covering configuration and click **Scan** to auto-discover connected shutters/blinds/awnings, or add one manually by entering its covering type and the relevant state IDs.
-2. **Set a schedule** — configure opening and closing times per area (or accept the defaults).
+2. **Set a schedule** — configure opening and closing times per plan (or accept the defaults).
 3. Save. The adapter immediately opens/closes coverings on schedule; sun, rain, wind and frost protection use sensible default thresholds and can be fine-tuned later.
 
 Advanced settings (calibration, sun/wind/frost protection thresholds, groups, scenes) are optional and can be configured later — the adapter works with sensible defaults right after the initial scan.
@@ -59,16 +59,16 @@ Advanced settings (calibration, sun/wind/frost protection thresholds, groups, sc
 
 Each covering is configured with:
 
-- A display name and area/zone.
+- A display name and an assigned plan, selected from a dropdown of the plans configured on the Plans tab.
 - A covering type (roller shutter, external venetian blind, awning, vertical lamella blind).
 - The connected system (driver) and the relevant state IDs — filled in automatically by the scan, or entered manually.
 - Optional window orientation, used by sun protection.
 - Optional calibration curve, if covering height is not proportional to motor runtime.
 - Optional protection toggles (wind, frost, night cooling), each enabled/disabled per covering with sensible defaults based on the covering type.
 
-### Areas / Zones
+### Plans
 
-Each area has its own opening/closing schedule (weekday, weekend, public holiday), with optional per-weekday overrides for individual days (e.g. a different Monday closing time). Every open/close field is either a plain "HH:MM" clock time, an offset from sunrise/sunset - or, with a trailing `d`, civil dawn/dusk - written with a leading `+` (after) or `-` (before) sign as plain minutes (e.g. `-30`, `-30d`) or an "HH:MM" duration (e.g. `+01:30`), or that offset combined with a "!HH:MM" cap, e.g. `+30!19:00` (30 minutes after sunset, but never later than 19:00; analogous for opening). An optional calendar (iCal) integration is also planned.
+Each plan has its own opening/closing schedule (weekday, weekend, public holiday), with optional per-weekday overrides for individual days (e.g. a different Monday closing time). Every open/close field is either a plain "HH:MM" clock time, an offset from sunrise/sunset - or, with a trailing `d`, civil dawn/dusk - written with a leading `+` (after) or `-` (before) sign as plain minutes (e.g. `-30`, `-30d`) or an "HH:MM" duration (e.g. `+01:30`), or that offset combined with a "!HH:MM" cap, e.g. `+30!19:00` (30 minutes after sunset, but never later than 19:00; analogous for opening). An optional calendar (iCal) integration is also planned. Each covering is assigned to a plan via a dropdown on the Coverings tab.
 
 ### Sun / Rain / Wind / Frost Protection
 
