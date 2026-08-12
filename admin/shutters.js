@@ -215,6 +215,16 @@ function shuttersInitAdmin(settings, onChange) {
 function refreshSelects(elements) {
     var targets = elements || document.querySelectorAll('select');
     if (typeof M !== 'undefined' && M.FormSelect) {
+        // Materialize caches a FormSelect instance per <select> and does NOT rebuild its custom
+        // dropdown list/display on a second init() call if one already exists - it silently no-ops,
+        // leaving the previously rendered (now stale) list/selection in place. Since these selects get
+        // their options populated dynamically after the initial page render (e.g. via sendTo), any
+        // existing instance must be torn down first so the list is rebuilt from the select's current
+        // options.
+        Array.prototype.forEach.call(targets, function (el) {
+            var existing = M.FormSelect.getInstance ? M.FormSelect.getInstance(el) : el.M_FormSelect;
+            if (existing) existing.destroy();
+        });
         M.FormSelect.init(targets);
     } else if (typeof $ !== 'undefined' && $.fn.material_select) {
         $(targets).material_select();
