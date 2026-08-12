@@ -16,6 +16,19 @@
     <script type="text/javascript" src="shutters.js"></script>
 
     <style>
+        /* Materialize hardcodes dark text (rgba(0,0,0,.87)) for its select widgets, which is unreadable
+           on ioBroker Admin's dark theme (dark text on a dark background). Make every select adopt the
+           surrounding text color instead, so it follows the active theme like the rest of this page. */
+        .select-wrapper input.select-dropdown {
+            color: inherit !important;
+        }
+        .select-wrapper .caret {
+            fill: currentColor;
+        }
+        ul.dropdown-content li > span,
+        ul.dropdown-content li > a {
+            color: inherit;
+        }
         .shutters-tabs { margin-bottom: 10px; }
         .shutters-hint { font-size: 13px; color: #666; margin: 4px 0 14px 0; }
         .shutters-card {
