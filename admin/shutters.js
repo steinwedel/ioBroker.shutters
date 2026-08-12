@@ -208,13 +208,22 @@ function shuttersInitAdmin(settings, onChange) {
     if (typeof translateAll === 'function') translateAll();
 }
 
+// (Re-)initializes Materialize's custom select widget for the given elements (or every <select> on the
+// page if omitted), so it picks up options/selection that were added/changed dynamically after the
+// initial page render (e.g. via sendTo). Supports both Materialize 1.x/2.x (M.FormSelect, used by this
+// admin) and the older jQuery plugin API, in case a different admin version loads a different build.
+function refreshSelects(elements) {
+    var targets = elements || document.querySelectorAll('select');
+    if (typeof M !== 'undefined' && M.FormSelect) {
+        M.FormSelect.init(targets);
+    } else if (typeof $ !== 'undefined' && $.fn.material_select) {
+        $(targets).material_select();
+    }
+}
+
 function onChangeFired() {
     if (typeof shuttersOnChange === 'function') shuttersOnChange();
-    if (typeof M !== 'undefined' && M.FormSelect) {
-        M.FormSelect.init(document.querySelectorAll('select'));
-    } else if (typeof $ !== 'undefined' && $.fn.material_select) {
-        $('select').material_select();
-    }
+    refreshSelects();
 }
 
 // Populates the country dropdown (via sendTo 'getHolidayCountries', since the country/subdivision list
@@ -254,7 +263,7 @@ function fillHolidaySelects() {
             onChangeFired();
         };
 
-        if (typeof $ !== 'undefined' && $.fn.material_select) $('#shutters-holiday-country').material_select();
+        refreshSelects([countrySelect]);
         fillHolidayStateSelect(instanceId);
     });
 }
@@ -291,7 +300,7 @@ function fillHolidayStateSelect(instanceId) {
         };
         stateSelect.disabled = Object.keys(states).length === 0;
 
-        if (typeof $ !== 'undefined' && $.fn.material_select) $('#shutters-holiday-state').material_select();
+        refreshSelects([stateSelect]);
     }
 
     if (!country) {
@@ -462,7 +471,7 @@ function renderCoverings() {
         container.appendChild(renderCoveringCard(shuttersConfig.shutters[index], index));
     });
     if (typeof translateAll === 'function') translateAll();
-    if (typeof $ !== 'undefined' && $.fn.material_select) $('select').material_select();
+    refreshSelects();
 }
 
 function renderCoveringCard(covering, index) {
@@ -806,7 +815,7 @@ function renderAreas() {
         container.appendChild(built.card);
     });
     if (typeof translateAll === 'function') translateAll();
-    if (typeof $ !== 'undefined' && $.fn.material_select) $('select').material_select();
+    refreshSelects();
 }
 
 // ---- Weather ----
