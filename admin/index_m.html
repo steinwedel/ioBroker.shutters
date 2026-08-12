@@ -62,6 +62,24 @@
         }
         .shutters-card-body { padding-top: 8px; }
         .shutters-weekday-label { margin-top: 18px; font-size: 13px; }
+        /* Labels above plain (non-Materialize-wrapped) "browser-default" selects, e.g. the holiday
+           country/state selects: rendered as static native <select> boxes instead of Materialize's
+           custom dropdown widget, since that widget has repeatedly proven fragile across browsers/admin
+           builds (invisible/empty dropdown). Native selects always render as a visible, clickable box in
+           every browser without relying on any JS widget for their visuals. */
+        .shutters-static-label {
+            display: block;
+            font-size: 0.8rem;
+            color: rgba(0, 0, 0, 0.6);
+            margin-bottom: 4px;
+        }
+        select.browser-default#shutters-holiday-country,
+        select.browser-default#shutters-holiday-state {
+            display: block;
+            width: 100%;
+            height: 3rem;
+            margin-bottom: 8px;
+        }
         .shutters-row { display: flex; flex-wrap: wrap; margin: 0 -8px; }
         .shutters-row .input-field { padding: 0 8px; box-sizing: border-box; }
         .shutters-section-title {
@@ -119,14 +137,14 @@
         <p class="shutters-hint translate">areasHintText</p>
         <div class="row">
             <div class="input-field col s6">
-                <select id="shutters-holiday-country">
+                <label class="translate active shutters-static-label" for="shutters-holiday-country">holidayCountry</label>
+                <select id="shutters-holiday-country" class="browser-default">
                 </select>
-                <label class="translate" for="shutters-holiday-country">holidayCountry</label>
             </div>
             <div class="input-field col s6">
-                <select id="shutters-holiday-state">
+                <label class="translate active shutters-static-label" for="shutters-holiday-state">holidayState</label>
+                <select id="shutters-holiday-state" class="browser-default">
                 </select>
-                <label class="translate" for="shutters-holiday-state">holidayState</label>
             </div>
         </div>
         <p class="shutters-hint translate">holidayHintText</p>

@@ -240,6 +240,12 @@ function onChangeFired() {
 // comes from the "date-holidays" npm package on the backend, not something the admin page can bundle
 // itself), then the dependent subdivision dropdown for whichever country ends up selected. The adapter
 // is used internationally, so this is not limited to Germany/German federal states.
+//
+// Both <select> elements use Materialize's "browser-default" class, i.e. plain native selects instead
+// of Materialize's custom dropdown widget (M.FormSelect): that widget repeatedly proved fragile once its
+// options are populated dynamically after the initial page render, in ways that were hard to reproduce
+// and fix reliably across browsers/admin builds. A native select always renders as a visible, clickable
+// box in every browser without depending on any extra JS widget for its visuals.
 function fillHolidaySelects() {
     var countrySelect = document.getElementById('shutters-holiday-country');
     var instanceId = getInstanceId();
@@ -273,7 +279,6 @@ function fillHolidaySelects() {
             onChangeFired();
         };
 
-        refreshSelects([countrySelect]);
         fillHolidayStateSelect(instanceId);
     });
 }
@@ -309,8 +314,6 @@ function fillHolidayStateSelect(instanceId) {
             onChangeFired();
         };
         stateSelect.disabled = Object.keys(states).length === 0;
-
-        refreshSelects([stateSelect]);
     }
 
     if (!country) {
