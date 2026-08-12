@@ -16,18 +16,20 @@
     <script type="text/javascript" src="shutters.js"></script>
 
     <style>
-        /* Materialize hardcodes dark text (rgba(0,0,0,.87)) for its select widgets, which is unreadable
-           on ioBroker Admin's dark theme (dark text on a dark background). Make every select adopt the
-           surrounding text color instead, so it follows the active theme like the rest of this page. */
-        .select-wrapper input.select-dropdown {
-            color: inherit !important;
-        }
-        .select-wrapper .caret {
-            fill: currentColor;
-        }
-        ul.dropdown-content li > span,
-        ul.dropdown-content li > a {
-            color: inherit;
+        /* This page has no dark-mode support of its own (all colors below assume a light background),
+           and unlike the rest of ioBroker Admin it is not restyled by the surrounding app's dark theme
+           since it is a separate document. Without an explicit background here, the <body> stays
+           transparent wherever no element sets its own background (e.g. the plain hint text and the
+           country/state dropdowns on the Plans tab, as opposed to the .shutters-card areas), letting the
+           dark theme of the surrounding admin page show through - and since Materialize's default select
+           text is dark, that made the country/state dropdowns and their text unreadable ("black on
+           black") or seemingly invisible in dark mode. Forcing a fixed light background/text color here
+           keeps this page's own (already light-only) styling consistent regardless of the active admin
+           theme.
+        */
+        html, body {
+            background-color: #fafafa;
+            color: rgba(0, 0, 0, 0.87);
         }
         .shutters-tabs { margin-bottom: 10px; }
         .shutters-hint { font-size: 13px; color: #666; margin: 4px 0 14px 0; }
