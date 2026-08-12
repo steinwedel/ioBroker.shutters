@@ -1,6 +1,6 @@
 import type { HolidayChecker } from './holiday';
 import type { IAreaScheduleConfig, IDaySchedule } from './types';
-import { computeDuskTime } from './twilight';
+import { computeDuskTime, computeSunEventTime } from './twilight';
 
 const TIME_RE = /^([01]?\d|2[0-3]):([0-5]\d)$/;
 
@@ -27,9 +27,14 @@ export type ScheduleAction = 'open' | 'close';
  * applicable open/close times (weekday/weekend/public holiday) and fires a
  * callback at those times. Recomputes itself once per day shortly after
  * midnight, so day-category changes (e.g. into/out of a public holiday) are
- * picked up automatically. Areas with `duskOffsetMinutes` set use civil dusk
- * (offset by that many minutes) as their closing time instead of the static
- * "close" time of the day schedule.
+ * picked up automatically.
+ *
+ * An area's opening time is coupled to sunrise instead of the static "open"
+ * time of the day schedule if `sunriseOffsetMinutes` is set. Likewise, an
+ * area's closing time is coupled to sunset if `sunsetOffsetMinutes` is set,
+ * or to civil dusk if `duskOffsetMinutes` is set (sunset takes precedence
+ * over dusk if both are set). All three offsets may be positive (later) or
+ * negative (earlier), e.g. "-30" or "+90" minutes.
  *
  * iCal calendar overrides are not implemented yet, see plan section 5 (M4).
  */
@@ -40,7 +45,7 @@ export class Scheduler {
      * @param adapter - Adapter instance, used for `setTimeout`/`clearTimeout` (never native Node timers, see AGENTS.md).
      * @param areas - Areas to schedule.
      * @param holidayChecker - Used to decide whether "today" counts as a public holiday.
-     * @param location - Latitude/longitude used for dusk-coupled areas; undefined disables dusk coupling entirely.
+     * @param location - Latitude/longitude used for sun-coupled areas; undefined disables sunrise/sunset/dusk coupling entirely.
      * @param onTrigger - Called when an area's open/close time is reached.
      */
     public constructor(
@@ -67,9 +72,16 @@ export class Scheduler {
 
         for (const area of this.areas) {
             const daySchedule = this.resolveTodaySchedule(area, now);
-            this.scheduleAction(area.name, 'open', daySchedule.open, now);
 
-            if (area.duskOffsetMinutes !== undefined && this.location) {
+            if (area.sunriseOffsetMinutes !== undefined && this.location) {
+                this.scheduleSunEvent(area, 'sunrise', 'open', area.sunriseOffsetMinutes, now);
+            } else {
+                this.scheduleAction(area.name, 'open', daySchedule.open, now);
+            }
+
+            if (area.sunsetOffsetMinutes !== undefined && this.location) {
+                this.scheduleSunEvent(area, 'sunset', 'close', area.sunsetOffsetMinutes, now);
+            } else if (area.duskOffsetMinutes !== undefined && this.location) {
                 this.scheduleDuskClose(area, now);
             } else {
                 this.scheduleAction(area.name, 'close', daySchedule.close, now);
@@ -126,6 +138,36 @@ export class Scheduler {
             return;
         }
         this.scheduleAt(area.name, 'close', target, now);
+    }
+
+    /**
+     * Schedules an area's open/close action relative to sunrise or sunset (offset by `offsetMinutes`,
+     * which may be negative to fire before the actual event).
+     *
+     * @param area - Area whose schedule is being computed.
+     * @param event - Which sun event to couple to.
+     * @param action - Which action (`'open'`/`'close'`) this event drives.
+     * @param offsetMinutes - Minutes to add to (positive) or subtract from (negative) the sun event.
+     * @param now - Reference date for today's computation.
+     */
+    private scheduleSunEvent(
+        area: IAreaScheduleConfig,
+        event: 'sunrise' | 'sunset',
+        action: ScheduleAction,
+        offsetMinutes: number,
+        now: Date,
+    ): void {
+        if (!this.location) {
+            return;
+        }
+        const target = computeSunEventTime(now, this.location.latitude, this.location.longitude, event, offsetMinutes);
+        if (!target) {
+            this.adapter.log.warn(
+                `Scheduler: could not compute ${event} time for area "${area.name}" at the configured location today - skipping ${event}-coupled ${action}.`,
+            );
+            return;
+        }
+        this.scheduleAt(area.name, action, target, now);
     }
 
     /**

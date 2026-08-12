@@ -19,7 +19,7 @@ Unified control and automation for roller shutters, external venetian blinds, aw
 - **Auto-discovery** — scans the object tree of connected adapter instances to find existing shutters/blinds/awnings automatically and suggests them for import instead of requiring every state ID to be entered by hand.
 - **Multiple covering types** — Roller shutter, external venetian blind (with slat tilt), awning and vertical lamella blind are each handled with the correct movement/safety logic for that type (e.g. an awning must retract in wind, not extend, unlike a roller shutter).
 - **Height-to-runtime calibration** — a configurable calibration curve compensates for coverings where covering height is not proportional to motor runtime, with a guided calibration run.
-- **Daily schedule** — automatic opening/closing per area, with separate times for weekdays, weekends and public holidays, optional calendar (iCal) override for individual days, and dusk/dawn-based timing with a configurable offset.
+- **Daily schedule** — automatic opening/closing per area, with separate times for weekdays, weekends and public holidays, optional calendar (iCal) override for individual days, and sunrise/sunset/civil-dusk-based timing with a configurable offset in minutes (e.g. open 30 minutes before sunrise, or close 90 minutes after sunset).
 - **Sun protection** — automatically lowers coverings to a configurable intermediate position on hot, sunny days within a configurable time window, with flicker-free behavior when clouds pass by. An optional geometry-based mode (window orientation and sun position) is available for coverings without a fixed sun-facing time window.
 - **Rain protection** — closes coverings automatically when rain is detected.
 - **Storm/wind protection** — immediately moves coverings to their safe position when wind speed exceeds a configurable limit, overriding every other rule; can be enabled/disabled per covering since wind relevance depends heavily on the covering type.
@@ -68,7 +68,7 @@ Each covering is configured with:
 
 ### Areas / Zones
 
-Each area has its own opening/closing schedule (weekday, weekend, public holiday), an optional dusk/dawn offset, and an optional calendar (iCal) integration.
+Each area has its own opening/closing schedule (weekday, weekend, public holiday), an optional sunrise offset (for opening) and sunset/civil-dusk offset (for closing), each in minutes and either negative (earlier) or positive (later), and an optional calendar (iCal) integration.
 
 ### Sun / Rain / Wind / Frost Protection
 

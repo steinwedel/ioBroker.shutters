@@ -29,3 +29,33 @@ export function computeDuskTime(
     }
     return new Date(dusk.getTime() + offsetMinutes * 60_000);
 }
+
+/** Which astronomical sun event a schedule can be coupled to, in addition to dusk. */
+export type SunEvent = 'sunrise' | 'sunset';
+
+/**
+ * Computes an offset sunrise or sunset time, used to open/close coverings a fixed number of minutes
+ * before or after the actual sunrise/sunset (e.g. "open 30 minutes before sunrise" or "close 90 minutes
+ * after sunset"), independent of the civil-dusk coupling in `computeDuskTime`.
+ *
+ * @param date - Calendar day to compute the event for (only the date part is used).
+ * @param latitude - Location latitude in degrees.
+ * @param longitude - Location longitude in degrees.
+ * @param event - Which sun event to compute: `'sunrise'` or `'sunset'`.
+ * @param offsetMinutes - Minutes to add to (positive) or subtract from (negative) the computed time.
+ * @returns The offset event time on `date`, or undefined if the location does not reach that event that day (e.g. polar day/night).
+ */
+export function computeSunEventTime(
+    date: Date,
+    latitude: number,
+    longitude: number,
+    event: SunEvent,
+    offsetMinutes: number,
+): Date | undefined {
+    const times = SunCalc.getTimes(date, latitude, longitude);
+    const base = event === 'sunrise' ? times.sunrise : times.sunset;
+    if (!base || Number.isNaN(base.getTime())) {
+        return undefined;
+    }
+    return new Date(base.getTime() + offsetMinutes * 60_000);
+}

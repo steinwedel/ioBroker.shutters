@@ -206,6 +206,23 @@ export interface IAreaScheduleConfig {
      * Minutes to add to civil dusk to compute the closing time for this
      * area, overriding the static `close` time of the applicable day
      * schedule above. Undefined disables dusk coupling for this area.
+     * Ignored if `sunsetOffsetMinutes` is also set (sunset takes precedence).
      */
     duskOffsetMinutes?: number;
+    /**
+     * Minutes to add to (positive) or subtract from (negative) the actual
+     * sunrise time to compute the opening time for this area, e.g. `-30`
+     * to open 30 minutes before sunrise or `90` to open 90 minutes after
+     * sunrise. Overrides the static `open` time of the applicable day
+     * schedule above. Undefined disables sunrise coupling for this area.
+     */
+    sunriseOffsetMinutes?: number;
+    /**
+     * Minutes to add to (positive) or subtract from (negative) the actual
+     * sunset time to compute the closing time for this area, e.g. `-30` to
+     * close 30 minutes before sunset or `90` to close 90 minutes after
+     * sunset. Overrides both the static `close` time and `duskOffsetMinutes`
+     * for this area. Undefined disables sunset coupling for this area.
+     */
+    sunsetOffsetMinutes?: number;
 }

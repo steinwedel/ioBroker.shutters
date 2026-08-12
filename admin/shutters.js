@@ -263,7 +263,11 @@ function makeText(id, label, value, colWidth, onChangeCb, type) {
     input.type = type || 'text';
     input.value = value === undefined || value === null ? '' : value;
     input.oninput = function () {
-        onChangeCb(type === 'number' ? Number(input.value) : input.value);
+        if (type === 'number') {
+            onChangeCb(input.value.trim() === '' ? undefined : Number(input.value));
+        } else {
+            onChangeCb(input.value);
+        }
     };
     var labelEl = document.createElement('label');
     labelEl.setAttribute('for', id);
@@ -571,6 +575,55 @@ function renderAreas() {
             }),
         );
         card.appendChild(row2);
+
+        var sunSectionTitle = document.createElement('div');
+        sunSectionTitle.className = 'shutters-section-title';
+        sunSectionTitle.innerText = _('sunEventHintText');
+        sunSectionTitle.style.fontWeight = 'normal';
+        card.appendChild(sunSectionTitle);
+
+        var row3 = document.createElement('div');
+        row3.className = 'shutters-row row';
+        row3.appendChild(
+            makeText(
+                'area-' + index + '-sunriseOffsetMinutes',
+                'sunriseOffsetMinutes',
+                area.sunriseOffsetMinutes,
+                4,
+                function (v) {
+                    area.sunriseOffsetMinutes = v;
+                    onChangeFired();
+                },
+                'number',
+            ),
+        );
+        row3.appendChild(
+            makeText(
+                'area-' + index + '-sunsetOffsetMinutes',
+                'sunsetOffsetMinutes',
+                area.sunsetOffsetMinutes,
+                4,
+                function (v) {
+                    area.sunsetOffsetMinutes = v;
+                    onChangeFired();
+                },
+                'number',
+            ),
+        );
+        row3.appendChild(
+            makeText(
+                'area-' + index + '-duskOffsetMinutes',
+                'duskOffsetMinutes',
+                area.duskOffsetMinutes,
+                4,
+                function (v) {
+                    area.duskOffsetMinutes = v;
+                    onChangeFired();
+                },
+                'number',
+            ),
+        );
+        card.appendChild(row3);
 
         container.appendChild(built.card);
     });

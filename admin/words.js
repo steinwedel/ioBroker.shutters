@@ -78,6 +78,22 @@ systemDictionary = {
     weekendClose: { en: 'Weekend close', de: 'Wochenende zu' },
     holidayOpen: { en: 'Public holiday open', de: 'Feiertag auf' },
     holidayClose: { en: 'Public holiday close', de: 'Feiertag zu' },
+    sunriseOffsetMinutes: {
+        en: 'Open relative to sunrise (min, e.g. -30 or +90)',
+        de: 'Öffnen relativ zum Sonnenaufgang (Min., z.B. -30 oder +90)',
+    },
+    sunsetOffsetMinutes: {
+        en: 'Close relative to sunset (min, e.g. -30 or +90)',
+        de: 'Schließen relativ zum Sonnenuntergang (Min., z.B. -30 oder +90)',
+    },
+    duskOffsetMinutes: {
+        en: 'Close relative to civil dusk (min, ignored if sunset offset is set)',
+        de: 'Schließen relativ zum Ende der Dämmerung (Min., wird bei gesetztem Sonnenuntergangs-Versatz ignoriert)',
+    },
+    sunEventHintText: {
+        en: 'Optional: instead of a static close/open time, couple this area to sunrise/sunset/dusk with an offset in minutes (negative = before, positive = after). Requires latitude/longitude to be set (falls back to the system location). Leave empty to use the static times above.',
+        de: 'Optional: Statt einer festen Öffnen-/Schließen-Zeit kann dieser Bereich mit einem Minuten-Versatz an Sonnenaufgang/Sonnenuntergang/Dämmerung gekoppelt werden (negativ = vorher, positiv = danach). Erfordert Breiten-/Längengrad (fällt sonst auf den Systemstandort zurück). Leer lassen, um die festen Zeiten oben zu verwenden.',
+    },
     addAreaButton: { en: '+ Add area', de: '+ Bereich hinzufügen' },
     weather: { en: 'Weather data', de: 'Wetterdaten' },
     weatherHintText: {
