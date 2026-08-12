@@ -1,10 +1,13 @@
 import type { HolidayChecker } from './holiday';
-import type { IAreaScheduleConfig, IDaySchedule } from './types';
+import type { IAreaScheduleConfig, IDaySchedule, WeekdayName } from './types';
 import { computeSunEventTime } from './twilight';
 
 const TIME_RE = /^([01]?\d|2[0-3]):([0-5]\d)$/;
-const OFFSET_MINUTES_RE = /^([+-])(\d+)$/;
-const OFFSET_DURATION_RE = /^([+-])(\d+):([0-5]\d)$/;
+const OFFSET_MINUTES_RE = /^([+-])(\d+)(d)?$/i;
+const OFFSET_DURATION_RE = /^([+-])(\d+):([0-5]\d)(d)?$/i;
+
+/** `Date.getDay()` index (0 = Sunday) to `WeekdayName`, used to look up `IAreaScheduleConfig.days`. */
+const WEEKDAY_NAMES: WeekdayName[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
 /**
  * Parses a "HH:MM" string into a Date on the same calendar day as `now`.
@@ -25,26 +28,39 @@ export function parseTimeToday(timeString: string, now: Date): Date | undefined 
 /** An area's open/close schedule entry, parsed from the plain string the user enters. */
 export type ScheduleEntry =
     | { kind: 'time'; time: Date }
-    | { kind: 'sunOffset'; minutes: number }
-    | { kind: 'sunOffsetCapped'; minutes: number; capTime: Date };
+    | { kind: 'sunOffset'; minutes: number; useTwilight: boolean }
+    | { kind: 'sunOffsetCapped'; minutes: number; useTwilight: boolean; capTime: Date };
+
+/** A parsed offset token: signed minutes, and whether the trailing `d` (dawn/dusk) modifier was present. */
+interface OffsetToken {
+    minutes: number;
+    useTwilight: boolean;
+}
 
 /**
- * Parses the leading `+`/`-` offset token of a schedule entry (plain minutes or an "HH:MM" duration).
+ * Parses the leading `+`/`-` offset token of a schedule entry: plain minutes or an "HH:MM" duration,
+ * optionally followed by a `d` modifier that selects civil dawn/dusk instead of sunrise/sunset.
  *
- * @param token - The offset token, e.g. "-30" or "+01:30".
- * @returns The signed offset in minutes, or undefined if `token` is not a valid offset.
+ * @param token - The offset token, e.g. "-30", "+01:30", "-30d" or "+01:30d".
+ * @returns The parsed offset, or undefined if `token` is not a valid offset.
  */
-function parseOffsetMinutesToken(token: string): number | undefined {
+function parseOffsetToken(token: string): OffsetToken | undefined {
     const durationMatch = OFFSET_DURATION_RE.exec(token);
     if (durationMatch) {
         const minutes = Number(durationMatch[2]) * 60 + Number(durationMatch[3]);
-        return durationMatch[1] === '-' ? -minutes : minutes;
+        return {
+            minutes: durationMatch[1] === '-' ? -minutes : minutes,
+            useTwilight: durationMatch[4] !== undefined,
+        };
     }
 
     const minutesMatch = OFFSET_MINUTES_RE.exec(token);
     if (minutesMatch) {
         const minutes = Number(minutesMatch[2]);
-        return minutesMatch[1] === '-' ? -minutes : minutes;
+        return {
+            minutes: minutesMatch[1] === '-' ? -minutes : minutes,
+            useTwilight: minutesMatch[3] !== undefined,
+        };
     }
 
     return undefined;
@@ -55,10 +71,11 @@ function parseOffsetMinutesToken(token: string): number | undefined {
  * - A plain "HH:MM" (24h) clock time, e.g. "07:30".
  * - A leading `+`/`-` offset relative to sunrise (for the opening time) or sunset (for the closing
  *   time), given either as plain minutes (e.g. "-30", "+90") or as an "HH:MM" duration (e.g. "-00:30",
- *   "+01:30").
+ *   "+01:30"). Appending `d` (e.g. "-30d", "+01:30d") couples to civil dawn/dusk instead of the actual
+ *   sunrise/sunset.
  * - The above offset followed by `!` and a plain "HH:MM" cap time, e.g. "+30!19:00" ("30 minutes after
  *   the sun event, but never later than 19:00" - the cap always wins if the offset time would be later
- *   than the cap, for both opening and closing).
+ *   than the cap, for both opening and closing), or "+30d!19:00" for the dawn/dusk variant.
  *
  * @param value - Raw string entered by the user for an open/close field.
  * @param now - Reference date; only its year/month/day are used for the "time"/cap variants.
@@ -70,17 +87,17 @@ export function parseScheduleEntry(value: string, now: Date): ScheduleEntry | un
     if (bangIndex >= 0) {
         const offsetToken = trimmed.slice(0, bangIndex).trim();
         const capToken = trimmed.slice(bangIndex + 1).trim();
-        const minutes = parseOffsetMinutesToken(offsetToken);
+        const offset = parseOffsetToken(offsetToken);
         const capTime = parseTimeToday(capToken, now);
-        if (minutes === undefined || !capTime) {
+        if (!offset || !capTime) {
             return undefined;
         }
-        return { kind: 'sunOffsetCapped', minutes, capTime };
+        return { kind: 'sunOffsetCapped', minutes: offset.minutes, useTwilight: offset.useTwilight, capTime };
     }
 
-    const offsetMinutes = parseOffsetMinutesToken(trimmed);
-    if (offsetMinutes !== undefined) {
-        return { kind: 'sunOffset', minutes: offsetMinutes };
+    const offset = parseOffsetToken(trimmed);
+    if (offset) {
+        return { kind: 'sunOffset', minutes: offset.minutes, useTwilight: offset.useTwilight };
     }
 
     const time = parseTimeToday(trimmed, now);
@@ -106,20 +123,49 @@ export function pickSunOffsetCappedTarget(sunTarget: Date | undefined, capTime: 
     return sunTarget;
 }
 
+/**
+ * Picks the applicable day schedule for `area` on `now`'s calendar day. Precedence: public holiday
+ * schedule (if `isPublicHoliday` and `area.holiday` is set) > a per-weekday override in `area.days` for
+ * today's weekday (if set) > the regular weekday/weekend fallback. Within a per-weekday override, an
+ * unset `open`/`close` field still falls back to the weekday/weekend schedule rather than being
+ * skipped.
+ *
+ * @param area - Area whose day schedule to resolve.
+ * @param now - Reference date, used to determine today's weekday (Sunday/Saturday count as weekend).
+ * @param isPublicHoliday - Whether `now`'s calendar day is a public holiday.
+ */
+export function resolveDaySchedule(area: IAreaScheduleConfig, now: Date, isPublicHoliday: boolean): IDaySchedule {
+    if (area.holiday && isPublicHoliday) {
+        return area.holiday;
+    }
+
+    const isWeekend = now.getDay() === 0 || now.getDay() === 6;
+    const fallback = isWeekend ? area.weekend : area.weekday;
+
+    const override = area.days?.[WEEKDAY_NAMES[now.getDay()]];
+    if (!override) {
+        return fallback;
+    }
+    return { open: override.open ?? fallback.open, close: override.close ?? fallback.close };
+}
+
 export type ScheduleAction = 'open' | 'close';
 
 /**
  * Daily schedule engine: for each configured area, determines today's
- * applicable open/close times (weekday/weekend/public holiday) and fires a
- * callback at those times. Recomputes itself once per day shortly after
- * midnight, so day-category changes (e.g. into/out of a public holiday) are
- * picked up automatically.
+ * applicable open/close times and fires a callback at those times. Recomputes itself once per day
+ * shortly after midnight, so day-category changes (e.g. into/out of a public holiday) are picked up
+ * automatically. Precedence for a given day: public holiday schedule (if configured and applicable) >
+ * per-weekday override in `area.days` (if set for today's weekday) > the regular weekday/weekend
+ * schedule, see `resolveTodaySchedule`.
  *
  * Each open/close field accepts a plain "HH:MM" clock time, an offset relative to sunrise (opening) /
  * sunset (closing) written with a leading `+`/`-` sign as plain minutes (e.g. "-30") or an "HH:MM"
- * duration (e.g. "+01:30"), or that offset combined with a "!HH:MM" cap (e.g. "+30!19:00" = 30 minutes
- * after the sun event, but never later than 19:00) - see `parseScheduleEntry`. No separate configuration
- * fields are needed for this; the format of the string itself is what distinguishes the variants.
+ * duration (e.g. "+01:30"), optionally with a trailing `d` to couple to civil dawn/dusk instead (e.g.
+ * "-30d"), or any of the above combined with a "!HH:MM" cap (e.g. "+30!19:00" or "+30d!19:00" = 30
+ * minutes after the event, but never later than 19:00) - see `parseScheduleEntry`. No separate
+ * configuration fields are needed for this; the format of the string itself is what distinguishes the
+ * variants.
  *
  * iCal calendar overrides are not implemented yet, see plan section 5 (M4).
  */
@@ -165,19 +211,13 @@ export class Scheduler {
     }
 
     /**
-     * Picks the applicable day schedule for `area` on `now`'s calendar day:
-     * public holiday (if configured and applicable) takes precedence over
-     * weekend, which takes precedence over the regular weekday schedule.
+     * Picks the applicable day schedule for `area` on `now`'s calendar day, see `resolveDaySchedule`.
      *
      * @param area - Area whose day schedule to resolve.
      * @param now - Reference date to determine weekday/weekend/holiday.
      */
     private resolveTodaySchedule(area: IAreaScheduleConfig, now: Date): IDaySchedule {
-        const isWeekend = now.getDay() === 0 || now.getDay() === 6;
-        if (area.holiday && this.holidayChecker.isPublicHoliday(now)) {
-            return area.holiday;
-        }
-        return isWeekend ? area.weekend : area.weekday;
+        return resolveDaySchedule(area, now, this.holidayChecker.isPublicHoliday(now));
     }
 
     private scheduleAction(areaName: string, action: ScheduleAction, value: string | undefined, now: Date): void {
@@ -198,7 +238,7 @@ export class Scheduler {
         }
 
         if (entry.kind === 'sunOffset') {
-            const target = this.computeSunOffsetTarget(areaName, action, entry.minutes, now);
+            const target = this.computeSunOffsetTarget(areaName, action, entry.minutes, entry.useTwilight, now);
             if (target) {
                 this.scheduleAt(areaName, action, target, now);
             }
@@ -207,24 +247,26 @@ export class Scheduler {
 
         // sunOffsetCapped: the cap always applies, even if the sun-event time itself could not be
         // computed (e.g. missing location or a polar day/night), so it never simply falls through.
-        const sunTarget = this.computeSunOffsetTarget(areaName, action, entry.minutes, now);
+        const sunTarget = this.computeSunOffsetTarget(areaName, action, entry.minutes, entry.useTwilight, now);
         this.scheduleAt(areaName, action, pickSunOffsetCappedTarget(sunTarget, entry.capTime), now);
     }
 
     /**
-     * Computes the sunrise (for `'open'`) or sunset (for `'close'`) time offset by `offsetMinutes`, or
-     * undefined (with a warning logged) if no location is configured or the event could not be computed
-     * for today (e.g. polar day/night).
+     * Computes the sunrise/dawn (for `'open'`) or sunset/dusk (for `'close'`) time offset by
+     * `offsetMinutes`, or undefined (with a warning logged) if no location is configured or the event
+     * could not be computed for today (e.g. polar day/night).
      *
      * @param areaName - Area name, used only for the warning message.
-     * @param action - Which action this offset drives; determines whether sunrise or sunset is used.
-     * @param offsetMinutes - Minutes to add to (positive) or subtract from (negative) the sun event.
+     * @param action - Which action this offset drives; determines whether the sunrise/dawn or sunset/dusk pair is used.
+     * @param offsetMinutes - Minutes to add to (positive) or subtract from (negative) the event.
+     * @param useTwilight - If true, use civil dawn/dusk instead of the actual sunrise/sunset.
      * @param now - Reference date for today's computation.
      */
     private computeSunOffsetTarget(
         areaName: string,
         action: ScheduleAction,
         offsetMinutes: number,
+        useTwilight: boolean,
         now: Date,
     ): Date | undefined {
         if (!this.location) {
@@ -234,7 +276,7 @@ export class Scheduler {
             return undefined;
         }
 
-        const sunEvent = action === 'open' ? 'sunrise' : 'sunset';
+        const sunEvent = action === 'open' ? (useTwilight ? 'dawn' : 'sunrise') : useTwilight ? 'dusk' : 'sunset';
         const target = computeSunEventTime(
             now,
             this.location.latitude,

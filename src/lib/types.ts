@@ -191,12 +191,15 @@ export interface IShuttersNativeConfig {
  * - A plain "HH:MM" (24h) clock time, e.g. "07:30".
  * - A leading `+`/`-` offset relative to sunrise (`open`) or sunset (`close`), as plain minutes (e.g.
  *   "-30" to fire 30 minutes before the event) or an "HH:MM" duration (e.g. "+01:30" to fire 90 minutes
- *   after the event).
+ *   after the event). Append `d` (e.g. "-30d", "+01:30d") to couple to civil dawn (`open`) / dusk
+ *   (`close`) instead of the actual sunrise/sunset.
  * - The above offset followed by `!` and a plain "HH:MM" cap time, e.g. "+30!19:00" ("30 minutes after
- *   the sun event, but never later than 19:00" for `close`; analogous for `open`).
+ *   the sun event, but never later than 19:00" for `close`; analogous for `open`), or "+30d!19:00" for
+ *   the dawn/dusk variant.
  *
- * The sunrise/sunset-relative variants require latitude/longitude to be resolvable; otherwise skipped
- * with a warning (except the capped variant, which then falls back to the cap time alone).
+ * The sunrise/sunset/dawn/dusk-relative variants require latitude/longitude to be resolvable;
+ * otherwise skipped with a warning (except the capped variant, which then falls back to the cap time
+ * alone).
  */
 export interface IDaySchedule {
     /** Opening time/offset, see above, or undefined to skip opening on this day category. */
@@ -205,14 +208,24 @@ export interface IDaySchedule {
     close?: string;
 }
 
+/** English weekday name, used as the key for `IAreaScheduleConfig.days`. */
+export type WeekdayName = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+
 /** Daily open/close schedule for one area/zone (plan section 5). */
 export interface IAreaScheduleConfig {
     /** Area/zone name; matched against `IShutterConfig.area`. */
     name: string;
-    /** Schedule applied on regular weekdays (Monday-Friday, unless it is also a public holiday). */
+    /** Schedule applied on regular weekdays (Monday-Friday, unless it is also a public holiday or overridden per-weekday in `days`). */
     weekday: IDaySchedule;
-    /** Schedule applied on Saturday/Sunday, and as the fallback for public holidays if `holiday` is undefined. */
+    /** Schedule applied on Saturday/Sunday, and as the fallback for public holidays if `holiday` is undefined (unless overridden per-weekday in `days`). */
     weekend: IDaySchedule;
-    /** Falls back to `weekend` if undefined. */
+    /** Falls back to `weekend` if undefined. Takes precedence over both `weekday`/`weekend` and any per-weekday override in `days`. */
     holiday?: IDaySchedule;
+    /**
+     * Optional per-weekday overrides, keyed by English weekday name. Only present days are affected;
+     * within a present day, `open`/`close` fields that are themselves undefined still fall back to the
+     * `weekday`/`weekend` schedule above (so e.g. a Monday override with only `close` set keeps the
+     * regular weekday opening time). Ignored on days that are also public holidays if `holiday` is set.
+     */
+    days?: Partial<Record<WeekdayName, IDaySchedule>>;
 }

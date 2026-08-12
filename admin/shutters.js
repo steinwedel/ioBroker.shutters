@@ -9,7 +9,7 @@ var shuttersOnChange = null;
 // Collapse state for the accordion-style cards (coverings/areas/groups/scenes), keyed by list name and
 // index. Missing entries default to collapsed (closed), as required: every card can be expanded/collapsed
 // and is closed by default. Kept outside shuttersConfig so it never gets persisted to native.
-var shuttersCollapsed = { coverings: [], areas: [], groups: [], scenes: [] };
+var shuttersCollapsed = { coverings: [], areas: [], areaWeekdays: [], groups: [], scenes: [] };
 
 function isCardCollapsed(listName, index) {
     if (shuttersCollapsed[listName][index] === undefined) {
@@ -74,6 +74,50 @@ function buildAccordionCard(titleText, collapsed, onToggle, onRemove) {
 
     return { card: card, body: body, title: title };
 }
+
+// Lightweight collapsible toggle for a sub-section within a card (e.g. per-weekday overrides), without
+// its own remove button. Closed by default, same as the top-level accordion cards.
+function buildInlineToggle(labelText, collapsed, onToggle) {
+    var wrap = document.createElement('div');
+    wrap.className = 'shutters-inline-toggle-wrap';
+
+    var toggleLink = document.createElement('a');
+    toggleLink.href = '#';
+    toggleLink.className = 'shutters-inline-toggle';
+    var icon = document.createElement('span');
+    icon.className = 'shutters-toggle-icon';
+    icon.innerText = collapsed ? '\u25B6' : '\u25BC';
+    var textSpan = document.createElement('span');
+    textSpan.innerText = labelText;
+    toggleLink.appendChild(icon);
+    toggleLink.appendChild(textSpan);
+
+    var body = document.createElement('div');
+    body.className = 'shutters-inline-toggle-body';
+    body.style.display = collapsed ? 'none' : '';
+
+    toggleLink.onclick = function (ev) {
+        ev.preventDefault();
+        var nowCollapsed = body.style.display !== 'none';
+        body.style.display = nowCollapsed ? 'none' : '';
+        icon.innerText = nowCollapsed ? '\u25B6' : '\u25BC';
+        onToggle(nowCollapsed);
+    };
+
+    wrap.appendChild(toggleLink);
+    wrap.appendChild(body);
+    return { wrap: wrap, body: body };
+}
+
+var WEEKDAYS = [
+    ['monday', 'weekdayMonday'],
+    ['tuesday', 'weekdayTuesday'],
+    ['wednesday', 'weekdayWednesday'],
+    ['thursday', 'weekdayThursday'],
+    ['friday', 'weekdayFriday'],
+    ['saturday', 'weekdaySaturday'],
+    ['sunday', 'weekdaySunday'],
+];
 
 var FEDERAL_STATES = [
     ['', 'publicHolidayFederalStateNone'],
@@ -505,6 +549,7 @@ function renderAreas() {
         area.weekday = area.weekday || {};
         area.weekend = area.weekend || {};
         area.holiday = area.holiday || {};
+        area.days = area.days || {};
         var built = buildAccordionCard(
             area.name || '(' + _('areaName') + ')',
             isCardCollapsed('areas', index),
@@ -514,6 +559,7 @@ function renderAreas() {
             function () {
                 shuttersConfig.areas.splice(index, 1);
                 removeCardCollapsed('areas', index);
+                removeCardCollapsed('areaWeekdays', index);
                 renderAreas();
                 onChangeFired();
             },
@@ -575,6 +621,57 @@ function renderAreas() {
             }),
         );
         card.appendChild(row2);
+
+        var weekdaysToggle = buildInlineToggle(
+            _('perWeekdayToggle'),
+            isCardCollapsed('areaWeekdays', index),
+            function (collapsed) {
+                setCardCollapsed('areaWeekdays', index, collapsed);
+            },
+        );
+        var weekdaysHint = document.createElement('div');
+        weekdaysHint.className = 'shutters-hint';
+        weekdaysHint.innerText = _('perWeekdayHintText');
+        weekdaysToggle.body.appendChild(weekdaysHint);
+
+        WEEKDAYS.forEach(function (weekday) {
+            var key = weekday[0];
+            area.days[key] = area.days[key] || {};
+            var weekdayRow = document.createElement('div');
+            weekdayRow.className = 'shutters-row row';
+
+            var labelDiv = document.createElement('div');
+            labelDiv.className = 'col s2 shutters-weekday-label';
+            labelDiv.innerText = _(weekday[1]);
+            weekdayRow.appendChild(labelDiv);
+
+            weekdayRow.appendChild(
+                makeText(
+                    'area-' + index + '-day-' + key + '-open',
+                    'weekdayOverrideOpen',
+                    area.days[key].open,
+                    5,
+                    function (v) {
+                        area.days[key].open = v;
+                        onChangeFired();
+                    },
+                ),
+            );
+            weekdayRow.appendChild(
+                makeText(
+                    'area-' + index + '-day-' + key + '-close',
+                    'weekdayOverrideClose',
+                    area.days[key].close,
+                    5,
+                    function (v) {
+                        area.days[key].close = v;
+                        onChangeFired();
+                    },
+                ),
+            );
+            weekdaysToggle.body.appendChild(weekdayRow);
+        });
+        card.appendChild(weekdaysToggle.wrap);
 
         container.appendChild(built.card);
     });

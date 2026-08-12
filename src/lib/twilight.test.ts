@@ -33,5 +33,23 @@ describe('twilight', () => {
             const sunset = computeSunEventTime(date, LATITUDE, LONGITUDE, 'sunset', 0)!;
             expect(sunset.getTime()).to.be.greaterThan(sunrise.getTime());
         });
+
+        it('computes civil dawn earlier than sunrise on the same day', () => {
+            const dawn = computeSunEventTime(date, LATITUDE, LONGITUDE, 'dawn', 0)!;
+            const sunrise = computeSunEventTime(date, LATITUDE, LONGITUDE, 'sunrise', 0)!;
+            expect(dawn.getTime()).to.be.lessThan(sunrise.getTime());
+        });
+
+        it('computes civil dusk later than sunset on the same day', () => {
+            const dusk = computeSunEventTime(date, LATITUDE, LONGITUDE, 'dusk', 0)!;
+            const sunset = computeSunEventTime(date, LATITUDE, LONGITUDE, 'sunset', 0)!;
+            expect(dusk.getTime()).to.be.greaterThan(sunset.getTime());
+        });
+
+        it('applies an offset to a dusk time', () => {
+            const base = computeSunEventTime(date, LATITUDE, LONGITUDE, 'dusk', 0)!;
+            const offset = computeSunEventTime(date, LATITUDE, LONGITUDE, 'dusk', 30)!;
+            expect(offset.getTime()).to.equal(base.getTime() + 30 * 60_000);
+        });
     });
 });
