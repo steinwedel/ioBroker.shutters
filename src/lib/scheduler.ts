@@ -124,29 +124,42 @@ export function pickSunOffsetCappedTarget(sunTarget: Date | undefined, capTime: 
 }
 
 /**
- * Picks the applicable day schedule for `area` on `now`'s calendar day. Precedence: public holiday
- * schedule (if `isPublicHoliday` and `area.holiday` is set) > a per-weekday override in `area.days` for
- * today's weekday (if set) > the regular weekday/weekend fallback. Within a per-weekday override, an
- * unset `open`/`close` field still falls back to the weekday/weekend schedule rather than being
- * skipped.
+ * Picks the applicable day schedule for `area` on `now`'s calendar day, depending on `area.scheduleMode`
+ * (defaulting to `'weekdayWeekend'` if undefined):
+ * - `'uniform'`: always `area.weekday`, even on public holidays.
+ * - `'weekdayWeekend'`: `area.holiday` on public holidays (falling back to `area.weekend` if `holiday`
+ *   is undefined), otherwise `area.weekend` on Saturday/Sunday and `area.weekday` on other days.
+ * - `'perWeekday'`: `area.holiday` on public holidays (falling back to today's own entry in `area.days`
+ *   if `holiday` is undefined), otherwise `area.days[<today's weekday>]` (or `{}`, i.e. no action for
+ *   either field, if that weekday has no entry).
  *
  * @param area - Area whose day schedule to resolve.
  * @param now - Reference date, used to determine today's weekday (Sunday/Saturday count as weekend).
  * @param isPublicHoliday - Whether `now`'s calendar day is a public holiday.
  */
 export function resolveDaySchedule(area: IAreaScheduleConfig, now: Date, isPublicHoliday: boolean): IDaySchedule {
-    if (area.holiday && isPublicHoliday) {
-        return area.holiday;
+    const mode = area.scheduleMode ?? 'weekdayWeekend';
+
+    if (mode === 'uniform') {
+        return area.weekday;
     }
 
+    if (mode === 'perWeekday') {
+        const todaysEntry = area.days?.[WEEKDAY_NAMES[now.getDay()]] ?? {};
+        if (isPublicHoliday) {
+            // A public holiday is treated like a non-working day: fall back to today's own entry if no
+            // dedicated holiday schedule is set, mirroring the weekend fallback in 'weekdayWeekend' mode.
+            return area.holiday ?? todaysEntry;
+        }
+        return todaysEntry;
+    }
+
+    // 'weekdayWeekend'
     const isWeekend = now.getDay() === 0 || now.getDay() === 6;
-    const fallback = isWeekend ? area.weekend : area.weekday;
-
-    const override = area.days?.[WEEKDAY_NAMES[now.getDay()]];
-    if (!override) {
-        return fallback;
+    if (isPublicHoliday) {
+        return area.holiday ?? area.weekend;
     }
-    return { open: override.open ?? fallback.open, close: override.close ?? fallback.close };
+    return isWeekend ? area.weekend : area.weekday;
 }
 
 export type ScheduleAction = 'open' | 'close';
@@ -155,9 +168,9 @@ export type ScheduleAction = 'open' | 'close';
  * Daily schedule engine: for each configured area, determines today's
  * applicable open/close times and fires a callback at those times. Recomputes itself once per day
  * shortly after midnight, so day-category changes (e.g. into/out of a public holiday) are picked up
- * automatically. Precedence for a given day: public holiday schedule (if configured and applicable) >
- * per-weekday override in `area.days` (if set for today's weekday) > the regular weekday/weekend
- * schedule, see `resolveTodaySchedule`.
+ * automatically. Which fields determine a given day's schedule depends on the area's `scheduleMode` -
+ * uniform (all days the same), weekday/weekend/holiday, or a separate schedule per weekday plus holiday
+ * - see `resolveDaySchedule`.
  *
  * Each open/close field accepts a plain "HH:MM" clock time, an offset relative to sunrise (opening) /
  * sunset (closing) written with a leading `+`/`-` sign as plain minutes (e.g. "-30") or an "HH:MM"

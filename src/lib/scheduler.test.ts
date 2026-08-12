@@ -170,50 +170,116 @@ describe('scheduler', () => {
     });
 
     describe('resolveDaySchedule', () => {
-        const area: IAreaScheduleConfig = {
-            name: 'Terrace',
-            weekday: { open: '07:00', close: '19:00' },
-            weekend: { open: '09:00', close: '20:00' },
-            holiday: { open: '10:00', close: '20:30' },
-            days: {
-                monday: { close: '18:00' }, // only overrides close; open still falls back to weekday.open
-                saturday: { open: '08:00', close: '21:00' },
-            },
-        };
-
         const monday = new Date(2026, 6, 13, 10, 0, 0, 0); // 2026-07-13 is a Monday
-        const tuesday = new Date(2026, 6, 14, 10, 0, 0, 0); // Tuesday, no override
-        const saturday = new Date(2026, 6, 18, 10, 0, 0, 0); // Saturday, full override
-        const sunday = new Date(2026, 6, 19, 10, 0, 0, 0); // Sunday, no override
+        const saturday = new Date(2026, 6, 18, 10, 0, 0, 0); // Saturday
+        const sunday = new Date(2026, 6, 19, 10, 0, 0, 0); // Sunday
 
-        it('returns the holiday schedule when today is a public holiday, even with a per-weekday override set', () => {
-            expect(resolveDaySchedule(area, monday, true)).to.deep.equal(area.holiday);
-        });
-
-        it('applies a partial per-weekday override, falling back to weekday.open for the unset field', () => {
-            expect(resolveDaySchedule(area, monday, false)).to.deep.equal({ open: '07:00', close: '18:00' });
-        });
-
-        it('falls back to the plain weekday schedule when no per-weekday override is set', () => {
-            expect(resolveDaySchedule(area, tuesday, false)).to.deep.equal(area.weekday);
-        });
-
-        it('applies a full per-weekday override on a weekend day', () => {
-            expect(resolveDaySchedule(area, saturday, false)).to.deep.equal({ open: '08:00', close: '21:00' });
-        });
-
-        it('falls back to the plain weekend schedule on a weekend day with no override', () => {
-            expect(resolveDaySchedule(area, sunday, false)).to.deep.equal(area.weekend);
-        });
-
-        it('ignores days entirely when undefined', () => {
-            const areaWithoutDays: IAreaScheduleConfig = {
-                name: 'Kitchen',
-                weekday: { open: '06:30', close: '18:30' },
-                weekend: { open: '08:00', close: '20:00' },
+        describe('mode "weekdayWeekend" (also the default when scheduleMode is undefined)', () => {
+            const area: IAreaScheduleConfig = {
+                name: 'Terrace',
+                weekday: { open: '07:00', close: '19:00' },
+                weekend: { open: '09:00', close: '20:00' },
+                holiday: { open: '10:00', close: '20:30' },
             };
-            expect(resolveDaySchedule(areaWithoutDays, monday, false)).to.deep.equal(areaWithoutDays.weekday);
-            expect(resolveDaySchedule(areaWithoutDays, saturday, false)).to.deep.equal(areaWithoutDays.weekend);
+
+            it('returns the holiday schedule when today is a public holiday', () => {
+                expect(resolveDaySchedule(area, monday, true)).to.deep.equal(area.holiday);
+            });
+
+            it('returns the weekday schedule on a regular weekday', () => {
+                expect(resolveDaySchedule(area, monday, false)).to.deep.equal(area.weekday);
+            });
+
+            it('returns the weekend schedule on a weekend day', () => {
+                expect(resolveDaySchedule(area, saturday, false)).to.deep.equal(area.weekend);
+                expect(resolveDaySchedule(area, sunday, false)).to.deep.equal(area.weekend);
+            });
+
+            it('defaults to this mode when scheduleMode is undefined', () => {
+                expect(area.scheduleMode).to.be.undefined;
+                expect(resolveDaySchedule(area, saturday, false)).to.deep.equal(area.weekend);
+            });
+
+            it('falls back to weekend on a public holiday when holiday is undefined', () => {
+                const areaWithoutHoliday: IAreaScheduleConfig = {
+                    name: 'Kitchen',
+                    scheduleMode: 'weekdayWeekend',
+                    weekday: { open: '06:30', close: '18:30' },
+                    weekend: { open: '08:00', close: '20:00' },
+                };
+                expect(resolveDaySchedule(areaWithoutHoliday, monday, true)).to.deep.equal(areaWithoutHoliday.weekend);
+            });
+        });
+
+        describe('mode "uniform"', () => {
+            const area: IAreaScheduleConfig = {
+                name: 'Garage',
+                scheduleMode: 'uniform',
+                weekday: { open: '07:00', close: '19:00' },
+                weekend: { open: '09:00', close: '20:00' }, // unused in this mode
+                holiday: { open: '10:00', close: '20:30' }, // unused in this mode
+            };
+
+            it('always returns the weekday schedule, ignoring weekend', () => {
+                expect(resolveDaySchedule(area, saturday, false)).to.deep.equal(area.weekday);
+                expect(resolveDaySchedule(area, sunday, false)).to.deep.equal(area.weekday);
+            });
+
+            it('always returns the weekday schedule, ignoring holiday', () => {
+                expect(resolveDaySchedule(area, monday, true)).to.deep.equal(area.weekday);
+            });
+        });
+
+        describe('mode "perWeekday"', () => {
+            const area: IAreaScheduleConfig = {
+                name: 'Terrace',
+                scheduleMode: 'perWeekday',
+                weekday: { open: '07:00', close: '19:00' }, // unused in this mode
+                weekend: { open: '09:00', close: '20:00' }, // unused in this mode
+                holiday: { open: '10:00', close: '20:30' },
+                days: {
+                    monday: { open: '06:45', close: '18:00' },
+                    saturday: { open: '08:00', close: '21:00' },
+                },
+            };
+
+            it('returns the holiday schedule when today is a public holiday, even with a per-weekday entry set', () => {
+                expect(resolveDaySchedule(area, monday, true)).to.deep.equal(area.holiday);
+            });
+
+            it("returns the given weekday's own entry", () => {
+                expect(resolveDaySchedule(area, monday, false)).to.deep.equal(area.days!.monday);
+                expect(resolveDaySchedule(area, saturday, false)).to.deep.equal(area.days!.saturday);
+            });
+
+            it('returns an empty schedule (skipping both actions) for a weekday with no entry', () => {
+                const tuesday = new Date(2026, 6, 14, 10, 0, 0, 0);
+                expect(resolveDaySchedule(area, tuesday, false)).to.deep.equal({});
+            });
+
+            it("falls back to today's own weekday entry on a public holiday when holiday is undefined", () => {
+                const areaWithoutHoliday: IAreaScheduleConfig = {
+                    name: 'Kitchen',
+                    scheduleMode: 'perWeekday',
+                    weekday: {},
+                    weekend: {},
+                    days: { monday: { open: '06:30', close: '18:30' } },
+                };
+                expect(resolveDaySchedule(areaWithoutHoliday, monday, true)).to.deep.equal({
+                    open: '06:30',
+                    close: '18:30',
+                });
+            });
+
+            it('returns an empty schedule when days is undefined entirely', () => {
+                const areaWithoutDays: IAreaScheduleConfig = {
+                    name: 'Kitchen',
+                    scheduleMode: 'perWeekday',
+                    weekday: {},
+                    weekend: {},
+                };
+                expect(resolveDaySchedule(areaWithoutDays, monday, false)).to.deep.equal({});
+            });
         });
     });
 });

@@ -9,7 +9,7 @@ var shuttersOnChange = null;
 // Collapse state for the accordion-style cards (coverings/areas/groups/scenes), keyed by list name and
 // index. Missing entries default to collapsed (closed), as required: every card can be expanded/collapsed
 // and is closed by default. Kept outside shuttersConfig so it never gets persisted to native.
-var shuttersCollapsed = { coverings: [], areas: [], areaWeekdays: [], groups: [], scenes: [] };
+var shuttersCollapsed = { coverings: [], areas: [], groups: [], scenes: [] };
 
 function isCardCollapsed(listName, index) {
     if (shuttersCollapsed[listName][index] === undefined) {
@@ -75,39 +75,11 @@ function buildAccordionCard(titleText, collapsed, onToggle, onRemove) {
     return { card: card, body: body, title: title };
 }
 
-// Lightweight collapsible toggle for a sub-section within a card (e.g. per-weekday overrides), without
-// its own remove button. Closed by default, same as the top-level accordion cards.
-function buildInlineToggle(labelText, collapsed, onToggle) {
-    var wrap = document.createElement('div');
-    wrap.className = 'shutters-inline-toggle-wrap';
-
-    var toggleLink = document.createElement('a');
-    toggleLink.href = '#';
-    toggleLink.className = 'shutters-inline-toggle';
-    var icon = document.createElement('span');
-    icon.className = 'shutters-toggle-icon';
-    icon.innerText = collapsed ? '\u25B6' : '\u25BC';
-    var textSpan = document.createElement('span');
-    textSpan.innerText = labelText;
-    toggleLink.appendChild(icon);
-    toggleLink.appendChild(textSpan);
-
-    var body = document.createElement('div');
-    body.className = 'shutters-inline-toggle-body';
-    body.style.display = collapsed ? 'none' : '';
-
-    toggleLink.onclick = function (ev) {
-        ev.preventDefault();
-        var nowCollapsed = body.style.display !== 'none';
-        body.style.display = nowCollapsed ? 'none' : '';
-        icon.innerText = nowCollapsed ? '\u25B6' : '\u25BC';
-        onToggle(nowCollapsed);
-    };
-
-    wrap.appendChild(toggleLink);
-    wrap.appendChild(body);
-    return { wrap: wrap, body: body };
-}
+var SCHEDULE_MODES = [
+    ['uniform', 'scheduleModeUniform'],
+    ['weekdayWeekend', 'scheduleModeWeekdayWeekend'],
+    ['perWeekday', 'scheduleModePerWeekday'],
+];
 
 var WEEKDAYS = [
     ['monday', 'weekdayMonday'],
@@ -610,6 +582,7 @@ function renderAreas() {
     var container = document.getElementById('shutters-areas-container');
     container.innerHTML = '';
     shuttersConfig.areas.forEach(function (area, index) {
+        area.scheduleMode = area.scheduleMode || 'weekdayWeekend';
         area.weekday = area.weekday || {};
         area.weekend = area.weekend || {};
         area.holiday = area.holiday || {};
@@ -623,7 +596,6 @@ function renderAreas() {
             function () {
                 shuttersConfig.areas.splice(index, 1);
                 removeCardCollapsed('areas', index);
-                removeCardCollapsed('areaWeekdays', index);
                 renderAreas();
                 renderCoverings(); // refresh the plan dropdown on covering cards
                 onChangeFired();
@@ -642,106 +614,141 @@ function renderAreas() {
                 onChangeFired();
             }),
         );
+        row0.appendChild(
+            makeSelect('area-' + index + '-scheduleMode', 'scheduleMode', area.scheduleMode, SCHEDULE_MODES, function (v) {
+                area.scheduleMode = v;
+                renderAreas(); // re-render: which fields are shown depends on the mode
+                onChangeFired();
+            }),
+        );
         card.appendChild(row0);
 
-        var row1 = document.createElement('div');
-        row1.className = 'shutters-row row';
-        row1.appendChild(
-            makeText('area-' + index + '-weekdayOpen', 'weekdayOpen', area.weekday.open, 3, function (v) {
-                area.weekday.open = v;
-                onChangeFired();
-            }),
-        );
-        row1.appendChild(
-            makeText('area-' + index + '-weekdayClose', 'weekdayClose', area.weekday.close, 3, function (v) {
-                area.weekday.close = v;
-                onChangeFired();
-            }),
-        );
-        row1.appendChild(
-            makeText('area-' + index + '-weekendOpen', 'weekendOpen', area.weekend.open, 3, function (v) {
-                area.weekend.open = v;
-                onChangeFired();
-            }),
-        );
-        row1.appendChild(
-            makeText('area-' + index + '-weekendClose', 'weekendClose', area.weekend.close, 3, function (v) {
-                area.weekend.close = v;
-                onChangeFired();
-            }),
-        );
-        card.appendChild(row1);
-
-        var row2 = document.createElement('div');
-        row2.className = 'shutters-row row';
-        row2.appendChild(
-            makeText('area-' + index + '-holidayOpen', 'holidayOpen', area.holiday.open, 3, function (v) {
-                area.holiday.open = v;
-                onChangeFired();
-            }),
-        );
-        row2.appendChild(
-            makeText('area-' + index + '-holidayClose', 'holidayClose', area.holiday.close, 3, function (v) {
-                area.holiday.close = v;
-                onChangeFired();
-            }),
-        );
-        card.appendChild(row2);
-
-        var weekdaysToggle = buildInlineToggle(
-            _('perWeekdayToggle'),
-            isCardCollapsed('areaWeekdays', index),
-            function (collapsed) {
-                setCardCollapsed('areaWeekdays', index, collapsed);
-            },
-        );
-        var weekdaysHint = document.createElement('div');
-        weekdaysHint.className = 'shutters-hint';
-        weekdaysHint.innerText = _('perWeekdayHintText');
-        weekdaysToggle.body.appendChild(weekdaysHint);
-
-        WEEKDAYS.forEach(function (weekday) {
-            var key = weekday[0];
-            area.days[key] = area.days[key] || {};
-            var weekdayRow = document.createElement('div');
-            weekdayRow.className = 'shutters-row row';
-
-            var labelDiv = document.createElement('div');
-            labelDiv.className = 'col s2 shutters-weekday-label';
-            labelDiv.innerText = _(weekday[1]);
-            weekdayRow.appendChild(labelDiv);
-
-            weekdayRow.appendChild(
-                makeText(
-                    'area-' + index + '-day-' + key + '-open',
-                    'weekdayOverrideOpen',
-                    area.days[key].open,
-                    5,
-                    function (v) {
-                        area.days[key].open = v;
-                        onChangeFired();
-                    },
-                ),
+        if (area.scheduleMode === 'uniform') {
+            var uniformRow = document.createElement('div');
+            uniformRow.className = 'shutters-row row';
+            uniformRow.appendChild(
+                makeText('area-' + index + '-uniformOpen', 'uniformOpen', area.weekday.open, 3, function (v) {
+                    area.weekday.open = v;
+                    onChangeFired();
+                }),
             );
-            weekdayRow.appendChild(
-                makeText(
-                    'area-' + index + '-day-' + key + '-close',
-                    'weekdayOverrideClose',
-                    area.days[key].close,
-                    5,
-                    function (v) {
-                        area.days[key].close = v;
-                        onChangeFired();
-                    },
-                ),
+            uniformRow.appendChild(
+                makeText('area-' + index + '-uniformClose', 'uniformClose', area.weekday.close, 3, function (v) {
+                    area.weekday.close = v;
+                    onChangeFired();
+                }),
             );
-            weekdaysToggle.body.appendChild(weekdayRow);
-        });
-        card.appendChild(weekdaysToggle.wrap);
+            card.appendChild(uniformRow);
+        } else if (area.scheduleMode === 'perWeekday') {
+            var weekdaysHint = document.createElement('div');
+            weekdaysHint.className = 'shutters-hint';
+            weekdaysHint.innerText = _('perWeekdayHintText');
+            card.appendChild(weekdaysHint);
+
+            WEEKDAYS.forEach(function (weekday) {
+                var key = weekday[0];
+                area.days[key] = area.days[key] || {};
+                var weekdayRow = document.createElement('div');
+                weekdayRow.className = 'shutters-row row';
+
+                var labelDiv = document.createElement('div');
+                labelDiv.className = 'col s2 shutters-weekday-label';
+                labelDiv.innerText = _(weekday[1]);
+                weekdayRow.appendChild(labelDiv);
+
+                weekdayRow.appendChild(
+                    makeText(
+                        'area-' + index + '-day-' + key + '-open',
+                        'weekdayOverrideOpen',
+                        area.days[key].open,
+                        5,
+                        function (v) {
+                            area.days[key].open = v;
+                            onChangeFired();
+                        },
+                    ),
+                );
+                weekdayRow.appendChild(
+                    makeText(
+                        'area-' + index + '-day-' + key + '-close',
+                        'weekdayOverrideClose',
+                        area.days[key].close,
+                        5,
+                        function (v) {
+                            area.days[key].close = v;
+                            onChangeFired();
+                        },
+                    ),
+                );
+                card.appendChild(weekdayRow);
+            });
+
+            var perWeekdayHolidayRow = document.createElement('div');
+            perWeekdayHolidayRow.className = 'shutters-row row';
+            perWeekdayHolidayRow.appendChild(
+                makeText('area-' + index + '-holidayOpen', 'holidayOpen', area.holiday.open, 3, function (v) {
+                    area.holiday.open = v;
+                    onChangeFired();
+                }),
+            );
+            perWeekdayHolidayRow.appendChild(
+                makeText('area-' + index + '-holidayClose', 'holidayClose', area.holiday.close, 3, function (v) {
+                    area.holiday.close = v;
+                    onChangeFired();
+                }),
+            );
+            card.appendChild(perWeekdayHolidayRow);
+        } else {
+            // 'weekdayWeekend'
+            var row1 = document.createElement('div');
+            row1.className = 'shutters-row row';
+            row1.appendChild(
+                makeText('area-' + index + '-weekdayOpen', 'weekdayOpen', area.weekday.open, 3, function (v) {
+                    area.weekday.open = v;
+                    onChangeFired();
+                }),
+            );
+            row1.appendChild(
+                makeText('area-' + index + '-weekdayClose', 'weekdayClose', area.weekday.close, 3, function (v) {
+                    area.weekday.close = v;
+                    onChangeFired();
+                }),
+            );
+            row1.appendChild(
+                makeText('area-' + index + '-weekendOpen', 'weekendOpen', area.weekend.open, 3, function (v) {
+                    area.weekend.open = v;
+                    onChangeFired();
+                }),
+            );
+            row1.appendChild(
+                makeText('area-' + index + '-weekendClose', 'weekendClose', area.weekend.close, 3, function (v) {
+                    area.weekend.close = v;
+                    onChangeFired();
+                }),
+            );
+            card.appendChild(row1);
+
+            var row2 = document.createElement('div');
+            row2.className = 'shutters-row row';
+            row2.appendChild(
+                makeText('area-' + index + '-holidayOpen', 'holidayOpen', area.holiday.open, 3, function (v) {
+                    area.holiday.open = v;
+                    onChangeFired();
+                }),
+            );
+            row2.appendChild(
+                makeText('area-' + index + '-holidayClose', 'holidayClose', area.holiday.close, 3, function (v) {
+                    area.holiday.close = v;
+                    onChangeFired();
+                }),
+            );
+            card.appendChild(row2);
+        }
 
         container.appendChild(built.card);
     });
     if (typeof translateAll === 'function') translateAll();
+    if (typeof $ !== 'undefined' && $.fn.material_select) $('select').material_select();
 }
 
 // ---- Weather ----

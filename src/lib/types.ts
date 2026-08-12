@@ -211,21 +211,45 @@ export interface IDaySchedule {
 /** English weekday name, used as the key for `IAreaScheduleConfig.days`. */
 export type WeekdayName = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 
+/**
+ * Which set of fields a plan's schedule is defined with, see `resolveDaySchedule` in scheduler.ts:
+ * - `'uniform'`: a single schedule (`weekday`) applies every day, including public holidays.
+ * - `'weekdayWeekend'`: separate `weekday`/`weekend` schedules, with `holiday` (falling back to
+ *   `weekend`) applied on public holidays. This is the classic three-field mode and the default for
+ *   plans that don't set `scheduleMode` explicitly.
+ * - `'perWeekday'`: a separate schedule per individual weekday in `days`, with `holiday` applied on
+ *   public holidays (taking precedence over the weekday's own entry in `days`).
+ */
+export type ScheduleMode = 'uniform' | 'weekdayWeekend' | 'perWeekday';
+
 /** Daily open/close schedule for one area/zone (plan section 5). */
 export interface IAreaScheduleConfig {
     /** Area/zone name; matched against `IShutterConfig.area`. */
     name: string;
-    /** Schedule applied on regular weekdays (Monday-Friday, unless it is also a public holiday or overridden per-weekday in `days`). */
+    /**
+     * Which fields define this plan's schedule, see `ScheduleMode`. Defaults to `'weekdayWeekend'` if
+     * undefined (matches the schedule shape used before this field was introduced).
+     */
+    scheduleMode?: ScheduleMode;
+    /**
+     * In `'uniform'` mode: the single schedule applied every day. In `'weekdayWeekend'` mode: the
+     * schedule applied on regular weekdays (Monday-Friday, unless it is also a public holiday). Unused
+     * in `'perWeekday'` mode.
+     */
     weekday: IDaySchedule;
-    /** Schedule applied on Saturday/Sunday, and as the fallback for public holidays if `holiday` is undefined (unless overridden per-weekday in `days`). */
+    /** In `'weekdayWeekend'` mode: the schedule applied on Saturday/Sunday, and as the fallback for public holidays if `holiday` is undefined. Unused in the other modes. */
     weekend: IDaySchedule;
-    /** Falls back to `weekend` if undefined. Takes precedence over both `weekday`/`weekend` and any per-weekday override in `days`. */
+    /**
+     * The schedule applied on public holidays in `'weekdayWeekend'` and `'perWeekday'` mode. Falls back
+     * to `weekend` if undefined in `'weekdayWeekend'` mode; skips both actions if undefined in
+     * `'perWeekday'` mode. Unused (i.e. holidays use the same schedule as every other day) in `'uniform'`
+     * mode.
+     */
     holiday?: IDaySchedule;
     /**
-     * Optional per-weekday overrides, keyed by English weekday name. Only present days are affected;
-     * within a present day, `open`/`close` fields that are themselves undefined still fall back to the
-     * `weekday`/`weekend` schedule above (so e.g. a Monday override with only `close` set keeps the
-     * regular weekday opening time). Ignored on days that are also public holidays if `holiday` is set.
+     * In `'perWeekday'` mode: this weekday's schedule, keyed by English weekday name. A day missing from
+     * this map (or with an unset `open`/`close` field) simply skips that action on that weekday. Unused
+     * in the other modes.
      */
     days?: Partial<Record<WeekdayName, IDaySchedule>>;
 }
