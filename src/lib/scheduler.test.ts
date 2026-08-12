@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { parseScheduleEntry, parseTimeToday } from './scheduler';
+import { parseScheduleEntry, parseTimeToday, pickSunOffsetCappedTarget } from './scheduler';
 
 describe('scheduler', () => {
     describe('parseTimeToday', () => {
@@ -81,6 +81,64 @@ describe('scheduler', () => {
 
         it('returns undefined for a sign without digits', () => {
             expect(parseScheduleEntry('+', now)).to.be.undefined;
+        });
+
+        it('parses a plain-minutes offset with a cap time ("+30!19:00")', () => {
+            const entry = parseScheduleEntry('+30!19:00', now);
+            expect(entry).to.not.be.undefined;
+            expect(entry!.kind).to.equal('sunOffsetCapped');
+            const capped = entry as { kind: 'sunOffsetCapped'; minutes: number; capTime: Date };
+            expect(capped.minutes).to.equal(30);
+            expect(capped.capTime.getHours()).to.equal(19);
+            expect(capped.capTime.getMinutes()).to.equal(0);
+        });
+
+        it('parses a negative offset with a cap time', () => {
+            const entry = parseScheduleEntry('-01:30!07:00', now);
+            expect(entry).to.not.be.undefined;
+            const capped = entry as { kind: 'sunOffsetCapped'; minutes: number; capTime: Date };
+            expect(capped.kind).to.equal('sunOffsetCapped');
+            expect(capped.minutes).to.equal(-90);
+            expect(capped.capTime.getHours()).to.equal(7);
+        });
+
+        it('trims whitespace around the offset and cap tokens', () => {
+            const entry = parseScheduleEntry(' +30 ! 19:00 ', now);
+            const capped = entry as { kind: 'sunOffsetCapped'; minutes: number; capTime: Date };
+            expect(capped.kind).to.equal('sunOffsetCapped');
+            expect(capped.minutes).to.equal(30);
+            expect(capped.capTime.getHours()).to.equal(19);
+        });
+
+        it('returns undefined when the offset part of a capped entry is invalid', () => {
+            expect(parseScheduleEntry('19:00!19:00', now)).to.be.undefined;
+        });
+
+        it('returns undefined when the cap part of a capped entry is invalid', () => {
+            expect(parseScheduleEntry('+30!not-a-time', now)).to.be.undefined;
+        });
+    });
+
+    describe('pickSunOffsetCappedTarget', () => {
+        const capTime = new Date(2026, 6, 15, 19, 0, 0, 0);
+
+        it('picks the sun-relative target when it is earlier than the cap', () => {
+            const sunTarget = new Date(2026, 6, 15, 18, 30, 0, 0);
+            expect(pickSunOffsetCappedTarget(sunTarget, capTime)).to.equal(sunTarget);
+        });
+
+        it('picks the cap when the sun-relative target is later than the cap', () => {
+            const sunTarget = new Date(2026, 6, 15, 19, 30, 0, 0);
+            expect(pickSunOffsetCappedTarget(sunTarget, capTime)).to.equal(capTime);
+        });
+
+        it('picks the cap when the sun-relative target equals the cap', () => {
+            const sunTarget = new Date(capTime.getTime());
+            expect(pickSunOffsetCappedTarget(sunTarget, capTime)).to.equal(capTime);
+        });
+
+        it('picks the cap when the sun-relative target could not be computed', () => {
+            expect(pickSunOffsetCappedTarget(undefined, capTime)).to.equal(capTime);
         });
     });
 });

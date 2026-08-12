@@ -187,12 +187,16 @@ export interface IShuttersNativeConfig {
 /**
  * Opening/closing time for one day category, or undefined to skip that action.
  *
- * Two formats are accepted per field, distinguished by a leading `+`/`-` sign, see `parseScheduleEntry`
- * in scheduler.ts:
- * - No sign: a plain "HH:MM" (24h) clock time, e.g. "07:30".
- * - Leading `+`/`-`: an offset relative to sunrise (`open`) or sunset (`close`), as plain minutes (e.g.
+ * Three formats are accepted per field, see `parseScheduleEntry` in scheduler.ts:
+ * - A plain "HH:MM" (24h) clock time, e.g. "07:30".
+ * - A leading `+`/`-` offset relative to sunrise (`open`) or sunset (`close`), as plain minutes (e.g.
  *   "-30" to fire 30 minutes before the event) or an "HH:MM" duration (e.g. "+01:30" to fire 90 minutes
- *   after the event). Requires latitude/longitude to be resolvable; otherwise skipped with a warning.
+ *   after the event).
+ * - The above offset followed by `!` and a plain "HH:MM" cap time, e.g. "+30!19:00" ("30 minutes after
+ *   the sun event, but never later than 19:00" for `close`; analogous for `open`).
+ *
+ * The sunrise/sunset-relative variants require latitude/longitude to be resolvable; otherwise skipped
+ * with a warning (except the capped variant, which then falls back to the cap time alone).
  */
 export interface IDaySchedule {
     /** Opening time/offset, see above, or undefined to skip opening on this day category. */

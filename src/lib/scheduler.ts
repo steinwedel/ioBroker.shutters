@@ -23,32 +23,64 @@ export function parseTimeToday(timeString: string, now: Date): Date | undefined 
 }
 
 /** An area's open/close schedule entry, parsed from the plain string the user enters. */
-export type ScheduleEntry = { kind: 'time'; time: Date } | { kind: 'sunOffset'; minutes: number };
+export type ScheduleEntry =
+    | { kind: 'time'; time: Date }
+    | { kind: 'sunOffset'; minutes: number }
+    | { kind: 'sunOffsetCapped'; minutes: number; capTime: Date };
 
 /**
- * Parses an area's open/close schedule value. Two formats are accepted, distinguished by a leading
- * `+`/`-` sign:
- * - No sign: a plain "HH:MM" (24h) clock time, e.g. "07:30".
- * - Leading `+`/`-`: an offset relative to sunrise (for the opening time) or sunset (for the closing
+ * Parses the leading `+`/`-` offset token of a schedule entry (plain minutes or an "HH:MM" duration).
+ *
+ * @param token - The offset token, e.g. "-30" or "+01:30".
+ * @returns The signed offset in minutes, or undefined if `token` is not a valid offset.
+ */
+function parseOffsetMinutesToken(token: string): number | undefined {
+    const durationMatch = OFFSET_DURATION_RE.exec(token);
+    if (durationMatch) {
+        const minutes = Number(durationMatch[2]) * 60 + Number(durationMatch[3]);
+        return durationMatch[1] === '-' ? -minutes : minutes;
+    }
+
+    const minutesMatch = OFFSET_MINUTES_RE.exec(token);
+    if (minutesMatch) {
+        const minutes = Number(minutesMatch[2]);
+        return minutesMatch[1] === '-' ? -minutes : minutes;
+    }
+
+    return undefined;
+}
+
+/**
+ * Parses an area's open/close schedule value. Three formats are accepted:
+ * - A plain "HH:MM" (24h) clock time, e.g. "07:30".
+ * - A leading `+`/`-` offset relative to sunrise (for the opening time) or sunset (for the closing
  *   time), given either as plain minutes (e.g. "-30", "+90") or as an "HH:MM" duration (e.g. "-00:30",
  *   "+01:30").
+ * - The above offset followed by `!` and a plain "HH:MM" cap time, e.g. "+30!19:00" ("30 minutes after
+ *   the sun event, but never later than 19:00" - the cap always wins if the offset time would be later
+ *   than the cap, for both opening and closing).
  *
  * @param value - Raw string entered by the user for an open/close field.
- * @param now - Reference date; only its year/month/day are used for the "time" variant.
+ * @param now - Reference date; only its year/month/day are used for the "time"/cap variants.
  */
 export function parseScheduleEntry(value: string, now: Date): ScheduleEntry | undefined {
     const trimmed = value.trim();
 
-    const durationMatch = OFFSET_DURATION_RE.exec(trimmed);
-    if (durationMatch) {
-        const minutes = Number(durationMatch[2]) * 60 + Number(durationMatch[3]);
-        return { kind: 'sunOffset', minutes: durationMatch[1] === '-' ? -minutes : minutes };
+    const bangIndex = trimmed.indexOf('!');
+    if (bangIndex >= 0) {
+        const offsetToken = trimmed.slice(0, bangIndex).trim();
+        const capToken = trimmed.slice(bangIndex + 1).trim();
+        const minutes = parseOffsetMinutesToken(offsetToken);
+        const capTime = parseTimeToday(capToken, now);
+        if (minutes === undefined || !capTime) {
+            return undefined;
+        }
+        return { kind: 'sunOffsetCapped', minutes, capTime };
     }
 
-    const minutesMatch = OFFSET_MINUTES_RE.exec(trimmed);
-    if (minutesMatch) {
-        const minutes = Number(minutesMatch[2]);
-        return { kind: 'sunOffset', minutes: minutesMatch[1] === '-' ? -minutes : minutes };
+    const offsetMinutes = parseOffsetMinutesToken(trimmed);
+    if (offsetMinutes !== undefined) {
+        return { kind: 'sunOffset', minutes: offsetMinutes };
     }
 
     const time = parseTimeToday(trimmed, now);
@@ -57,6 +89,21 @@ export function parseScheduleEntry(value: string, now: Date): ScheduleEntry | un
     }
 
     return undefined;
+}
+
+/**
+ * Picks the actual target time for a capped sun-offset entry: the sun-event-relative time if it is
+ * earlier than the cap (or if it could not be computed at all, e.g. missing location), otherwise the
+ * cap itself. This makes the cap act as a "never later than" safety bound in both directions.
+ *
+ * @param sunTarget - The computed sunrise/sunset-relative time, or undefined if it could not be computed.
+ * @param capTime - The configured cap time.
+ */
+export function pickSunOffsetCappedTarget(sunTarget: Date | undefined, capTime: Date): Date {
+    if (!sunTarget || sunTarget.getTime() >= capTime.getTime()) {
+        return capTime;
+    }
+    return sunTarget;
 }
 
 export type ScheduleAction = 'open' | 'close';
@@ -68,10 +115,11 @@ export type ScheduleAction = 'open' | 'close';
  * midnight, so day-category changes (e.g. into/out of a public holiday) are
  * picked up automatically.
  *
- * Each open/close field accepts either a plain "HH:MM" clock time, or an offset relative to sunrise
- * (opening) / sunset (closing), written with a leading `+`/`-` sign as plain minutes (e.g. "-30") or an
- * "HH:MM" duration (e.g. "+01:30") - see `parseScheduleEntry`. No separate configuration fields are
- * needed for this; the sign in the same field is what distinguishes a clock time from an offset.
+ * Each open/close field accepts a plain "HH:MM" clock time, an offset relative to sunrise (opening) /
+ * sunset (closing) written with a leading `+`/`-` sign as plain minutes (e.g. "-30") or an "HH:MM"
+ * duration (e.g. "+01:30"), or that offset combined with a "!HH:MM" cap (e.g. "+30!19:00" = 30 minutes
+ * after the sun event, but never later than 19:00) - see `parseScheduleEntry`. No separate configuration
+ * fields are needed for this; the format of the string itself is what distinguishes the variants.
  *
  * iCal calendar overrides are not implemented yet, see plan section 5 (M4).
  */
@@ -149,11 +197,41 @@ export class Scheduler {
             return;
         }
 
+        if (entry.kind === 'sunOffset') {
+            const target = this.computeSunOffsetTarget(areaName, action, entry.minutes, now);
+            if (target) {
+                this.scheduleAt(areaName, action, target, now);
+            }
+            return;
+        }
+
+        // sunOffsetCapped: the cap always applies, even if the sun-event time itself could not be
+        // computed (e.g. missing location or a polar day/night), so it never simply falls through.
+        const sunTarget = this.computeSunOffsetTarget(areaName, action, entry.minutes, now);
+        this.scheduleAt(areaName, action, pickSunOffsetCappedTarget(sunTarget, entry.capTime), now);
+    }
+
+    /**
+     * Computes the sunrise (for `'open'`) or sunset (for `'close'`) time offset by `offsetMinutes`, or
+     * undefined (with a warning logged) if no location is configured or the event could not be computed
+     * for today (e.g. polar day/night).
+     *
+     * @param areaName - Area name, used only for the warning message.
+     * @param action - Which action this offset drives; determines whether sunrise or sunset is used.
+     * @param offsetMinutes - Minutes to add to (positive) or subtract from (negative) the sun event.
+     * @param now - Reference date for today's computation.
+     */
+    private computeSunOffsetTarget(
+        areaName: string,
+        action: ScheduleAction,
+        offsetMinutes: number,
+        now: Date,
+    ): Date | undefined {
         if (!this.location) {
             this.adapter.log.warn(
                 `Scheduler: area "${areaName}" (${action}) uses a sunrise/sunset offset, but no location is configured - skipped.`,
             );
-            return;
+            return undefined;
         }
 
         const sunEvent = action === 'open' ? 'sunrise' : 'sunset';
@@ -162,15 +240,15 @@ export class Scheduler {
             this.location.latitude,
             this.location.longitude,
             sunEvent,
-            entry.minutes,
+            offsetMinutes,
         );
         if (!target) {
             this.adapter.log.warn(
                 `Scheduler: could not compute ${sunEvent} time for area "${areaName}" at the configured location today - skipping ${action}.`,
             );
-            return;
+            return undefined;
         }
-        this.scheduleAt(areaName, action, target, now);
+        return target;
     }
 
     /**
