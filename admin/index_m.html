@@ -2,6 +2,11 @@
 <html>
 <head>
     <meta charset="utf-8" />
+    <!-- This page is styled for a light background only (see html/body rule below). Without this,
+         some browsers auto-restyle native form controls like <select> for dark mode (e.g. transparent
+         background, no visible border) even while leaving the rest of an otherwise-light page alone,
+         which can make a <select> look completely invisible - only its label remains visible. -->
+    <meta name="color-scheme" content="light" />
     <link rel="stylesheet" type="text/css" href="../../css/adapter.css" />
     <link rel="stylesheet" type="text/css" href="../../lib/css/materialize.css" />
 
@@ -28,6 +33,7 @@
            theme.
         */
         html, body {
+            color-scheme: light;
             background-color: #fafafa;
             color: rgba(0, 0, 0, 0.87);
         }
