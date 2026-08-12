@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { computeDuskTime, computeSunEventTime } from './twilight';
+import { computeSunEventTime } from './twilight';
 
 // Hannover-ish coordinates; used only as a stable, non-polar reference location.
 const LATITUDE = 52.37;
@@ -32,22 +32,6 @@ describe('twilight', () => {
             const sunrise = computeSunEventTime(date, LATITUDE, LONGITUDE, 'sunrise', 0)!;
             const sunset = computeSunEventTime(date, LATITUDE, LONGITUDE, 'sunset', 0)!;
             expect(sunset.getTime()).to.be.greaterThan(sunrise.getTime());
-        });
-    });
-
-    describe('computeDuskTime', () => {
-        it('computes a dusk time later than sunset on the same day', () => {
-            const date = new Date(2026, 5, 21);
-            const dusk = computeDuskTime(date, LATITUDE, LONGITUDE, 0)!;
-            const sunset = computeSunEventTime(date, LATITUDE, LONGITUDE, 'sunset', 0)!;
-            expect(dusk.getTime()).to.be.greaterThan(sunset.getTime());
-        });
-
-        it('applies the offset', () => {
-            const date = new Date(2026, 5, 21);
-            const base = computeDuskTime(date, LATITUDE, LONGITUDE, 0)!;
-            const offset = computeDuskTime(date, LATITUDE, LONGITUDE, 30)!;
-            expect(offset.getTime()).to.equal(base.getTime() + 30 * 60_000);
         });
     });
 });

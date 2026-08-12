@@ -184,11 +184,20 @@ export interface IShuttersNativeConfig {
     scenes?: ISceneConfig[];
 }
 
-/** Opening/closing time for one day category, as "HH:MM" (24h), or undefined to skip that action. */
+/**
+ * Opening/closing time for one day category, or undefined to skip that action.
+ *
+ * Two formats are accepted per field, distinguished by a leading `+`/`-` sign, see `parseScheduleEntry`
+ * in scheduler.ts:
+ * - No sign: a plain "HH:MM" (24h) clock time, e.g. "07:30".
+ * - Leading `+`/`-`: an offset relative to sunrise (`open`) or sunset (`close`), as plain minutes (e.g.
+ *   "-30" to fire 30 minutes before the event) or an "HH:MM" duration (e.g. "+01:30" to fire 90 minutes
+ *   after the event). Requires latitude/longitude to be resolvable; otherwise skipped with a warning.
+ */
 export interface IDaySchedule {
-    /** Time to open at, "HH:MM" (24h), or undefined to skip opening on this day category. */
+    /** Opening time/offset, see above, or undefined to skip opening on this day category. */
     open?: string;
-    /** Time to close at, "HH:MM" (24h), or undefined to skip closing on this day category. */
+    /** Closing time/offset, see above, or undefined to skip closing on this day category. */
     close?: string;
 }
 
@@ -202,27 +211,4 @@ export interface IAreaScheduleConfig {
     weekend: IDaySchedule;
     /** Falls back to `weekend` if undefined. */
     holiday?: IDaySchedule;
-    /**
-     * Minutes to add to civil dusk to compute the closing time for this
-     * area, overriding the static `close` time of the applicable day
-     * schedule above. Undefined disables dusk coupling for this area.
-     * Ignored if `sunsetOffsetMinutes` is also set (sunset takes precedence).
-     */
-    duskOffsetMinutes?: number;
-    /**
-     * Minutes to add to (positive) or subtract from (negative) the actual
-     * sunrise time to compute the opening time for this area, e.g. `-30`
-     * to open 30 minutes before sunrise or `90` to open 90 minutes after
-     * sunrise. Overrides the static `open` time of the applicable day
-     * schedule above. Undefined disables sunrise coupling for this area.
-     */
-    sunriseOffsetMinutes?: number;
-    /**
-     * Minutes to add to (positive) or subtract from (negative) the actual
-     * sunset time to compute the closing time for this area, e.g. `-30` to
-     * close 30 minutes before sunset or `90` to close 90 minutes after
-     * sunset. Overrides both the static `close` time and `duskOffsetMinutes`
-     * for this area. Undefined disables sunset coupling for this area.
-     */
-    sunsetOffsetMinutes?: number;
 }

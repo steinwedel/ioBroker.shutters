@@ -188,7 +188,7 @@ class Shutters extends utils.Adapter {
     }
 
     /**
-     * Reads latitude/longitude for dusk-coupled areas: prefers `native.latitude`/`native.longitude` if set, otherwise falls back to the global ioBroker location in `system.config`.
+     * Reads latitude/longitude for areas using a sunrise/sunset offset: prefers `native.latitude`/`native.longitude` if set, otherwise falls back to the global ioBroker location in `system.config`.
      */
     private async resolveLocation(): Promise<{ latitude: number; longitude: number } | undefined> {
         if (this.config.latitude !== undefined && this.config.longitude !== undefined) {
@@ -200,7 +200,7 @@ class Shutters extends utils.Adapter {
             return { latitude: common.latitude, longitude: common.longitude };
         }
         this.log.warn(
-            'No location configured (neither adapter settings nor system.config) - dusk-coupled areas will not be scheduled.',
+            'No location configured (neither adapter settings nor system.config) - areas using a sunrise/sunset offset will not be scheduled.',
         );
         return undefined;
     }
