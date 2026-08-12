@@ -91,26 +91,6 @@ var WEEKDAYS = [
     ['sunday', 'weekdaySunday'],
 ];
 
-var FEDERAL_STATES = [
-    ['', 'publicHolidayFederalStateNone'],
-    ['BW', 'publicHolidayFederalStateBW'],
-    ['BY', 'publicHolidayFederalStateBY'],
-    ['BE', 'publicHolidayFederalStateBE'],
-    ['BB', 'publicHolidayFederalStateBB'],
-    ['HB', 'publicHolidayFederalStateHB'],
-    ['HH', 'publicHolidayFederalStateHH'],
-    ['HE', 'publicHolidayFederalStateHE'],
-    ['MV', 'publicHolidayFederalStateMV'],
-    ['NI', 'publicHolidayFederalStateNI'],
-    ['NW', 'publicHolidayFederalStateNW'],
-    ['RP', 'publicHolidayFederalStateRP'],
-    ['SL', 'publicHolidayFederalStateSL'],
-    ['SN', 'publicHolidayFederalStateSN'],
-    ['ST', 'publicHolidayFederalStateST'],
-    ['SH', 'publicHolidayFederalStateSH'],
-    ['TH', 'publicHolidayFederalStateTH'],
-];
-
 var COVERING_TYPES = [
     ['rolladen', 'coveringTypeRolladen'],
     ['raffstore', 'coveringTypeRaffstore'],
@@ -152,7 +132,8 @@ function shuttersEnsureDefaults(settings) {
     settings.groups = settings.groups || [];
     settings.scenes = settings.scenes || [];
     settings.weather = settings.weather || {};
-    settings.publicHolidayFederalState = settings.publicHolidayFederalState || '';
+    settings.holidayCountry = settings.holidayCountry || '';
+    settings.holidayState = settings.holidayState || '';
     settings.sunCloseThreshold = settings.sunCloseThreshold != null ? settings.sunCloseThreshold : 200;
     settings.sunOpenThreshold = settings.sunOpenThreshold != null ? settings.sunOpenThreshold : 150;
     settings.windOpenThreshold = settings.windOpenThreshold != null ? settings.windOpenThreshold : 40;
@@ -164,6 +145,12 @@ function shuttersEnsureDefaults(settings) {
         s.states = s.states || {};
         if (s.automationEnabled === undefined) s.automationEnabled = true;
     });
+}
+
+// Builds this adapter instance's ID (e.g. "shutters.0") for sendTo(), using the globals the ioBroker
+// admin page provides.
+function getInstanceId() {
+    return (typeof adapter !== 'undefined' ? adapter : 'shutters') + '.' + (typeof instance !== 'undefined' ? instance : 0);
 }
 
 function shuttersInitAdmin(settings, onChange) {
@@ -178,7 +165,7 @@ function shuttersInitAdmin(settings, onChange) {
     renderGroups();
     renderScenes();
 
-    fillFederalStateSelect();
+    fillHolidaySelects();
 
     document.getElementById('shutters-add-covering-btn').onclick = function () {
         shuttersConfig.shutters.push({
@@ -230,21 +217,91 @@ function onChangeFired() {
     }
 }
 
-function fillFederalStateSelect() {
-    var select = document.getElementById('shutters-holiday-state');
-    select.innerHTML = '';
-    FEDERAL_STATES.forEach(function (entry) {
-        var opt = document.createElement('option');
-        opt.value = entry[0];
-        opt.text = _(entry[1]);
-        if (entry[0] === shuttersConfig.publicHolidayFederalState) opt.selected = true;
-        select.appendChild(opt);
+// Populates the country dropdown (via sendTo 'getHolidayCountries', since the country/subdivision list
+// comes from the "date-holidays" npm package on the backend, not something the admin page can bundle
+// itself), then the dependent subdivision dropdown for whichever country ends up selected. The adapter
+// is used internationally, so this is not limited to Germany/German federal states.
+function fillHolidaySelects() {
+    var countrySelect = document.getElementById('shutters-holiday-country');
+    var instanceId = getInstanceId();
+
+    sendTo(instanceId, 'getHolidayCountries', {}, function (result) {
+        var countries = (result && result.countries) || {};
+        countrySelect.innerHTML = '';
+
+        var noneOpt = document.createElement('option');
+        noneOpt.value = '';
+        noneOpt.text = _('holidayCountryNone');
+        if (!shuttersConfig.holidayCountry) noneOpt.selected = true;
+        countrySelect.appendChild(noneOpt);
+
+        Object.keys(countries)
+            .sort(function (a, b) {
+                return countries[a].localeCompare(countries[b]);
+            })
+            .forEach(function (code) {
+                var opt = document.createElement('option');
+                opt.value = code;
+                opt.text = countries[code];
+                if (code === shuttersConfig.holidayCountry) opt.selected = true;
+                countrySelect.appendChild(opt);
+            });
+
+        countrySelect.onchange = function () {
+            shuttersConfig.holidayCountry = countrySelect.value || undefined;
+            shuttersConfig.holidayState = undefined; // subdivisions depend on the country, reset on change
+            fillHolidayStateSelect(instanceId);
+            onChangeFired();
+        };
+
+        if (typeof $ !== 'undefined' && $.fn.material_select) $('#shutters-holiday-country').material_select();
+        fillHolidayStateSelect(instanceId);
     });
-    select.onchange = function () {
-        shuttersConfig.publicHolidayFederalState = select.value;
-        onChangeFired();
-    };
-    if (typeof $ !== 'undefined' && $.fn.material_select) $('#shutters-holiday-state').material_select();
+}
+
+// Populates the subdivision dropdown for the currently selected country. Left with only a disabled
+// "none" option if the country has no known subdivisions (or none is selected yet).
+function fillHolidayStateSelect(instanceId) {
+    var stateSelect = document.getElementById('shutters-holiday-state');
+    var country = shuttersConfig.holidayCountry;
+
+    function render(states) {
+        stateSelect.innerHTML = '';
+        var noneOpt = document.createElement('option');
+        noneOpt.value = '';
+        noneOpt.text = _('holidayStateNone');
+        if (!shuttersConfig.holidayState) noneOpt.selected = true;
+        stateSelect.appendChild(noneOpt);
+
+        Object.keys(states)
+            .sort(function (a, b) {
+                return states[a].localeCompare(states[b]);
+            })
+            .forEach(function (code) {
+                var opt = document.createElement('option');
+                opt.value = code;
+                opt.text = states[code];
+                if (code === shuttersConfig.holidayState) opt.selected = true;
+                stateSelect.appendChild(opt);
+            });
+
+        stateSelect.onchange = function () {
+            shuttersConfig.holidayState = stateSelect.value || undefined;
+            onChangeFired();
+        };
+        stateSelect.disabled = Object.keys(states).length === 0;
+
+        if (typeof $ !== 'undefined' && $.fn.material_select) $('#shutters-holiday-state').material_select();
+    }
+
+    if (!country) {
+        render({});
+        return;
+    }
+
+    sendTo(instanceId, 'getHolidayStates', { country: country }, function (result) {
+        render((result && result.states) || {});
+    });
 }
 
 function makeSelect(id, label, value, options, onChangeCb) {
@@ -583,7 +640,7 @@ function renderCoveringCard(covering, index) {
 function onScanClicked() {
     var statusEl = document.getElementById('shutters-scan-status');
     statusEl.innerText = '...';
-    var instanceId = (typeof adapter !== 'undefined' ? adapter : 'shutters') + '.' + (typeof instance !== 'undefined' ? instance : 0);
+    var instanceId = getInstanceId();
     sendTo(instanceId, 'scanForShutters', {}, function (result) {
         if (result && result.added && result.added > 0) {
             statusEl.innerText = result.added + ' added, adapter restarting - reload this page afterwards.';

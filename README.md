@@ -76,6 +76,8 @@ Each plan has a schedule mode, selected from a dropdown, which determines which 
 
 Every open/close field is either a plain "HH:MM" clock time, an offset from sunrise/sunset - or, with a trailing `d`, civil dawn/dusk - written with a leading `+` (after) or `-` (before) sign as plain minutes (e.g. `-30`, `-30d`) or an "HH:MM" duration (e.g. `+01:30`), or that offset combined with a "!HH:MM" cap, e.g. `+30!19:00` (30 minutes after sunset, but never later than 19:00; analogous for opening). An optional calendar (iCal) integration is also planned. Each covering is assigned to a plan via a dropdown on the Coverings tab.
 
+Public holiday detection works for any country, not just Germany: pick a country from a dropdown, and - if that country has federal states, provinces, or similar subdivisions - a second, dependent dropdown lets you narrow it down further (e.g. a German federal state or a US state); leave it on "Nationwide" to use only the country-wide holidays.
+
 ### Sun / Rain / Wind / Frost Protection
 
 Global and per-covering thresholds control when each protection function activates. All protections work with sensible built-in defaults; no configuration is required to get useful behavior out of the box.

@@ -8,7 +8,8 @@ declare global {
         interface AdapterConfig {
             shutters: IShutterConfig[];
             areas: IAreaScheduleConfig[];
-            publicHolidayFederalState?: string;
+            holidayCountry?: string;
+            holidayState?: string;
             latitude?: number;
             longitude?: number;
             weather?: IWeatherConfig;

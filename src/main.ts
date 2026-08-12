@@ -106,7 +106,7 @@ class Shutters extends utils.Adapter {
         await this.automationEngine.start();
 
         const location = await this.resolveLocation();
-        const holidayChecker = new HolidayChecker(this.config.publicHolidayFederalState);
+        const holidayChecker = new HolidayChecker(this.config.holidayCountry, this.config.holidayState);
         this.scheduler = new Scheduler(this, this.config.areas ?? [], holidayChecker, location, (areaName, action) => {
             this.onScheduleTrigger(areaName, action);
         });
@@ -225,16 +225,34 @@ class Shutters extends utils.Adapter {
     }
 
     /**
-     * Handles `sendTo` messages from the admin UI. Currently only
-     * `scanForShutters` (plan section 2b) is supported: runs the
-     * auto-discovery scan, automatically adds every found candidate to
-     * `native.shutters[]` (which restarts the adapter instance, like any
-     * other config change made in the admin UI), and replies with a short
-     * summary the admin UI can display.
+     * Handles `sendTo` messages from the admin UI:
+     * - `scanForShutters` (plan section 2b): runs the auto-discovery scan, automatically adds every
+     *   found candidate to `native.shutters[]` (which restarts the adapter instance, like any other
+     *   config change made in the admin UI), and replies with a short summary the admin UI can display.
+     * - `getHolidayCountries`: returns every country `date-holidays` supports, for the public-holiday
+     *   country dropdown (the adapter is used internationally, not just for Germany).
+     * - `getHolidayStates`: returns the subdivisions (federal states, provinces, etc.) available for
+     *   `obj.message.country`, if any - used to populate the dependent subdivision dropdown.
      *
      * @param obj - Message object as delivered by `js-controller`.
      */
     private onMessage(obj: ioBroker.Message): void {
+        if (obj.command === 'getHolidayCountries') {
+            if (obj.callback) {
+                this.sendTo(obj.from, obj.command, { countries: HolidayChecker.getCountries() }, obj.callback);
+            }
+            return;
+        }
+
+        if (obj.command === 'getHolidayStates') {
+            const country = (obj.message as { country?: string } | undefined)?.country;
+            if (obj.callback) {
+                const states = country ? HolidayChecker.getStates(country) : {};
+                this.sendTo(obj.from, obj.command, { states }, obj.callback);
+            }
+            return;
+        }
+
         if (obj.command !== 'scanForShutters') {
             return;
         }
