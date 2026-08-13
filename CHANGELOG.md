@@ -1,4 +1,8 @@
 # Changelog
+## **WORK IN PROGRESS**
+
+* (steinwedel) Fix a crash in the state picker for objects whose common.name is a localized object instead of a plain string
+
 ## 0.0.4 (2026-08-13)
 
 * (steinwedel) Add a lightweight, self-contained state-ID picker (search + list) for the holiday state field in the admin UI

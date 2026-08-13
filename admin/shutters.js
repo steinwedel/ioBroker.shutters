@@ -256,6 +256,25 @@ function initHolidayStateIdField() {
     };
 }
 
+// `common.name` may be a plain string or a localized object like {en: '...', de: '...'} - normalize to a
+// single display string, preferring the current admin language, then English, then any other value.
+function objectDisplayName(name) {
+    if (!name) {
+        return '';
+    }
+    if (typeof name === 'string') {
+        return name;
+    }
+    if (typeof name === 'object') {
+        var lang = typeof systemLang !== 'undefined' ? systemLang : 'en';
+        if (name[lang]) return name[lang];
+        if (name.en) return name.en;
+        var firstKey = Object.keys(name)[0];
+        return firstKey ? name[firstKey] : '';
+    }
+    return String(name);
+}
+
 // Lazily fetches every known object once (cached afterwards) and keeps only states, for the state-ID
 // picker below. `socket` is a global provided by adapter-settings.js (the admin page's own socket.io
 // connection).
@@ -271,7 +290,7 @@ function ensureStateObjectsCache(cb) {
             Object.keys(objects).forEach(function (id) {
                 var obj = objects[id];
                 if (obj && obj.type === 'state') {
-                    stateObjectsCache.push({ id: id, name: (obj.common && obj.common.name) || '' });
+                    stateObjectsCache.push({ id: id, name: objectDisplayName(obj.common && obj.common.name) });
                 }
             });
             stateObjectsCache.sort(function (a, b) {
