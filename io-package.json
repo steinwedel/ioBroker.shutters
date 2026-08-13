@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.7",
+    "version": "0.0.8",
     "news": {
+      "0.0.8": {
+        "en": "Fix the Coverings tab's state ID fields (Position/Actual-Position/Stop/Open/Close) always showing empty: they read/wrote the wrong states.* keys (\"statePosition\" etc.) instead of the actual driver keys (\"position\" etc.), so existing values were silently never displayed even though they were correctly saved",
+        "de": "Beheben Sie das Problem, dass die Status-ID-Felder (Position/Tatsächliche Position/Stopp/Öffnen/Schließen) im Register „Abdeckungen“ immer leer angezeigt werden: Sie lesen/schreiben die falschen Status-ID-Schlüssel („statePosition“ usw.) anstelle der eigentlichen Treiber-Schlüssel („position“ usw.), sodass vorhandene Werte stillschweigend nie angezeigt wurden, obwohl sie korrekt gespeichert wurden.",
+        "ru": "Исправлена ошибка, из-за которой поля идентификаторов состояний на вкладке «Покрытия» (Положение/Фактическое положение/Остановка/Открыто/Закрыто) всегда отображались пустыми: они считывали/записывали неправильные ключи states.* («statePosition» и т. д.) вместо фактических ключей драйвера («position» и т. д.), из-за чего существующие значения молча не отображались, даже если они были правильно сохранены.",
+        "pt": "Corrigido o problema em que os campos de ID de estado da aba \"Coberturas\" (Posição/Posição Atual/Parar/Abrir/Fechar) sempre apareciam vazios: eles liam/gravavam as chaves de estado incorretas (\"statePosition\" etc.) em vez das chaves reais do motorista (\"position\" etc.), fazendo com que os valores existentes não fossem exibidos silenciosamente, mesmo tendo sido salvos corretamente.",
+        "nl": "Het probleem is opgelost dat de status-ID-velden (Positie/Werkelijke positie/Stop/Open/Sluiten) op het tabblad Bekleding altijd leeg worden weergegeven: ze lezen/schrijven de verkeerde status-*-sleutels (\"statePosition\" enz.) in plaats van de daadwerkelijke driver-sleutels (\"position\" enz.), waardoor bestaande waarden stilzwijgend nooit worden weergegeven, ook al zijn ze correct opgeslagen.",
+        "fr": "Corriger l'affichage constant des champs d'identifiant d'état (Position/Position réelle/Arrêt/Ouverture/Fermeture) de l'onglet Revêtements : les clés « state.* » (« statePosition », etc.) étaient lues/écrites au lieu des clés de pilote correspondantes (« position », etc.). Par conséquent, les valeurs existantes n'étaient jamais affichées, même si elles avaient été correctement enregistrées.",
+        "it": "Correggere i campi ID stato (Posizione/Posizione attuale/Stop/Aperto/Chiuso) della scheda Rivestimenti che risultano sempre vuoti: vengono lette/scritte le chiavi state.* errate (\"statePosition\" ecc.) invece delle chiavi driver effettive (\"position\" ecc.), pertanto i valori esistenti non vengono mai visualizzati silenziosamente, anche se sono stati salvati correttamente.",
+        "es": "Se corrigió el problema de que los campos de ID de estado (Posición/Posición actual/Parada/Apertura/Cierre) de la pestaña Revestimientos siempre aparecieran vacíos: leían/escribían las claves de estado incorrectas (\"statePosition\", etc.) en lugar de las claves reales del controlador (\"position\", etc.), por lo que los valores existentes nunca se mostraban silenciosamente a pesar de que se guardaban correctamente.",
+        "pl": "Naprawiono błąd, przez który pola identyfikatorów stanu karty Pokrycia (Pozycja/Pozycja rzeczywista/Zatrzymanie/Otwarcie/Zamknięcie) zawsze wyświetlały się jako puste: odczytywano/zapisywano niewłaściwe klucze states.* („statePosition” itp.) zamiast rzeczywistych kluczy sterownika („position” itp.), przez co istniejące wartości nigdy nie były wyświetlane, mimo że były poprawnie zapisywane",
+        "uk": "Виправлено помилку, через яку поля ідентифікатора стану вкладки «Покриття» (Position/Actual-Position/Stop/Open/Close) завжди відображалися порожніми: вони зчитували/записували неправильні значення ключів states.* («statePosition» тощо) замість фактичних ключів драйвера («position» тощо), тому існуючі значення ніколи не відображалися непомітно, навіть якщо вони були правильно збережені.",
+        "zh-cn": "修复“覆盖”选项卡中的状态 ID 字段（位置/实际位置/停止/打开/关闭）始终显示为空的问题：它们读取/写入了错误的 states.* 键（“statePosition” 等），而不是实际的驱动程序键（“position” 等），因此即使已正确保存，现有值也从未被静默显示。"
+      },
       "0.0.7": {
         "en": "Add the state-ID browse button/picker to the Coverings tab's state and door contact fields, reusing the same tree/search picker",
         "de": "Fügen Sie die Schaltfläche/den Auswahldialog für die Bundesland-ID zu den Bundesland- und Türkontaktfeldern der Registerkarte „Überdachungen“ hinzu und verwenden Sie dabei dieselbe Baumstruktur/den gleichen Suchdialog.",
@@ -80,19 +93,6 @@
         "pl": "początkowa wersja rozwojowa",
         "uk": "початкова версія для розробки",
         "zh-cn": "初始开发版本"
-      },
-      "0.0.1": {
-        "en": "initial release",
-        "de": "Erstveröffentlichung",
-        "ru": "Начальная версия",
-        "pt": "lançamento inicial",
-        "nl": "Eerste uitgave",
-        "fr": "Première version",
-        "it": "Versione iniziale",
-        "es": "Versión inicial",
-        "pl": "Pierwsze wydanie",
-        "uk": "Початкова версія",
-        "zh-cn": "首次出版"
       }
     },
     "titleLang": {

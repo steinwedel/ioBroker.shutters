@@ -1,5 +1,5 @@
 # Changelog
-## **WORK IN PROGRESS**
+## 0.0.8 (2026-08-13)
 
 * (steinwedel) Fix the Coverings tab's state ID fields (Position/Actual-Position/Stop/Open/Close) always showing empty: they read/wrote the wrong states.* keys ("statePosition" etc.) instead of the actual driver keys ("position" etc.), so existing values were silently never displayed even though they were correctly saved
 
