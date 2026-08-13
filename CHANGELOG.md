@@ -1,5 +1,5 @@
 # Changelog
-## **WORK IN PROGRESS**
+## 0.0.5 (2026-08-13)
 
 * (steinwedel) Fix a crash in the state picker for objects whose common.name is a localized object instead of a plain string
 

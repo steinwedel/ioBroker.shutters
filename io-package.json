@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.4",
+    "version": "0.0.5",
     "news": {
+      "0.0.5": {
+        "en": "Fix a crash in the state picker for objects whose common.name is a localized object instead of a plain string",
+        "de": "Behebt einen Absturz im Statusauswahldialog für Objekte, deren common.name ein lokalisiertes Objekt anstatt einer einfachen Zeichenkette ist.",
+        "ru": "Исправлена ошибка, приводившая к сбою в средстве выбора состояния для объектов, у которых common.name представляет собой локализованный объект, а не обычную строку.",
+        "pt": "Corrigido um erro que causava o fechamento inesperado do seletor de estado para objetos cujo `common.name` era um objeto localizado em vez de uma string simples.",
+        "nl": "Een crash in de statuskiezer voor objecten waarvan common.name een gelokaliseerd object is in plaats van een gewone tekenreeks is verholpen.",
+        "fr": "Correction d'un plantage dans le sélecteur d'état pour les objets dont le nom commun est un objet localisé au lieu d'une simple chaîne de caractères.",
+        "it": "Risolto un arresto anomalo nel selettore di stato per gli oggetti il cui common.name è un oggetto localizzato anziché una semplice stringa",
+        "es": "Se corrige un fallo en el selector de estado para objetos cuyo common.name es un objeto localizado en lugar de una cadena simple.",
+        "pl": "Naprawiono awarię w selektorze stanu dla obiektów, których common.name jest obiektem zlokalizowanym, a nie zwykłym ciągiem znaków",
+        "uk": "Виправлено збій у виборі стану для об'єктів, common.name яких є локалізованим об'єктом, а не звичайним рядком.",
+        "zh-cn": "修复了当对象的 common.name 为本地化对象而非纯字符串时，状态选择器发生的崩溃问题。"
+      },
       "0.0.4": {
         "en": "Add a lightweight, self-contained state-ID picker (search + list) for the holiday state field in the admin UI",
         "de": "Fügen Sie in der Admin-Oberfläche einen schlanken, eigenständigen Bundesstaat-ID-Picker (Suche + Liste) für das Feld „Feiertagsbundesland“ hinzu.",
