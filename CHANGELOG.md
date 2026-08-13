@@ -1,4 +1,8 @@
 # Changelog
+## **WORK IN PROGRESS**
+
+* (steinwedel) Add a lightweight, self-contained state-ID picker (search + list) for the holiday state field in the admin UI
+
 ## 0.0.3 (2026-08-13)
 
 * (steinwedel) Simplify public holiday detection to a single configurable boolean state, with an object-tree picker in the admin UI

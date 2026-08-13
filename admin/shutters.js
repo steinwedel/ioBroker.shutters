@@ -256,42 +256,115 @@ function initHolidayStateIdField() {
     };
 }
 
-// Lazily initializes ioBroker Admin's built-in object-tree picker dialog (selectID.js) on first use,
-// restricted to states only (we only ever need a state ID here), then reuses it on subsequent calls.
-// `socket` is a global provided by adapter-settings.js (the admin page's own socket.io connection).
-var selectIdDialogReady = false;
-function ensureSelectIdDialog(cb) {
-    if (selectIdDialogReady) {
-        cb();
+// Lazily fetches every known object once (cached afterwards) and keeps only states, for the state-ID
+// picker below. `socket` is a global provided by adapter-settings.js (the admin page's own socket.io
+// connection).
+var stateObjectsCache = null;
+function ensureStateObjectsCache(cb) {
+    if (stateObjectsCache) {
+        cb(stateObjectsCache);
         return;
     }
     socket.emit('getObjects', function (err, objects) {
-        if (err || !objects) {
-            cb();
-            return;
+        stateObjectsCache = [];
+        if (!err && objects) {
+            Object.keys(objects).forEach(function (id) {
+                var obj = objects[id];
+                if (obj && obj.type === 'state') {
+                    stateObjectsCache.push({ id: id, name: (obj.common && obj.common.name) || '' });
+                }
+            });
+            stateObjectsCache.sort(function (a, b) {
+                return a.id.localeCompare(b.id);
+            });
         }
-        $('#dialog-select-member').selectId('init', {
-            noMultiselect: true,
-            objects: objects,
-            imgPath: '../../lib/css/fancytree/',
-            filter: { type: 'state' },
-            name: 'shutters-holiday-state-id',
-            columns: ['image', 'name', 'role', 'room', 'value'],
-        });
-        selectIdDialogReady = true;
-        cb();
+        cb(stateObjectsCache);
     });
 }
 
-// Opens the object-tree picker pre-selected on `currentValue`, calling `onSelect(newId)` if the user
-// confirms a selection.
+// A plain, self-contained state-ID picker overlay (search box + filtered list), used instead of
+// ioBroker Admin's legacy jQuery UI/fancytree "selectID" dialog: that widget's modal positioning turned
+// out to conflict with Materialize in this admin build (its panel stayed "position: static", so the
+// dimming overlay always covered it and it could never be clicked into). This picker only needs plain
+// DOM/CSS already used elsewhere on this page, so it does not depend on any extra widget library.
+var MAX_PICKER_RESULTS = 200;
+
+function renderPickerResults(query, onSelect) {
+    var list = document.getElementById('shutters-picker-list');
+    var hint = document.getElementById('shutters-picker-hint');
+    list.innerHTML = '';
+
+    var trimmed = query.trim().toLowerCase();
+    if (trimmed.length < 2) {
+        hint.style.display = '';
+        hint.innerText = _('pickerHintText');
+        return;
+    }
+
+    var matches = stateObjectsCache.filter(function (entry) {
+        return entry.id.toLowerCase().indexOf(trimmed) !== -1 || entry.name.toLowerCase().indexOf(trimmed) !== -1;
+    });
+
+    if (matches.length === 0) {
+        hint.style.display = '';
+        hint.innerText = _('pickerNoResultsText');
+        return;
+    }
+
+    hint.style.display = 'none';
+    matches.slice(0, MAX_PICKER_RESULTS).forEach(function (entry) {
+        var row = document.createElement('div');
+        row.className = 'shutters-picker-row';
+        var idSpan = document.createElement('span');
+        idSpan.className = 'shutters-picker-id';
+        idSpan.innerText = entry.id;
+        row.appendChild(idSpan);
+        if (entry.name) {
+            var nameSpan = document.createElement('span');
+            nameSpan.className = 'shutters-picker-name';
+            nameSpan.innerText = entry.name;
+            row.appendChild(nameSpan);
+        }
+        row.onclick = function () {
+            closeStatePicker();
+            onSelect(entry.id);
+        };
+        list.appendChild(row);
+    });
+    if (matches.length > MAX_PICKER_RESULTS) {
+        var more = document.createElement('div');
+        more.className = 'shutters-picker-hint';
+        more.innerText = _('pickerMoreResultsText').replace('%d', matches.length - MAX_PICKER_RESULTS);
+        list.appendChild(more);
+    }
+}
+
+function closeStatePicker() {
+    document.getElementById('shutters-picker-overlay').classList.remove('open');
+}
+
+// Opens the picker overlay pre-filled with `currentValue`, calling `onSelect(newId)` if the user clicks
+// a result. Cancel/clicking outside the box closes it without calling `onSelect`.
 function openStatePicker(currentValue, onSelect) {
-    ensureSelectIdDialog(function () {
-        $('#dialog-select-member').selectId('show', currentValue || '', { type: 'state' }, function (newId) {
-            if (newId) {
-                onSelect(newId);
+    ensureStateObjectsCache(function () {
+        var overlay = document.getElementById('shutters-picker-overlay');
+        var searchInput = document.getElementById('shutters-picker-search-input');
+        searchInput.value = currentValue || '';
+        renderPickerResults(searchInput.value, onSelect);
+
+        searchInput.oninput = function () {
+            renderPickerResults(searchInput.value, onSelect);
+        };
+
+        document.getElementById('shutters-picker-cancel').onclick = closeStatePicker;
+        overlay.onclick = function (ev) {
+            if (ev.target === overlay) {
+                closeStatePicker();
             }
-        });
+        };
+
+        overlay.classList.add('open');
+        searchInput.focus();
     });
 }
 

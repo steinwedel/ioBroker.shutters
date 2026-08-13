@@ -9,10 +9,6 @@
     <meta name="color-scheme" content="light" />
     <link rel="stylesheet" type="text/css" href="../../css/adapter.css" />
     <link rel="stylesheet" type="text/css" href="../../lib/css/materialize.css" />
-    <!-- ioBroker Admin's built-in object-tree picker dialog (selectID.js), used to browse/pick the
-         holiday state ID instead of typing it by hand - see initHolidayStateIdField() in shutters.js. -->
-    <link rel="stylesheet" type="text/css" href="../../lib/css/themes/jquery-ui/redmond/jquery-ui.min.css" />
-    <link rel="stylesheet" type="text/css" href="../../lib/css/fancytree/ui.fancytree.min.css" />
 
     <script type="text/javascript" src="../../lib/js/jquery-3.2.1.min.js"></script>
     <script type="text/javascript" src="../../socket.io/socket.io.js"></script>
@@ -20,9 +16,6 @@
     <script type="text/javascript" src="../../js/translate.js"></script>
     <script type="text/javascript" src="../../lib/js/materialize.js"></script>
     <script type="text/javascript" src="../../js/adapter-settings.js"></script>
-    <script type="text/javascript" src="../../lib/js/jquery-ui-1.11.4.full.min.js"></script>
-    <script type="text/javascript" src="../../lib/js/jquery.fancytree-all.min.js"></script>
-    <script type="text/javascript" src="../../lib/js/selectID.js"></script>
 
     <script type="text/javascript" src="words.js"></script>
     <script type="text/javascript" src="shutters.js"></script>
@@ -88,6 +81,68 @@
         .shutters-add-btn { margin: 6px 0 20px 0; }
         table.shutters-simple-table { width: 100%; }
         table.shutters-simple-table td { padding: 2px 6px; }
+        /* Lightweight state-ID picker (see openStatePicker() in shutters.js): a plain, self-contained
+           overlay instead of ioBroker Admin's legacy jQuery UI/fancytree "selectID" dialog, which turned
+           out too fragile to position/layer correctly together with Materialize in this admin build. */
+        .shutters-picker-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+        .shutters-picker-overlay.open { display: flex; }
+        .shutters-picker-box {
+            background: #fff;
+            border-radius: 4px;
+            width: 600px;
+            max-width: 90%;
+            max-height: 80%;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        .shutters-picker-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: bold;
+        }
+        .shutters-picker-search {
+            padding: 8px 16px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .shutters-picker-search input {
+            width: 100%;
+            height: 2.2rem;
+            border: 1px solid #9e9e9e;
+            border-radius: 3px;
+            padding: 0 8px;
+            box-sizing: border-box;
+        }
+        .shutters-picker-list {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 200px;
+        }
+        .shutters-picker-row {
+            padding: 6px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .shutters-picker-row:hover { background: #eef6ff; }
+        .shutters-picker-row .shutters-picker-id { font-family: monospace; font-size: 12px; }
+        .shutters-picker-row .shutters-picker-name { font-size: 12px; color: #666; margin-left: 8px; }
+        .shutters-picker-hint { padding: 8px 16px; font-size: 12px; color: #888; }
+        .shutters-picker-footer {
+            padding: 10px 16px;
+            border-top: 1px solid #e0e0e0;
+            text-align: right;
+        }
     </style>
 
     <script type="text/javascript">
@@ -173,8 +228,22 @@
         </button>
     </div>
 </div>
-<!-- Required by ioBroker Admin's selectID.js object-tree picker dialog - see initHolidayStateIdField()
-     in shutters.js. The name "dialog-select-member" matters, since selectID's own CSS targets it. -->
-<div id="dialog-select-member" style="display: none"></div>
+
+<!-- State-ID picker overlay, see openStatePicker() in shutters.js. -->
+<div class="shutters-picker-overlay" id="shutters-picker-overlay">
+    <div class="shutters-picker-box">
+        <div class="shutters-picker-header translate">pickerTitle</div>
+        <div class="shutters-picker-search">
+            <input type="text" id="shutters-picker-search-input" />
+        </div>
+        <div class="shutters-picker-hint translate" id="shutters-picker-hint">pickerHintText</div>
+        <div class="shutters-picker-list" id="shutters-picker-list"></div>
+        <div class="shutters-picker-footer">
+            <button class="btn-flat" id="shutters-picker-cancel" type="button">
+                <span class="translate">pickerCancelButton</span>
+            </button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
