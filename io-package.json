@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.5",
+    "version": "0.0.6",
     "news": {
+      "0.0.6": {
+        "en": "Rebuild the state picker as a hierarchical folder-tree browser (like the classic ioBroker object browser), with role/name/live-value display and a boolean-only filter",
+        "de": "Die Statusauswahl soll als hierarchischer Ordnerbaum-Browser (ähnlich dem klassischen ioBroker-Objektbrowser) mit Anzeige von Rolle/Name/Live-Wert und einem Filter für boolesche Werte neu gestaltet werden.",
+        "ru": "Перестройте средство выбора состояний в виде иерархического древовидного браузера папок (подобно классическому браузеру объектов ioBroker) с отображением роли/имени/действующего значения и фильтром только для логических значений.",
+        "pt": "Recrie o seletor de estado como um navegador hierárquico em árvore de pastas (como o navegador de objetos clássico do ioBroker), com exibição de função/nome/valor em tempo real e um filtro somente booleano.",
+        "nl": "Herbouw de statuskiezer als een hiërarchische mappenstructuurbrowser (zoals de klassieke ioBroker-objectbrowser), met weergave van rol/naam/live waarde en een filter dat alleen booleaanse waarden accepteert.",
+        "fr": "Reconstruisez le sélecteur d'état sous forme d'explorateur de dossiers hiérarchique (comme l'explorateur d'objets ioBroker classique), avec un affichage rôle/nom/valeur dynamique et un filtre booléen uniquement.",
+        "it": "Ricostruire il selettore di stato come un browser ad albero gerarchico di cartelle (simile al classico browser di oggetti ioBroker), con visualizzazione di ruolo/nome/valore in tempo reale e un filtro solo booleano.",
+        "es": "Reconstruir el selector de estado como un explorador de árbol de carpetas jerárquico (como el explorador de objetos clásico de ioBroker), con visualización de rol/nombre/valor en vivo y un filtro solo booleano.",
+        "pl": "Odbudowa selektora stanu jako hierarchicznej przeglądarki drzewa folderów (podobnej do klasycznej przeglądarki obiektów ioBroker) z wyświetlaniem roli/nazwy/wartości na żywo i filtrem wyłącznie logicznym",
+        "uk": "Перебудуйте засіб вибору стану як ієрархічний браузер дерева папок (як класичний браузер об'єктів ioBroker) з відображенням ролей/назв/активних значень та фільтром лише для логічних значень",
+        "zh-cn": "将状态选择器重构为一个层级式文件夹树浏览器（类似于经典的 ioBroker 对象浏览器），显示角色/名称/实时值，并添加一个仅布尔值的过滤器。"
+      },
       "0.0.5": {
         "en": "Fix a crash in the state picker for objects whose common.name is a localized object instead of a plain string",
         "de": "Behebt einen Absturz im Statusauswahldialog für Objekte, deren common.name ein lokalisiertes Objekt anstatt einer einfachen Zeichenkette ist.",
