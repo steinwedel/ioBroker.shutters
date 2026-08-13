@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "news": {
+      "0.0.3": {
+        "en": "Simplify public holiday detection to a single configurable boolean state, with an object-tree picker in the admin UI",
+        "de": "Vereinfachen Sie die Erkennung von Feiertagen auf einen einzigen konfigurierbaren booleschen Zustand mit einer Objektbaumauswahl in der Admin-Oberfläche.",
+        "ru": "Упростите определение государственных праздников до одного настраиваемого логического состояния с помощью средства выбора объектов в административном интерфейсе.",
+        "pt": "Simplifique a detecção de feriados para um único estado booleano configurável, com um seletor em árvore de objetos na interface administrativa.",
+        "nl": "Vereenvoudig de detectie van feestdagen tot één configureerbare booleaanse waarde, met een objectboomkiezer in de beheerdersinterface.",
+        "fr": "Simplifiez la détection des jours fériés en un seul état booléen configurable, grâce à un sélecteur arborescent d'objets dans l'interface d'administration.",
+        "it": "Semplifica il rilevamento delle festività pubbliche riducendolo a un singolo stato booleano configurabile, con un selettore ad albero degli oggetti nell'interfaccia utente di amministrazione.",
+        "es": "Simplifique la detección de días festivos a un único estado booleano configurable, con un selector de árbol de objetos en la interfaz de administración.",
+        "pl": "Uprość wykrywanie świąt państwowych, korzystając z pojedynczego konfigurowalnego stanu logicznego z selektorem obiektów w interfejsie administratora",
+        "uk": "Спростіть виявлення державних свят до одного налаштовуваного логічного стану за допомогою вибору дерева об'єктів в інтерфейсі адміністратора",
+        "zh-cn": "将公共假期检测简化为一个可配置的布尔状态，并在管理界面中添加一个对象树选择器。"
+      },
       "0.0.2": {
         "en": "initial development version",
         "de": "erste Entwicklungsversion",
