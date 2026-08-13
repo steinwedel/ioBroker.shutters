@@ -181,7 +181,7 @@ function shuttersInitAdmin(settings, onChange) {
 
     document.getElementById('shutters-add-covering-btn').onclick = function () {
         shuttersConfig.shutters.push({
-            id: 'covering' + Date.now(),
+            id: nextAvailableCoveringId(),
             name: '',
             driverType: 'generic-position',
             coveringType: 'rolladen',
@@ -691,6 +691,23 @@ function buildScheduleRow(labelText, idPrefix, daySchedule, onOpenChange, onClos
     return row;
 }
 
+// Generates the next unused sequential covering ID ("shutter1", "shutter2", ...), mirroring
+// nextAvailableCoveringId() in src/lib/id-generator.ts (used server-side for scanner-discovered
+// coverings). Covering IDs are the ioBroker object ID namespace segment for all of that covering's own
+// states, so they must stay stable once assigned - which is also why the ID field is shown but not
+// editable, see renderCoveringCard().
+function nextAvailableCoveringId() {
+    var used = {};
+    shuttersConfig.shutters.forEach(function (s) {
+        if (s.id) used[s.id] = true;
+    });
+    var n = 1;
+    while (used['shutter' + n]) {
+        n++;
+    }
+    return 'shutter' + n;
+}
+
 // Returns the configured plan (area) names, excluding empty ones, for the covering's plan dropdown.
 function getPlanNames() {
     return shuttersConfig.areas
@@ -828,12 +845,13 @@ function renderCoveringCard(covering, index) {
 
     var row1 = document.createElement('div');
     row1.className = 'shutters-row row';
-    row1.appendChild(
-        makeText('cov-' + index + '-id', 'id', covering.id, 3, function (v) {
-            covering.id = v;
-            onChangeFired();
-        }),
-    );
+    var idField = makeText('cov-' + index + '-id', 'id', covering.id, 3, function () {
+        // Intentionally a no-op: the ID must not change after creation, see nextAvailableCoveringId()
+        // doc comment. The field stays visible (for reference/debugging) but disabled below, so this
+        // callback never actually fires from user input.
+    });
+    idField.querySelector('input').disabled = true;
+    row1.appendChild(idField);
     row1.appendChild(
         makeText('cov-' + index + '-name', 'name', covering.name, 3, function (v) {
             covering.name = v;

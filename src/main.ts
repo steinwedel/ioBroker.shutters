@@ -6,6 +6,7 @@
 import * as utils from '@iobroker/adapter-core';
 import { AutomationEngine } from './lib/automation';
 import { GroupController } from './lib/group-controller';
+import { nextAvailableCoveringId } from './lib/id-generator';
 import { Scheduler } from './lib/scheduler';
 import { SceneController } from './lib/scene-manager';
 import { scanForShutters, type IScannedShutter } from './lib/shutter-scanner';
@@ -314,8 +315,12 @@ class Shutters extends utils.Adapter {
      * Adds every scanned candidate to `native.shutters[]` and persists it
      * via `extendForeignObjectAsync`, which merges only the `shutters` key
      * within `native` (leaving areas/weather/groups/scenes untouched) and
-     * triggers the usual adapter restart for a config change. Coverings
-     * whose `id` already exists (e.g. a duplicate within the same scan
+     * triggers the usual adapter restart for a config change. Each added
+     * covering gets a fresh, simple sequential ID (`nextAvailableCoveringId`)
+     * rather than the scanner's proposed ID (which was only ever derived
+     * from the discovered source state ID for internal dedup purposes, not
+     * meant to be user-facing). Candidates whose proposed `id` already
+     * matches an existing covering (e.g. a duplicate within the same scan
      * result) are skipped defensively, even though `scanForShutters()`
      * already excludes states already referenced by an existing covering.
      *
@@ -329,16 +334,24 @@ class Shutters extends utils.Adapter {
 
         const existing = this.config.shutters ?? [];
         const existingIds = new Set(existing.map(s => s.id));
-        const newConfigs: IShutterConfig[] = scanned
-            .filter(s => !existingIds.has(s.id))
-            .map(s => ({
-                id: s.id,
+        const candidates = scanned.filter(s => !existingIds.has(s.id));
+
+        // Assign a fresh, simple sequential ID (see nextAvailableCoveringId doc) instead of the
+        // scanner's proposed ID (which was derived from the often cryptic source state ID, e.g. a
+        // Homematic channel address) - threading `existingIds` through the loop so multiple new
+        // coverings found in the same scan never get the same generated ID.
+        const newConfigs: IShutterConfig[] = candidates.map(s => {
+            const id = nextAvailableCoveringId(existingIds);
+            existingIds.add(id);
+            return {
+                id,
                 name: s.name,
                 driverType: s.driverType,
                 coveringType: s.coveringType,
                 automationEnabled: s.automationEnabled,
                 states: s.states,
-            }));
+            };
+        });
 
         if (newConfigs.length === 0) {
             return 0;

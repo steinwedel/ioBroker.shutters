@@ -21,7 +21,13 @@ import type { CoveringType, DriverType } from './types';
 
 /** One auto-discovered covering candidate, ready to copy into `native.shutters[]` after review. */
 export interface IScannedShutter {
-    /** Proposed `IShutterConfig.id`, derived from the discovered state ID. */
+    /**
+     * A candidate identifier derived from the discovered state ID, used only for internal
+     * duplicate-detection within a single scan result. The final `IShutterConfig.id` actually written
+     * to `native.shutters[]` is a fresh sequential ID assigned by `nextAvailableCoveringId` in
+     * `main.ts` instead - see there for why (in short: covering IDs must be stable and are not meant to
+     * be user-facing, so a plain running number is friendlier than an often cryptic source state ID).
+     */
     id: string;
     /** Proposed display name, taken from `common.name` if available. */
     name: string;
