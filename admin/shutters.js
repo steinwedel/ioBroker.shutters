@@ -111,12 +111,25 @@ var DRIVER_TYPES = [
 // Which `states.*` keys are relevant per driverType. Kern-set drivers (homematic/knx/shelly/zigbee/zigbee2mqtt)
 // and generic-position all use a position state plus an optional stop state and actual-position feedback.
 // generic-relay uses separate open/close/stop relays instead.
+// Which `states.*` keys (matching IShutterConfig.states/driver-factory.ts - "position", "positionActual",
+// "stop", "open", "close", NOT prefixed with "state") are relevant per driverType, paired with their
+// admin label translation key. Kern-set drivers (homematic/knx/shelly/zigbee/zigbee2mqtt) and
+// generic-position all use a position state plus an optional stop state and actual-position feedback.
+// generic-relay uses separate open/close relays instead.
 function getRelevantStateFields(driverType) {
     if (driverType === 'generic-relay') {
-        return ['stateOpen', 'stateClose', 'stateStop'];
+        return [
+            ['open', 'stateOpen'],
+            ['close', 'stateClose'],
+            ['stop', 'stateStop'],
+        ];
     }
     // homematic, knx, shelly, zigbee, zigbee2mqtt, generic-position
-    return ['statePosition', 'statePositionActual', 'stateStop'];
+    return [
+        ['position', 'statePosition'],
+        ['positionActual', 'statePositionActual'],
+        ['stop', 'stateStop'],
+    ];
 }
 
 function _(word) {
@@ -879,10 +892,12 @@ function renderCoveringCard(covering, index) {
 
     var statesRow = document.createElement('div');
     statesRow.className = 'shutters-row row';
-    getRelevantStateFields(covering.driverType).forEach(function (fieldKey) {
+    getRelevantStateFields(covering.driverType).forEach(function (field) {
+        var dataKey = field[0];
+        var labelKey = field[1];
         statesRow.appendChild(
-            makeStateIdField('cov-' + index + '-state-' + fieldKey, fieldKey, covering.states[fieldKey], 4, function (v) {
-                covering.states[fieldKey] = v;
+            makeStateIdField('cov-' + index + '-state-' + dataKey, labelKey, covering.states[dataKey], 4, function (v) {
+                covering.states[dataKey] = v;
                 onChangeFired();
             }),
         );

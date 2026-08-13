@@ -1,4 +1,8 @@
 # Changelog
+## **WORK IN PROGRESS**
+
+* (steinwedel) Fix the Coverings tab's state ID fields (Position/Actual-Position/Stop/Open/Close) always showing empty: they read/wrote the wrong states.* keys ("statePosition" etc.) instead of the actual driver keys ("position" etc.), so existing values were silently never displayed even though they were correctly saved
+
 ## 0.0.7 (2026-08-13)
 
 * (steinwedel) Add the state-ID browse button/picker to the Coverings tab's state and door contact fields, reusing the same tree/search picker
