@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.9",
+    "version": "0.0.10",
     "news": {
+      "0.0.10": {
+        "en": "Automatically migrate coverings still using an older, non-sequential ID to the new \"shutterN\" scheme on adapter start, rewriting group/scene references and recreating the state tree under the new ID",
+        "de": "Automatische Migration von Abdeckungen, die noch eine ältere, nicht-sequenzielle ID verwenden, auf das neue Schema „shutterN“ beim Start des Adapters, wobei Gruppen-/Szenenreferenzen neu geschrieben und der Zustandsbaum unter der neuen ID neu erstellt werden.",
+        "ru": "При запуске адаптера автоматически выполняется перенос покрытий, все еще использующих старый, непоследовательный идентификатор, на новую схему \"shutterN\", при этом переписываются ссылки на группы/сцены и создается дерево состояний под новым идентификатором.",
+        "pt": "Migre automaticamente as coberturas que ainda usam um ID antigo e não sequencial para o novo esquema \"shutterN\" na inicialização do adaptador, reescrevendo as referências de grupo/cena e recriando a árvore de estado sob o novo ID.",
+        "nl": "Migreer automatisch bekledingen die nog steeds een oudere, niet-opeenvolgende ID gebruiken naar het nieuwe \"shutterN\"-schema bij het opstarten van de adapter, waarbij groeps-/scèneverwijzingen worden herschreven en de statusstructuur onder de nieuwe ID opnieuw wordt aangemaakt.",
+        "fr": "Migration automatique des habillages utilisant encore un ancien identifiant non séquentiel vers le nouveau schéma « shutterN » au démarrage de l’adaptateur, réécriture des références de groupe/scène et recréation de l’arbre d’état sous le nouvel identifiant.",
+        "it": "All'avvio dell'adattatore, migra automaticamente le coperture che utilizzano ancora un ID precedente non sequenziale al nuovo schema \"shutterN\", riscrivendo i riferimenti a gruppi/scene e ricreando l'albero degli stati con il nuovo ID.",
+        "es": "Migra automáticamente las cubiertas que aún utilizan un ID antiguo y no secuencial al nuevo esquema \"shutterN\" al iniciar el adaptador, reescribiendo las referencias de grupo/escena y recreando el árbol de estado bajo el nuevo ID.",
+        "pl": "Automatyczna migracja pokryć nadal korzystających ze starszego, niesekwencyjnego identyfikatora do nowego schematu „shutterN” podczas uruchamiania adaptera, nadpisanie odniesień do grup/scen i ponowne utworzenie drzewa stanów pod nowym identyfikatorem",
+        "uk": "Автоматично перенести покриття, що все ще використовують старий, не послідовний ідентифікатор, на нову схему \"shutterN\" під час запуску адаптера, перезаписавши посилання на групи/сцени та відтворивши дерево станів під новим ідентифікатором",
+        "zh-cn": "在适配器启动时，自动将仍使用旧版非顺序 ID 的覆盖层迁移到新的“shutterN”方案，重写组/场景引用，并在新 ID 下重新创建状态树。"
+      },
       "0.0.9": {
         "en": "Assign coverings a stable, sequential ID (shutter1, shutter2, ...) instead of deriving it from the source system's state ID; the ID field is now shown but not editable",
         "de": "Weisen Sie den Abdeckungen eine stabile, fortlaufende ID (Verschluss1, Verschluss2, ...) zu, anstatt sie von der Zustands-ID des Quellsystems abzuleiten; das ID-Feld wird nun angezeigt, ist aber nicht bearbeitbar.",
@@ -80,19 +93,6 @@
         "pl": "Dodaj lekki, samodzielny selektor identyfikatorów stanu (wyszukiwanie + lista) dla pola stanu świątecznego w interfejsie administratora",
         "uk": "Додайте легкий, автономний засіб вибору ідентифікатора штату (пошук + список) для поля штату свята в інтерфейсі адміністратора",
         "zh-cn": "在管理界面中，为节假日所在州/省份字段添加一个轻量级、独立的州/省份 ID 选择器（搜索 + 列表）。"
-      },
-      "0.0.3": {
-        "en": "Simplify public holiday detection to a single configurable boolean state, with an object-tree picker in the admin UI",
-        "de": "Vereinfachen Sie die Erkennung von Feiertagen auf einen einzigen konfigurierbaren booleschen Zustand mit einer Objektbaumauswahl in der Admin-Oberfläche.",
-        "ru": "Упростите определение государственных праздников до одного настраиваемого логического состояния с помощью средства выбора объектов в административном интерфейсе.",
-        "pt": "Simplifique a detecção de feriados para um único estado booleano configurável, com um seletor em árvore de objetos na interface administrativa.",
-        "nl": "Vereenvoudig de detectie van feestdagen tot één configureerbare booleaanse waarde, met een objectboomkiezer in de beheerdersinterface.",
-        "fr": "Simplifiez la détection des jours fériés en un seul état booléen configurable, grâce à un sélecteur arborescent d'objets dans l'interface d'administration.",
-        "it": "Semplifica il rilevamento delle festività pubbliche riducendolo a un singolo stato booleano configurabile, con un selettore ad albero degli oggetti nell'interfaccia utente di amministrazione.",
-        "es": "Simplifique la detección de días festivos a un único estado booleano configurable, con un selector de árbol de objetos en la interfaz de administración.",
-        "pl": "Uprość wykrywanie świąt państwowych, korzystając z pojedynczego konfigurowalnego stanu logicznego z selektorem obiektów w interfejsie administratora",
-        "uk": "Спростіть виявлення державних свят до одного налаштовуваного логічного стану за допомогою вибору дерева об'єктів в інтерфейсі адміністратора",
-        "zh-cn": "将公共假期检测简化为一个可配置的布尔状态，并在管理界面中添加一个对象树选择器。"
       }
     },
     "titleLang": {
