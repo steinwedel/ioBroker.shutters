@@ -1,4 +1,3 @@
-import type { HolidayChecker } from './holiday';
 import type { IAreaScheduleConfig, IDaySchedule, WeekdayName } from './types';
 import { computeSunEventTime } from './twilight';
 
@@ -188,14 +187,17 @@ export class Scheduler {
     /**
      * @param adapter - Adapter instance, used for `setTimeout`/`clearTimeout` (never native Node timers, see AGENTS.md).
      * @param areas - Areas to schedule.
-     * @param holidayChecker - Used to decide whether "today" counts as a public holiday.
+     * @param isPublicHoliday - Returns whether "today" currently counts as a public holiday. The
+     *   adapter derives this from a single configured boolean state (`native.holidayStateId`), e.g. an
+     *   iCal/calendar adapter's "is public holiday" indicator - this class only needs the current
+     *   boolean value, not how it was computed.
      * @param location - Latitude/longitude used for sunrise/sunset-relative entries; undefined disables them (they are then skipped with a warning).
      * @param onTrigger - Called when an area's open/close time is reached.
      */
     public constructor(
         private readonly adapter: ioBroker.Adapter,
         private readonly areas: IAreaScheduleConfig[],
-        private readonly holidayChecker: HolidayChecker,
+        private readonly isPublicHoliday: () => boolean,
         private readonly location: { latitude: number; longitude: number } | undefined,
         private readonly onTrigger: (areaName: string, action: ScheduleAction) => void,
     ) {}
@@ -230,7 +232,7 @@ export class Scheduler {
      * @param now - Reference date to determine weekday/weekend/holiday.
      */
     private resolveTodaySchedule(area: IAreaScheduleConfig, now: Date): IDaySchedule {
-        return resolveDaySchedule(area, now, this.holidayChecker.isPublicHoliday(now));
+        return resolveDaySchedule(area, now, this.isPublicHoliday());
     }
 
     private scheduleAction(areaName: string, action: ScheduleAction, value: string | undefined, now: Date): void {

@@ -93,8 +93,7 @@
     "native": {
         "shutters": [],
         "areas": [],
-        "holidayCountry": "",
-        "holidayState": "",
+        "holidayStateId": "",
         "weather": {},
         "groups": [],
         "scenes": []

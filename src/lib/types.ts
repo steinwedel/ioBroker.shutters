@@ -144,19 +144,14 @@ export interface IShuttersNativeConfig {
     /** All configured areas/zones, used by the daily open/close schedule (plan section 5). */
     areas: IAreaScheduleConfig[];
     /**
-     * ISO 3166-1 country code (e.g. "DE", "US", "FR") used for public holiday detection.
-     * Empty/undefined disables holiday-specific schedules entirely (areas fall back to their
-     * weekend/current-weekday schedule on public holidays, see scheduler.ts). Not limited to Germany,
-     * since the adapter is used internationally - see `HolidayChecker.getCountries()`.
+     * ID of an existing boolean state (own or foreign, e.g. from a calendar/iCal adapter) whose current
+     * value decides whether "today" counts as a public holiday for every area's schedule (plan section
+     * 5). `true` = public holiday, `false`/anything else = not a public holiday. Empty/undefined
+     * disables holiday-specific schedules entirely (areas fall back to their weekend/current-weekday
+     * schedule, see `resolveDaySchedule` in scheduler.ts). The adapter only reads this state's current
+     * value; it does not compute holidays itself.
      */
-    holidayCountry?: string;
-    /**
-     * Country-specific subdivision code (ISO 3166-2, e.g. "NI" for Niedersachsen in Germany, or "CA"
-     * for California in the US) used for public holiday detection, further narrowing `holidayCountry`.
-     * Which subdivisions (if any) are selectable depends entirely on `holidayCountry` - see
-     * `HolidayChecker.getStates()`. Empty/undefined uses the country's nationwide holidays only.
-     */
-    holidayState?: string;
+    holidayStateId?: string;
     /** Location used for dusk-based closing times (plan section 5); read from `system.config` if not set here. */
     latitude?: number;
     /** See `latitude`. */

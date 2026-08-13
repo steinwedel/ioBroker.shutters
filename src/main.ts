@@ -6,7 +6,6 @@
 import * as utils from '@iobroker/adapter-core';
 import { AutomationEngine } from './lib/automation';
 import { GroupController } from './lib/group-controller';
-import { HolidayChecker } from './lib/holiday';
 import { Scheduler } from './lib/scheduler';
 import { SceneController } from './lib/scene-manager';
 import { scanForShutters, type IScannedShutter } from './lib/shutter-scanner';
@@ -30,6 +29,12 @@ class Shutters extends utils.Adapter {
     private scheduler: Scheduler | undefined;
     private weatherSource: WeatherSource | undefined;
     private automationEngine: AutomationEngine | undefined;
+    /**
+     * Current value of `native.holidayStateId` (an existing boolean state, own or foreign, e.g. from a
+     * calendar/iCal adapter), kept up to date via `subscribeForeignStates` and consulted by the
+     * `Scheduler` to decide whether "today" counts as a public holiday. False if unconfigured/unset.
+     */
+    private isPublicHoliday = false;
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -105,12 +110,36 @@ class Shutters extends utils.Adapter {
         });
         await this.automationEngine.start();
 
+        await this.initHolidayState();
+
         const location = await this.resolveLocation();
-        const holidayChecker = new HolidayChecker(this.config.holidayCountry, this.config.holidayState);
-        this.scheduler = new Scheduler(this, this.config.areas ?? [], holidayChecker, location, (areaName, action) => {
-            this.onScheduleTrigger(areaName, action);
-        });
+        this.scheduler = new Scheduler(
+            this,
+            this.config.areas ?? [],
+            () => this.isPublicHoliday,
+            location,
+            (areaName, action) => {
+                this.onScheduleTrigger(areaName, action);
+            },
+        );
         this.scheduler.start();
+    }
+
+    /**
+     * Reads the current value of `native.holidayStateId` (if configured) into `this.isPublicHoliday`,
+     * and subscribes to it so later changes keep it up to date - see `IShutterAdapterConfig.holidayStateId`.
+     * The state may be foreign (e.g. an iCal/calendar adapter's "is public holiday" indicator), so this
+     * uses `subscribeForeignStates`/`getForeignStateAsync` rather than the own-namespace helpers.
+     */
+    private async initHolidayState(): Promise<void> {
+        const stateId = this.config.holidayStateId;
+        if (!stateId) {
+            return;
+        }
+
+        const state = await this.getForeignStateAsync(stateId);
+        this.isPublicHoliday = !!state?.val;
+        this.subscribeForeignStates(stateId);
     }
 
     /** Creates a `ShutterController` for every configured covering and indexes its own state IDs for dispatch. */
@@ -229,30 +258,10 @@ class Shutters extends utils.Adapter {
      * - `scanForShutters` (plan section 2b): runs the auto-discovery scan, automatically adds every
      *   found candidate to `native.shutters[]` (which restarts the adapter instance, like any other
      *   config change made in the admin UI), and replies with a short summary the admin UI can display.
-     * - `getHolidayCountries`: returns every country `date-holidays` supports, for the public-holiday
-     *   country dropdown (the adapter is used internationally, not just for Germany).
-     * - `getHolidayStates`: returns the subdivisions (federal states, provinces, etc.) available for
-     *   `obj.message.country`, if any - used to populate the dependent subdivision dropdown.
      *
      * @param obj - Message object as delivered by `js-controller`.
      */
     private onMessage(obj: ioBroker.Message): void {
-        if (obj.command === 'getHolidayCountries') {
-            if (obj.callback) {
-                this.sendTo(obj.from, obj.command, { countries: HolidayChecker.getCountries() }, obj.callback);
-            }
-            return;
-        }
-
-        if (obj.command === 'getHolidayStates') {
-            const country = (obj.message as { country?: string } | undefined)?.country;
-            if (obj.callback) {
-                const states = country ? HolidayChecker.getStates(country) : {};
-                this.sendTo(obj.from, obj.command, { states }, obj.callback);
-            }
-            return;
-        }
-
         if (obj.command !== 'scanForShutters') {
             return;
         }
@@ -350,6 +359,11 @@ class Shutters extends utils.Adapter {
      */
     private onStateChange(id: string, state: ioBroker.State | null | undefined): void {
         if (!state) {
+            return;
+        }
+
+        if (id === this.config.holidayStateId) {
+            this.isPublicHoliday = !!state.val;
             return;
         }
 

@@ -132,8 +132,7 @@ function shuttersEnsureDefaults(settings) {
     settings.groups = settings.groups || [];
     settings.scenes = settings.scenes || [];
     settings.weather = settings.weather || {};
-    settings.holidayCountry = settings.holidayCountry || '';
-    settings.holidayState = settings.holidayState || '';
+    settings.holidayStateId = settings.holidayStateId || '';
     settings.sunCloseThreshold = settings.sunCloseThreshold != null ? settings.sunCloseThreshold : 200;
     settings.sunOpenThreshold = settings.sunOpenThreshold != null ? settings.sunOpenThreshold : 150;
     settings.windOpenThreshold = settings.windOpenThreshold != null ? settings.windOpenThreshold : 40;
@@ -165,7 +164,7 @@ function shuttersInitAdmin(settings, onChange) {
     renderGroups();
     renderScenes();
 
-    fillHolidaySelects();
+    initHolidayStateIdField();
 
     document.getElementById('shutters-add-covering-btn').onclick = function () {
         shuttersConfig.shutters.push({
@@ -236,94 +235,17 @@ function onChangeFired() {
     refreshSelects();
 }
 
-// Populates the country dropdown (via sendTo 'getHolidayCountries', since the country/subdivision list
-// comes from the "date-holidays" npm package on the backend, not something the admin page can bundle
-// itself), then the dependent subdivision dropdown for whichever country ends up selected. The adapter
-// is used internationally, so this is not limited to Germany/German federal states.
-//
-// Both <select> elements use Materialize's "browser-default" class, i.e. plain native selects instead
-// of Materialize's custom dropdown widget (M.FormSelect): that widget repeatedly proved fragile once its
-// options are populated dynamically after the initial page render, in ways that were hard to reproduce
-// and fix reliably across browsers/admin builds. A native select always renders as a visible, clickable
-// box in every browser without depending on any extra JS widget for its visuals.
-function fillHolidaySelects() {
-    var countrySelect = document.getElementById('shutters-holiday-country');
-    var instanceId = getInstanceId();
-
-    sendTo(instanceId, 'getHolidayCountries', {}, function (result) {
-        var countries = (result && result.countries) || {};
-        countrySelect.innerHTML = '';
-
-        var noneOpt = document.createElement('option');
-        noneOpt.value = '';
-        noneOpt.text = _('holidayCountryNone');
-        if (!shuttersConfig.holidayCountry) noneOpt.selected = true;
-        countrySelect.appendChild(noneOpt);
-
-        Object.keys(countries)
-            .sort(function (a, b) {
-                return countries[a].localeCompare(countries[b]);
-            })
-            .forEach(function (code) {
-                var opt = document.createElement('option');
-                opt.value = code;
-                opt.text = countries[code];
-                if (code === shuttersConfig.holidayCountry) opt.selected = true;
-                countrySelect.appendChild(opt);
-            });
-
-        countrySelect.onchange = function () {
-            shuttersConfig.holidayCountry = countrySelect.value || undefined;
-            shuttersConfig.holidayState = undefined; // subdivisions depend on the country, reset on change
-            fillHolidayStateSelect(instanceId);
-            onChangeFired();
-        };
-
-        fillHolidayStateSelect(instanceId);
-    });
-}
-
-// Populates the subdivision dropdown for the currently selected country. Left with only a disabled
-// "none" option if the country has no known subdivisions (or none is selected yet).
-function fillHolidayStateSelect(instanceId) {
-    var stateSelect = document.getElementById('shutters-holiday-state');
-    var country = shuttersConfig.holidayCountry;
-
-    function render(states) {
-        stateSelect.innerHTML = '';
-        var noneOpt = document.createElement('option');
-        noneOpt.value = '';
-        noneOpt.text = _('holidayStateNone');
-        if (!shuttersConfig.holidayState) noneOpt.selected = true;
-        stateSelect.appendChild(noneOpt);
-
-        Object.keys(states)
-            .sort(function (a, b) {
-                return states[a].localeCompare(states[b]);
-            })
-            .forEach(function (code) {
-                var opt = document.createElement('option');
-                opt.value = code;
-                opt.text = states[code];
-                if (code === shuttersConfig.holidayState) opt.selected = true;
-                stateSelect.appendChild(opt);
-            });
-
-        stateSelect.onchange = function () {
-            shuttersConfig.holidayState = stateSelect.value || undefined;
-            onChangeFired();
-        };
-        stateSelect.disabled = Object.keys(states).length === 0;
-    }
-
-    if (!country) {
-        render({});
-        return;
-    }
-
-    sendTo(instanceId, 'getHolidayStates', { country: country }, function (result) {
-        render((result && result.states) || {});
-    });
+// Wires the single "holiday state" text field: it holds the ID of an existing boolean state (own or
+// foreign, e.g. from a calendar/iCal adapter) whose current value decides whether "today" counts as a
+// public holiday for every plan's schedule. The adapter only reads that state's value; this admin page
+// does not compute or look up holidays itself.
+function initHolidayStateIdField() {
+    var input = document.getElementById('shutters-holiday-state-id');
+    input.value = shuttersConfig.holidayStateId || '';
+    input.oninput = function () {
+        shuttersConfig.holidayStateId = input.value || undefined;
+        onChangeFired();
+    };
 }
 
 function makeSelect(id, label, value, options, onChangeCb) {
