@@ -1,4 +1,8 @@
 # Changelog
+## **WORK IN PROGRESS**
+
+* (steinwedel) Automatically migrate coverings still using an older, non-sequential ID to the new "shutterN" scheme on adapter start, rewriting group/scene references and recreating the state tree under the new ID
+
 ## 0.0.9 (2026-08-13)
 
 * (steinwedel) Assign coverings a stable, sequential ID (shutter1, shutter2, ...) instead of deriving it from the source system's state ID; the ID field is now shown but not editable

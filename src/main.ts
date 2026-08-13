@@ -78,6 +78,13 @@ class Shutters extends utils.Adapter {
             native: {},
         });
 
+        if (await this.migrateLegacyCoveringIds()) {
+            // native.shutters[]/groups[]/scenes[] were just rewritten, which triggers the usual adapter
+            // restart for a config change - the rest of onReady() would only run against the
+            // about-to-be-replaced old config, so stop here and let the restart pick up the new one.
+            return;
+        }
+
         await this.createShutterControllers();
         await this.createGroupControllers();
         await this.createSceneControllers();
@@ -309,6 +316,68 @@ class Shutters extends utils.Adapter {
         }
 
         return result;
+    }
+
+    /**
+     * One-time startup migration: renames every covering whose `id` does not already match the
+     * sequential "shutter<N>" scheme (e.g. a legacy ID derived from the source system's state ID,
+     * before `nextAvailableCoveringId` was introduced) to a fresh sequential ID. The old covering's
+     * entire state tree is deleted (a clean one is created under the new ID once this method returns
+     * and the pending config change restarts the instance); every `groups[].memberIds` and
+     * `scenes[].targets[].coveringId` reference to a renamed covering is rewritten to match, so
+     * existing groups/scenes keep working. Coverings already using the new scheme are left completely
+     * untouched (their states/history are not affected).
+     *
+     * @returns True if any covering was renamed (and the config was persisted, which triggers the usual
+     *   adapter restart for a config change - callers should stop the rest of `onReady()` in that case).
+     */
+    private async migrateLegacyCoveringIds(): Promise<boolean> {
+        const shutters = this.config.shutters ?? [];
+        const legacyIdPattern = /^shutter\d+$/;
+        const legacyShutters = shutters.filter(s => !legacyIdPattern.test(s.id));
+        if (legacyShutters.length === 0) {
+            return false;
+        }
+
+        const existingIds = new Set(shutters.map(s => s.id));
+        const idMap = new Map<string, string>();
+        for (const covering of legacyShutters) {
+            const newId = nextAvailableCoveringId(existingIds);
+            existingIds.add(newId);
+            idMap.set(covering.id, newId);
+        }
+
+        this.log.info(
+            `Migrating ${idMap.size} covering(s) to the new sequential ID scheme: ${Array.from(idMap.entries())
+                .map(([oldId, newId]) => `"${oldId}" -> "${newId}"`)
+                .join(', ')}`,
+        );
+
+        for (const oldId of idMap.keys()) {
+            try {
+                await this.delObjectAsync(`shutters.${oldId}`, { recursive: true });
+            } catch (err) {
+                this.log.warn(`Could not delete the old state tree for covering "${oldId}": ${(err as Error).message}`);
+            }
+        }
+
+        const updatedShutters = shutters.map(s => ({ ...s, id: idMap.get(s.id) ?? s.id }));
+        const updatedGroups = (this.config.groups ?? []).map(group => ({
+            ...group,
+            memberIds: group.memberIds.map(id => idMap.get(id) ?? id),
+        }));
+        const updatedScenes = (this.config.scenes ?? []).map(scene => ({
+            ...scene,
+            targets: scene.targets.map(target => ({
+                ...target,
+                coveringId: idMap.get(target.coveringId) ?? target.coveringId,
+            })),
+        }));
+
+        await this.extendForeignObjectAsync(`system.adapter.${this.namespace}`, {
+            native: { shutters: updatedShutters, groups: updatedGroups, scenes: updatedScenes },
+        });
+        return true;
     }
 
     /**
