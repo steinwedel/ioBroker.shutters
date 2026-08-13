@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.6",
+    "version": "0.0.7",
     "news": {
+      "0.0.7": {
+        "en": "Add the state-ID browse button/picker to the Coverings tab's state and door contact fields, reusing the same tree/search picker",
+        "de": "Fügen Sie die Schaltfläche/den Auswahldialog für die Bundesland-ID zu den Bundesland- und Türkontaktfeldern der Registerkarte „Überdachungen“ hinzu und verwenden Sie dabei dieselbe Baumstruktur/den gleichen Suchdialog.",
+        "ru": "Добавьте кнопку/элемент выбора идентификатора штата в поля «Штат» и «Контактная информация о двери», используя тот же элемент выбора типа дерева/поиска.",
+        "pt": "Adicione o botão/seletor de navegação por ID do estado aos campos de estado e contato da porta na aba Revestimentos, reutilizando a mesma árvore/seletor de pesquisa.",
+        "nl": "Voeg de knop/kiezer voor het selecteren van de staats-ID toe aan de velden voor staat en deurcontact op het tabblad Bekleding, waarbij dezelfde boomstructuur/zoekkiezer wordt hergebruikt.",
+        "fr": "Ajoutez le bouton/sélecteur de navigation par ID d'état aux champs « État » et « Contact de porte » de l'onglet « Revêtements », en réutilisant le même arbre/sélecteur de recherche.",
+        "it": "Aggiungi il pulsante/selettore di navigazione per ID stato ai campi stato e contatto porta della scheda Rivestimenti, riutilizzando lo stesso selettore ad albero/ricerca",
+        "es": "Agregue el botón/selector de búsqueda de ID de estado a los campos de estado y contacto de puerta de la pestaña Revestimientos, reutilizando el mismo selector de árbol/búsqueda.",
+        "pl": "Dodaj przycisk przeglądania/selektor stanu-ID do pól stanu i kontaktu drzwiowego na karcie Pokrycia, ponownie wykorzystując ten sam selektor drzewa/wyszukiwania",
+        "uk": "Додайте кнопку/вибір за ідентифікатором штату до полів стану та контакту дверей на вкладці «Покриття», повторно використовуючи те саме дерево/вибір пошуку",
+        "zh-cn": "将州 ID 浏览按钮/选择器添加到“覆盖物”选项卡的“州”和“门联系人”字段中，并重用相同的树状/搜索选择器。"
+      },
       "0.0.6": {
         "en": "Rebuild the state picker as a hierarchical folder-tree browser (like the classic ioBroker object browser), with role/name/live-value display and a boolean-only filter",
         "de": "Die Statusauswahl soll als hierarchischer Ordnerbaum-Browser (ähnlich dem klassischen ioBroker-Objektbrowser) mit Anzeige von Rolle/Name/Live-Wert und einem Filter für boolesche Werte neu gestaltet werden.",

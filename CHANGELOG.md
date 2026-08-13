@@ -1,5 +1,5 @@
 # Changelog
-## **WORK IN PROGRESS**
+## 0.0.7 (2026-08-13)
 
 * (steinwedel) Add the state-ID browse button/picker to the Coverings tab's state and door contact fields, reusing the same tree/search picker
 
