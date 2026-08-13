@@ -290,60 +290,231 @@ function ensureStateObjectsCache(cb) {
             Object.keys(objects).forEach(function (id) {
                 var obj = objects[id];
                 if (obj && obj.type === 'state') {
-                    stateObjectsCache.push({ id: id, name: objectDisplayName(obj.common && obj.common.name) });
+                    stateObjectsCache.push({
+                        id: id,
+                        name: objectDisplayName(obj.common && obj.common.name),
+                        role: (obj.common && obj.common.role) || '',
+                        dataType: (obj.common && obj.common.type) || '',
+                    });
                 }
             });
             stateObjectsCache.sort(function (a, b) {
                 return a.id.localeCompare(b.id);
             });
         }
-        cb(stateObjectsCache);
+        fetchStateValues(function () {
+            cb(stateObjectsCache);
+        });
     });
 }
 
-// A plain, self-contained state-ID picker overlay (search box + filtered list), used instead of
-// ioBroker Admin's legacy jQuery UI/fancytree "selectID" dialog: that widget's modal positioning turned
-// out to conflict with Materialize in this admin build (its panel stayed "position: static", so the
-// dimming overlay always covered it and it could never be clicked into). This picker only needs plain
-// DOM/CSS already used elsewhere on this page, so it does not depend on any extra widget library.
-var MAX_PICKER_RESULTS = 200;
+// Fetches the current value of every state once (cached afterwards), so the picker can show a live
+// preview (with true/false coloring for booleans, like the classic ioBroker object browser) to help
+// confirm the right state was picked.
+var stateValuesCache = null;
+function fetchStateValues(cb) {
+    if (stateValuesCache) {
+        cb();
+        return;
+    }
+    socket.emit('getStates', function (err, states) {
+        stateValuesCache = states || {};
+        cb();
+    });
+}
 
-function renderPickerResults(query, onSelect) {
+// Builds a nested tree from the flat, dot-separated state ID list, e.g. "shutters.0.info.connection"
+// becomes root -> shutters -> 0 -> info -> connection (a leaf holding the full entry). Folders (non-leaf
+// nodes) are plain grouping nodes with no entry of their own.
+function buildStateTree(entries) {
+    var root = { id: '', children: {}, isLeaf: false };
+    entries.forEach(function (entry) {
+        var parts = entry.id.split('.');
+        var node = root;
+        var prefix = '';
+        for (var i = 0; i < parts.length; i++) {
+            prefix = prefix ? prefix + '.' + parts[i] : parts[i];
+            if (!node.children[parts[i]]) {
+                node.children[parts[i]] = { id: prefix, name: parts[i], children: {}, isLeaf: false };
+            }
+            node = node.children[parts[i]];
+        }
+        node.isLeaf = true;
+        node.entry = entry;
+    });
+    return root;
+}
+
+// A hierarchical, self-contained state-ID picker overlay (folder tree + search), similar in spirit to
+// ioBroker Admin's own object browser but built entirely from plain DOM/CSS already used on this page -
+// no jQuery UI/fancytree/selectID.js dependency (that legacy widget's modal positioning turned out to
+// conflict with Materialize in this admin build and could never actually be clicked into).
+var MAX_PICKER_RESULTS = 200;
+var stateTreeCache = null;
+var pickerOnlyBoolean = true;
+
+function formatStateValue(id) {
+    var state = stateValuesCache && stateValuesCache[id];
+    if (!state || state.val === null || state.val === undefined) {
+        return null;
+    }
+    return { text: String(state.val), isTrue: state.val === true, isFalse: state.val === false };
+}
+
+function matchesTypeFilter(entry) {
+    return !pickerOnlyBoolean || entry.dataType === 'boolean';
+}
+
+function appendValueSpan(row, entry) {
+    var value = formatStateValue(entry.id);
+    if (!value) {
+        return;
+    }
+    var valueSpan = document.createElement('span');
+    valueSpan.className = 'shutters-picker-value' + (value.isTrue ? ' is-true' : value.isFalse ? ' is-false' : '');
+    valueSpan.innerText = value.text;
+    row.appendChild(valueSpan);
+}
+
+// Renders one leaf (selectable state) row.
+function renderLeafRow(node, depth, onSelect) {
+    var row = document.createElement('div');
+    row.className = 'shutters-picker-row shutters-picker-leaf';
+    row.style.paddingLeft = 16 + depth * 18 + 'px';
+
+    var idSpan = document.createElement('span');
+    idSpan.className = 'shutters-picker-id';
+    idSpan.innerText = node.name;
+    row.appendChild(idSpan);
+
+    if (node.entry.role) {
+        var roleSpan = document.createElement('span');
+        roleSpan.className = 'shutters-picker-role';
+        roleSpan.innerText = node.entry.role;
+        row.appendChild(roleSpan);
+    }
+    if (node.entry.name) {
+        var nameSpan = document.createElement('span');
+        nameSpan.className = 'shutters-picker-name';
+        nameSpan.innerText = node.entry.name;
+        row.appendChild(nameSpan);
+    }
+    appendValueSpan(row, node.entry);
+
+    row.onclick = function () {
+        closeStatePicker();
+        onSelect(node.entry.id);
+    };
+    return row;
+}
+
+// Renders one folder row plus its (lazily created) children container, initially collapsed.
+function renderFolderRow(node, depth, onSelect, container) {
+    var row = document.createElement('div');
+    row.className = 'shutters-picker-row shutters-picker-folder';
+    row.style.paddingLeft = 16 + depth * 18 + 'px';
+
+    var icon = document.createElement('span');
+    icon.className = 'shutters-toggle-icon';
+    icon.innerText = '\u25B6';
+    row.appendChild(icon);
+
+    var idSpan = document.createElement('span');
+    idSpan.className = 'shutters-picker-id';
+    idSpan.innerText = node.name;
+    row.appendChild(idSpan);
+
+    var childrenContainer = document.createElement('div');
+    childrenContainer.style.display = 'none';
+
+    var expanded = false;
+    row.onclick = function () {
+        expanded = !expanded;
+        icon.innerText = expanded ? '\u25BC' : '\u25B6';
+        childrenContainer.style.display = expanded ? '' : 'none';
+        if (expanded && !childrenContainer.dataset.built) {
+            childrenContainer.dataset.built = 'true';
+            renderTreeNodes(node, depth + 1, onSelect, childrenContainer);
+        }
+    };
+
+    container.appendChild(row);
+    container.appendChild(childrenContainer);
+}
+
+// Renders the direct children of `node` (folders before leaves, alphabetically), skipping folders/leaves
+// that have no descendants matching the current type filter.
+function renderTreeNodes(node, depth, onSelect, container) {
+    var childKeys = Object.keys(node.children).sort(function (a, b) {
+        return a.localeCompare(b);
+    });
+
+    childKeys.forEach(function (key) {
+        var child = node.children[key];
+        if (!subtreeHasMatch(child)) {
+            return;
+        }
+        if (child.isLeaf && Object.keys(child.children).length === 0) {
+            container.appendChild(renderLeafRow(child, depth, onSelect));
+        } else {
+            renderFolderRow(child, depth, onSelect, container);
+        }
+    });
+}
+
+// Whether `node` itself (if a leaf) or any of its descendants match the current type filter - used to
+// hide folders that would otherwise expand into an empty list.
+function subtreeHasMatch(node) {
+    if (node.isLeaf && Object.keys(node.children).length === 0) {
+        return matchesTypeFilter(node.entry);
+    }
+    return Object.keys(node.children).some(function (key) {
+        return subtreeHasMatch(node.children[key]);
+    });
+}
+
+// Renders a flat, filtered list for the search box (used once the user has typed at least 2 characters),
+// instead of the tree view.
+function renderFilteredList(query, onSelect) {
     var list = document.getElementById('shutters-picker-list');
-    var hint = document.getElementById('shutters-picker-hint');
     list.innerHTML = '';
 
     var trimmed = query.trim().toLowerCase();
-    if (trimmed.length < 2) {
-        hint.style.display = '';
-        hint.innerText = _('pickerHintText');
-        return;
-    }
-
     var matches = stateObjectsCache.filter(function (entry) {
+        if (!matchesTypeFilter(entry)) {
+            return false;
+        }
         return entry.id.toLowerCase().indexOf(trimmed) !== -1 || entry.name.toLowerCase().indexOf(trimmed) !== -1;
     });
 
     if (matches.length === 0) {
-        hint.style.display = '';
+        var hint = document.createElement('div');
+        hint.className = 'shutters-picker-hint';
         hint.innerText = _('pickerNoResultsText');
+        list.appendChild(hint);
         return;
     }
 
-    hint.style.display = 'none';
     matches.slice(0, MAX_PICKER_RESULTS).forEach(function (entry) {
         var row = document.createElement('div');
-        row.className = 'shutters-picker-row';
+        row.className = 'shutters-picker-row shutters-picker-leaf';
         var idSpan = document.createElement('span');
         idSpan.className = 'shutters-picker-id';
         idSpan.innerText = entry.id;
         row.appendChild(idSpan);
+        if (entry.role) {
+            var roleSpan = document.createElement('span');
+            roleSpan.className = 'shutters-picker-role';
+            roleSpan.innerText = entry.role;
+            row.appendChild(roleSpan);
+        }
         if (entry.name) {
             var nameSpan = document.createElement('span');
             nameSpan.className = 'shutters-picker-name';
             nameSpan.innerText = entry.name;
             row.appendChild(nameSpan);
         }
+        appendValueSpan(row, entry);
         row.onclick = function () {
             closeStatePicker();
             onSelect(entry.id);
@@ -358,21 +529,48 @@ function renderPickerResults(query, onSelect) {
     }
 }
 
+// Renders either the root of the tree (empty search) or a flat filtered list (search text entered).
+function renderPicker(query, onSelect) {
+    var trimmed = query.trim();
+    if (trimmed.length >= 2) {
+        renderFilteredList(trimmed, onSelect);
+        return;
+    }
+
+    // 0 or 1 characters: browse the folder tree instead of requiring a search.
+    var list = document.getElementById('shutters-picker-list');
+    list.innerHTML = '';
+
+    if (!stateTreeCache) {
+        stateTreeCache = buildStateTree(stateObjectsCache);
+    }
+    renderTreeNodes(stateTreeCache, 0, onSelect, list);
+}
+
 function closeStatePicker() {
     document.getElementById('shutters-picker-overlay').classList.remove('open');
 }
 
-// Opens the picker overlay pre-filled with `currentValue`, calling `onSelect(newId)` if the user clicks
-// a result. Cancel/clicking outside the box closes it without calling `onSelect`.
+// Opens the picker overlay (tree view by default, or a flat filtered list once `currentValue`/typed text
+// is at least 2 characters), calling `onSelect(newId)` if the user clicks a result. Cancel/clicking
+// outside the box closes it without calling `onSelect`.
 function openStatePicker(currentValue, onSelect) {
     ensureStateObjectsCache(function () {
         var overlay = document.getElementById('shutters-picker-overlay');
         var searchInput = document.getElementById('shutters-picker-search-input');
+        var typeFilterCheckbox = document.getElementById('shutters-picker-boolean-only');
         searchInput.value = currentValue || '';
-        renderPickerResults(searchInput.value, onSelect);
+        searchInput.placeholder = _('pickerHintText');
+        typeFilterCheckbox.checked = pickerOnlyBoolean;
+
+        renderPicker(searchInput.value, onSelect);
 
         searchInput.oninput = function () {
-            renderPickerResults(searchInput.value, onSelect);
+            renderPicker(searchInput.value, onSelect);
+        };
+        typeFilterCheckbox.onchange = function () {
+            pickerOnlyBoolean = typeFilterCheckbox.checked;
+            renderPicker(searchInput.value, onSelect);
         };
 
         document.getElementById('shutters-picker-cancel').onclick = closeStatePicker;

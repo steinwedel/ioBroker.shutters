@@ -55,9 +55,10 @@ systemDictionary = {
     holidayStateId: { en: 'Public holiday state ID', de: 'Feiertag-State-ID' },
     browseButton: { en: '... Browse', de: '... Durchsuchen' },
     pickerTitle: { en: 'Select a state', de: 'State auswählen' },
-    pickerHintText: { en: 'Type at least 2 characters to search by ID or name.', de: 'Mindestens 2 Zeichen eingeben, um nach ID oder Name zu suchen.' },
+    pickerHintText: { en: 'Type at least 2 characters to search by ID or name, or browse the folder tree below.', de: 'Mindestens 2 Zeichen eingeben, um nach ID oder Name zu suchen, oder unten im Ordnerbaum blättern.' },
     pickerNoResultsText: { en: 'No matching states found.', de: 'Keine passenden States gefunden.' },
     pickerMoreResultsText: { en: '... and %d more - refine your search.', de: '... und %d weitere - Suche weiter eingrenzen.' },
+    pickerBooleanOnlyLabel: { en: 'Boolean states only', de: 'Nur boolsche States' },
     pickerCancelButton: { en: 'Cancel', de: 'Abbrechen' },
     holidayHintText: {
         en: 'ID of an existing boolean state (own or foreign, e.g. from a calendar/iCal adapter) whose current value decides whether "today" counts as a public holiday for every plan below. true = public holiday, false/empty = not a public holiday. Leave empty to disable holiday-specific schedules entirely.',

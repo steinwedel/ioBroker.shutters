@@ -100,7 +100,7 @@
         .shutters-picker-box {
             background: #fff;
             border-radius: 4px;
-            width: 600px;
+            width: 700px;
             max-width: 90%;
             max-height: 80%;
             display: flex;
@@ -115,28 +115,69 @@
         .shutters-picker-search {
             padding: 8px 16px;
             border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
-        .shutters-picker-search input {
-            width: 100%;
+        .shutters-picker-search input[type="text"] {
+            flex: 1;
             height: 2.2rem;
             border: 1px solid #9e9e9e;
             border-radius: 3px;
             padding: 0 8px;
             box-sizing: border-box;
         }
+        .shutters-picker-checkbox-label {
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+            color: #555;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .shutters-picker-checkbox-label input[type="checkbox"] {
+            margin-right: 4px;
+            width: auto;
+        }
         .shutters-picker-list {
             flex: 1;
             overflow-y: auto;
-            min-height: 200px;
+            min-height: 300px;
+            font-family: "Segoe UI", Tahoma, Arial, sans-serif;
         }
         .shutters-picker-row {
-            padding: 6px 16px;
+            padding: 4px 16px;
             cursor: pointer;
-            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
         }
         .shutters-picker-row:hover { background: #eef6ff; }
         .shutters-picker-row .shutters-picker-id { font-family: monospace; font-size: 12px; }
-        .shutters-picker-row .shutters-picker-name { font-size: 12px; color: #666; margin-left: 8px; }
+        .shutters-picker-row .shutters-picker-name { font-size: 12px; color: #888; margin-left: 8px; font-style: italic; }
+        .shutters-picker-row .shutters-picker-role {
+            font-size: 10px;
+            color: #1976d2;
+            background: #e3f2fd;
+            border-radius: 3px;
+            padding: 1px 5px;
+            margin-left: 8px;
+        }
+        .shutters-picker-row .shutters-picker-value {
+            font-size: 12px;
+            margin-left: auto;
+            padding-left: 12px;
+            font-family: monospace;
+        }
+        .shutters-picker-row .shutters-picker-value.is-true { color: #06960e; font-weight: bold; }
+        .shutters-picker-row .shutters-picker-value.is-false { color: #d92626; }
+        .shutters-picker-leaf .shutters-picker-id { margin-left: 24px; }
+        .shutters-picker-folder .shutters-toggle-icon {
+            width: 16px;
+            font-size: 10px;
+            color: #888;
+            margin-right: 4px;
+        }
+        .shutters-picker-folder .shutters-picker-id { font-weight: bold; color: #444; }
         .shutters-picker-hint { padding: 8px 16px; font-size: 12px; color: #888; }
         .shutters-picker-footer {
             padding: 10px 16px;
@@ -234,9 +275,12 @@
     <div class="shutters-picker-box">
         <div class="shutters-picker-header translate">pickerTitle</div>
         <div class="shutters-picker-search">
-            <input type="text" id="shutters-picker-search-input" />
+            <input type="text" id="shutters-picker-search-input" placeholder="..." />
+            <label class="shutters-picker-checkbox-label">
+                <input type="checkbox" id="shutters-picker-boolean-only" />
+                <span class="translate">pickerBooleanOnlyLabel</span>
+            </label>
         </div>
-        <div class="shutters-picker-hint translate" id="shutters-picker-hint">pickerHintText</div>
         <div class="shutters-picker-list" id="shutters-picker-list"></div>
         <div class="shutters-picker-footer">
             <button class="btn-flat" id="shutters-picker-cancel" type="button">
