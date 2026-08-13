@@ -1,5 +1,5 @@
 # Changelog
-## **WORK IN PROGRESS**
+## 0.0.9 (2026-08-13)
 
 * (steinwedel) Assign coverings a stable, sequential ID (shutter1, shutter2, ...) instead of deriving it from the source system's state ID; the ID field is now shown but not editable
 
