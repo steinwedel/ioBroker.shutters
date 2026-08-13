@@ -248,11 +248,15 @@ function initHolidayStateIdField() {
     };
 
     document.getElementById('shutters-holiday-state-id-browse').onclick = function () {
-        openStatePicker(input.value, function (newId) {
-            input.value = newId;
-            shuttersConfig.holidayStateId = newId || undefined;
-            onChangeFired();
-        });
+        openStatePicker(
+            input.value,
+            function (newId) {
+                input.value = newId;
+                shuttersConfig.holidayStateId = newId || undefined;
+                onChangeFired();
+            },
+            true,
+        );
     };
 }
 
@@ -554,7 +558,15 @@ function closeStatePicker() {
 // Opens the picker overlay (tree view by default, or a flat filtered list once `currentValue`/typed text
 // is at least 2 characters), calling `onSelect(newId)` if the user clicks a result. Cancel/clicking
 // outside the box closes it without calling `onSelect`.
-function openStatePicker(currentValue, onSelect) {
+// Opens the picker overlay (tree view by default, or a flat filtered list once `currentValue`/typed text
+// is at least 2 characters), calling `onSelect(newId)` if the user clicks a result. Cancel/clicking
+// outside the box closes it without calling `onSelect`. `defaultBooleanOnly`, if given, sets the
+// "Boolean states only" checkbox for this field (e.g. true for a strictly boolean field like the public
+// holiday indicator, false for covering state fields that are just as often numeric).
+function openStatePicker(currentValue, onSelect, defaultBooleanOnly) {
+    if (defaultBooleanOnly !== undefined) {
+        pickerOnlyBoolean = defaultBooleanOnly;
+    }
     ensureStateObjectsCache(function () {
         var overlay = document.getElementById('shutters-picker-overlay');
         var searchInput = document.getElementById('shutters-picker-search-input');
@@ -700,6 +712,44 @@ function makeText(id, label, value, colWidth, onChangeCb, type) {
     return wrap;
 }
 
+// Like makeText, but for a field that holds a state ID: adds a small "..." browse button next to the
+// text field that opens the same tree/search state picker used for the holiday state field, so the
+// object tree browser is available everywhere a state ID can be entered, not just typed by hand.
+function makeStateIdField(id, label, value, colWidth, onChangeCb) {
+    var outer = document.createElement('div');
+    outer.className = 'col s' + (colWidth || 4);
+    outer.style.display = 'flex';
+    outer.style.alignItems = 'flex-end';
+    outer.style.gap = '4px';
+
+    var textWrap = makeText(id, label, value, 12, onChangeCb);
+    textWrap.className = 'input-field';
+    textWrap.style.flex = '1';
+    textWrap.style.margin = '0';
+
+    var input = textWrap.querySelector('input');
+
+    var browseBtn = document.createElement('button');
+    browseBtn.type = 'button';
+    browseBtn.className = 'btn-flat shutters-state-browse-btn';
+    browseBtn.title = _('browseButton');
+    browseBtn.innerText = '...';
+    browseBtn.onclick = function () {
+        openStatePicker(
+            input.value,
+            function (newId) {
+                input.value = newId;
+                onChangeCb(newId);
+            },
+            false,
+        );
+    };
+
+    outer.appendChild(textWrap);
+    outer.appendChild(browseBtn);
+    return outer;
+}
+
 function makeCheckbox(id, label, checked, onChangeCb) {
     var wrap = document.createElement('div');
     wrap.className = 'col s3';
@@ -831,7 +881,7 @@ function renderCoveringCard(covering, index) {
     statesRow.className = 'shutters-row row';
     getRelevantStateFields(covering.driverType).forEach(function (fieldKey) {
         statesRow.appendChild(
-            makeText('cov-' + index + '-state-' + fieldKey, fieldKey, covering.states[fieldKey], 4, function (v) {
+            makeStateIdField('cov-' + index + '-state-' + fieldKey, fieldKey, covering.states[fieldKey], 4, function (v) {
                 covering.states[fieldKey] = v;
                 onChangeFired();
             }),
@@ -908,7 +958,7 @@ function renderCoveringCard(covering, index) {
     var doorRow = document.createElement('div');
     doorRow.className = 'shutters-row row';
     doorRow.appendChild(
-        makeText('cov-' + index + '-doorContactStateId', 'doorContactStateId', covering.doorContactStateId, 6, function (v) {
+        makeStateIdField('cov-' + index + '-doorContactStateId', 'doorContactStateId', covering.doorContactStateId, 6, function (v) {
             covering.doorContactStateId = v;
             onChangeFired();
         }),
