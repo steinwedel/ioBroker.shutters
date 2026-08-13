@@ -12,6 +12,16 @@ Der Adapter hat mehrere aufgaben:
 6. es soll auch eine regenschutzfunktion geben (kann z.b. auch von der windrichtung abhängig gemacht werden, so dass bei regen keine flecken auf den fenstern entstehen)
 
 aus haus20a.steinwedel.de gibt es bei den javascripten ein einfaches script mit den Namen Shutters. Vielleicht ist das eine inspiration.
+
+### Build und Deploy
+
+Zentrale Scripts und `.env` liegen eine Ebene höher (`../scripts/`, `../.env`). Siehe `../AGENTS.md`. Keine adapter-lokalen `scripts/` anlegen.
+
+```bash
+../scripts/deploy.sh
+../scripts/build.sh patch
+```
+
 ---
 
 ## 1. ioBroker-Adapter-Grundregeln
@@ -35,7 +45,7 @@ Diese Regeln stammen aus dem [ioBroker AI Developer Guide](https://github.com/Je
 
 - Die tatsächlichen Zugangsdaten zum ioBroker-Zielserver (`haus20a.steinwedel.de`) liegen zentral, projektübergreifend, in `/Users/steinwedel/Programming/ioBroker.adapter/.env` — **eine Ebene über** allen einzelnen Adapter-Projektverzeichnissen (`ioBroker.shutters`, `ioBroker.irrigation`, `ioBroker.davis`, ...).
 - Das projekteigene `.env` (im jeweiligen Adapter-Root) enthält meist eine Kopie derselben Werte (Kopierartefakt aus dem Template), ist aber **nicht** die verbindliche Quelle — bei Abweichungen oder fehlenden Werten gilt das übergeordnete `.env`.
-- `scripts/deploy.sh` liest `.env` aus dem eigenen Projekt-Root; falls dort Werte fehlen/veraltet sind, die übergeordnete `.env` (`../.env` relativ zum Adapter-Projekt) als Referenz konsultieren bzw. die relevanten Werte von dort übernehmen.
+- Deploy/Release ausschließlich über `../scripts/deploy.sh` und `../scripts/build.sh`. Die Scripts lesen die Sammlungswurzel-`.env` (`../.env`); ein adapter-lokales `.env` darf einzelne Werte überschreiben. Siehe `../AGENTS.md`. Keine adapter-lokalen `scripts/` anlegen.
 - Enthält kein `SERVER_SSH_KEY_PATH`, wird `SERVER_PASSWORD` per `sshpass` verwendet (macOS: `brew install sshpass`, ist bereits installiert).
 
 ### Objekt-Hierarchie (CRITICAL)
