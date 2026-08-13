@@ -246,6 +246,53 @@ function initHolidayStateIdField() {
         shuttersConfig.holidayStateId = input.value || undefined;
         onChangeFired();
     };
+
+    document.getElementById('shutters-holiday-state-id-browse').onclick = function () {
+        openStatePicker(input.value, function (newId) {
+            input.value = newId;
+            shuttersConfig.holidayStateId = newId || undefined;
+            onChangeFired();
+        });
+    };
+}
+
+// Lazily initializes ioBroker Admin's built-in object-tree picker dialog (selectID.js) on first use,
+// restricted to states only (we only ever need a state ID here), then reuses it on subsequent calls.
+// `socket` is a global provided by adapter-settings.js (the admin page's own socket.io connection).
+var selectIdDialogReady = false;
+function ensureSelectIdDialog(cb) {
+    if (selectIdDialogReady) {
+        cb();
+        return;
+    }
+    socket.emit('getObjects', function (err, objects) {
+        if (err || !objects) {
+            cb();
+            return;
+        }
+        $('#dialog-select-member').selectId('init', {
+            noMultiselect: true,
+            objects: objects,
+            imgPath: '../../lib/css/fancytree/',
+            filter: { type: 'state' },
+            name: 'shutters-holiday-state-id',
+            columns: ['image', 'name', 'role', 'room', 'value'],
+        });
+        selectIdDialogReady = true;
+        cb();
+    });
+}
+
+// Opens the object-tree picker pre-selected on `currentValue`, calling `onSelect(newId)` if the user
+// confirms a selection.
+function openStatePicker(currentValue, onSelect) {
+    ensureSelectIdDialog(function () {
+        $('#dialog-select-member').selectId('show', currentValue || '', { type: 'state' }, function (newId) {
+            if (newId) {
+                onSelect(newId);
+            }
+        });
+    });
 }
 
 function makeSelect(id, label, value, options, onChangeCb) {

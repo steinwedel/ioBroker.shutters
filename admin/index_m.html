@@ -9,6 +9,10 @@
     <meta name="color-scheme" content="light" />
     <link rel="stylesheet" type="text/css" href="../../css/adapter.css" />
     <link rel="stylesheet" type="text/css" href="../../lib/css/materialize.css" />
+    <!-- ioBroker Admin's built-in object-tree picker dialog (selectID.js), used to browse/pick the
+         holiday state ID instead of typing it by hand - see initHolidayStateIdField() in shutters.js. -->
+    <link rel="stylesheet" type="text/css" href="../../lib/css/themes/jquery-ui/redmond/jquery-ui.min.css" />
+    <link rel="stylesheet" type="text/css" href="../../lib/css/fancytree/ui.fancytree.min.css" />
 
     <script type="text/javascript" src="../../lib/js/jquery-3.2.1.min.js"></script>
     <script type="text/javascript" src="../../socket.io/socket.io.js"></script>
@@ -16,6 +20,9 @@
     <script type="text/javascript" src="../../js/translate.js"></script>
     <script type="text/javascript" src="../../lib/js/materialize.js"></script>
     <script type="text/javascript" src="../../js/adapter-settings.js"></script>
+    <script type="text/javascript" src="../../lib/js/jquery-ui-1.11.4.full.min.js"></script>
+    <script type="text/javascript" src="../../lib/js/jquery.fancytree-all.min.js"></script>
+    <script type="text/javascript" src="../../lib/js/selectID.js"></script>
 
     <script type="text/javascript" src="words.js"></script>
     <script type="text/javascript" src="shutters.js"></script>
@@ -124,9 +131,14 @@
     <div id="tab-areas" class="col s12">
         <p class="shutters-hint translate">areasHintText</p>
         <div class="row">
-            <div class="input-field col s6">
+            <div class="input-field col s4">
                 <input id="shutters-holiday-state-id" type="text" />
                 <label class="translate" for="shutters-holiday-state-id">holidayStateId</label>
+            </div>
+            <div class="col s2" style="margin-top: 18px;">
+                <button class="btn waves-effect" id="shutters-holiday-state-id-browse" type="button">
+                    <span class="translate">browseButton</span>
+                </button>
             </div>
         </div>
         <p class="shutters-hint translate">holidayHintText</p>
@@ -161,5 +173,8 @@
         </button>
     </div>
 </div>
+<!-- Required by ioBroker Admin's selectID.js object-tree picker dialog - see initHolidayStateIdField()
+     in shutters.js. The name "dialog-select-member" matters, since selectID's own CSS targets it. -->
+<div id="dialog-select-member" style="display: none"></div>
 </body>
 </html>
