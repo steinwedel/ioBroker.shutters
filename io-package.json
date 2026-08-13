@@ -1,103 +1,116 @@
 {
-    "common": {
-        "name": "shutters",
-        "version": "0.0.1",
-        "news": {
-            "0.0.1": {
-                "en": "initial release",
-                "de": "Erstveröffentlichung",
-                "ru": "Начальная версия",
-                "pt": "lançamento inicial",
-                "nl": "Eerste uitgave",
-                "fr": "Première version",
-                "it": "Versione iniziale",
-                "es": "Versión inicial",
-                "pl": "Pierwsze wydanie",
-                "uk": "Початкова версія",
-                "zh-cn": "首次出版"
-            }
-        },
-        "titleLang": {
-            "en": "Shutters",
-            "de": "Rolläden",
-            "ru": "Ставни",
-            "pt": "Persianas",
-            "nl": "Luiken",
-            "fr": "Volets",
-            "it": "Persiane",
-            "es": "Persianas",
-            "pl": "Żaluzje",
-            "uk": "Віконниці",
-            "zh-cn": "百叶窗"
-        },
-        "desc": {
-            "en": "Unified control and automation for roller shutters, blinds and awnings across multiple smart home systems",
-            "de": "Einheitliche Steuerung und Automatisierung für Rollläden, Jalousien und Markisen über mehrere Smart-Home-Systeme hinweg",
-            "ru": "Унифицированное управление и автоматизация рольставней, жалюзи и навесов в нескольких системах умного дома.",
-            "pt": "Controle e automação unificados para persianas, persianas e toldos em vários sistemas domésticos inteligentes",
-            "nl": "Uniforme bediening en automatisering voor rolluiken, zonwering en luifels in meerdere smart home-systemen",
-            "fr": "Contrôle et automatisation unifiés pour les volets roulants, les stores et les auvents sur plusieurs systèmes de maison intelligente",
-            "it": "Controllo e automazione unificati per tapparelle, tapparelle e tende da sole su più sistemi di casa intelligente",
-            "es": "Control y automatización unificados para persianas, persianas y toldos en múltiples sistemas de hogar inteligente",
-            "pl": "Ujednolicone sterowanie i automatyzacja rolet, żaluzji i markiz w wielu systemach inteligentnego domu",
-            "uk": "Уніфіковане управління та автоматизація для рольставен, жалюзі та маркіз у багатьох системах розумного будинку",
-            "zh-cn": "跨多个智能家居系统的卷帘、百叶窗和遮阳篷的统一控制和自动化"
-        },
-        "authors": [
-            "Gerhard Steinwedel <dev@steinwedel.de>"
-        ],
-        "keywords": [
-            "shutters",
-            "blinds",
-            "roller shutter",
-            "awning",
-            "venetian blind",
-            "sun protection",
-            "wind protection",
-            "smart home"
-        ],
-        "licenseInformation": {
-            "type": "free",
-            "license": "MIT"
-        },
-        "platform": "Javascript/Node.js",
-        "icon": "shutters.png",
-        "enabled": true,
-        "extIcon": "https://raw.githubusercontent.com/steinwedel/ioBroker.shutters/main/admin/shutters.png",
-        "readme": "https://github.com/steinwedel/ioBroker.shutters/blob/main/README.md",
-        "loglevel": "info",
-        "tier": 3,
-        "mode": "daemon",
-        "type": "climate-control",
-        "compact": true,
-        "connectionType": "local",
-        "dataSource": "poll",
-        "messagebox": true,
-        "supportedMessages": {
-            "custom": true
-        },
-        "adminUI": {
-            "config": "materialize"
-        },
-        "dependencies": [
-            {
-                "js-controller": ">=6.0.11"
-            }
-        ],
-        "globalDependencies": [
-            {
-                "admin": ">=7.0.23"
-            }
-        ]
+  "common": {
+    "name": "shutters",
+    "version": "0.0.2",
+    "news": {
+      "0.0.2": {
+        "en": "initial development version",
+        "de": "erste Entwicklungsversion",
+        "ru": "первоначальная версия для разработки",
+        "pt": "versão inicial de desenvolvimento",
+        "nl": "eerste ontwikkelingsversie",
+        "fr": "version de développement initiale",
+        "it": "versione iniziale di sviluppo",
+        "es": "versión de desarrollo inicial",
+        "pl": "początkowa wersja rozwojowa",
+        "uk": "початкова версія для розробки",
+        "zh-cn": "初始开发版本"
+      },
+      "0.0.1": {
+        "en": "initial release",
+        "de": "Erstveröffentlichung",
+        "ru": "Начальная версия",
+        "pt": "lançamento inicial",
+        "nl": "Eerste uitgave",
+        "fr": "Première version",
+        "it": "Versione iniziale",
+        "es": "Versión inicial",
+        "pl": "Pierwsze wydanie",
+        "uk": "Початкова версія",
+        "zh-cn": "首次出版"
+      }
     },
-    "native": {
-        "shutters": [],
-        "areas": [],
-        "holidayStateId": "",
-        "weather": {},
-        "groups": [],
-        "scenes": []
+    "titleLang": {
+      "en": "Shutters",
+      "de": "Rolläden",
+      "ru": "Ставни",
+      "pt": "Persianas",
+      "nl": "Luiken",
+      "fr": "Volets",
+      "it": "Persiane",
+      "es": "Persianas",
+      "pl": "Żaluzje",
+      "uk": "Віконниці",
+      "zh-cn": "百叶窗"
     },
-    "objects": [],
-    "instanceObjects": []
+    "desc": {
+      "en": "Unified control and automation for roller shutters, blinds and awnings across multiple smart home systems",
+      "de": "Einheitliche Steuerung und Automatisierung für Rollläden, Jalousien und Markisen über mehrere Smart-Home-Systeme hinweg",
+      "ru": "Унифицированное управление и автоматизация рольставней, жалюзи и навесов в нескольких системах умного дома.",
+      "pt": "Controle e automação unificados para persianas, persianas e toldos em vários sistemas domésticos inteligentes",
+      "nl": "Uniforme bediening en automatisering voor rolluiken, zonwering en luifels in meerdere smart home-systemen",
+      "fr": "Contrôle et automatisation unifiés pour les volets roulants, les stores et les auvents sur plusieurs systèmes de maison intelligente",
+      "it": "Controllo e automazione unificati per tapparelle, tapparelle e tende da sole su più sistemi di casa intelligente",
+      "es": "Control y automatización unificados para persianas, persianas y toldos en múltiples sistemas de hogar inteligente",
+      "pl": "Ujednolicone sterowanie i automatyzacja rolet, żaluzji i markiz w wielu systemach inteligentnego domu",
+      "uk": "Уніфіковане управління та автоматизація для рольставен, жалюзі та маркіз у багатьох системах розумного будинку",
+      "zh-cn": "跨多个智能家居系统的卷帘、百叶窗和遮阳篷的统一控制和自动化"
+    },
+    "authors": [
+      "Gerhard Steinwedel <dev@steinwedel.de>"
+    ],
+    "keywords": [
+      "shutters",
+      "blinds",
+      "roller shutter",
+      "awning",
+      "venetian blind",
+      "sun protection",
+      "wind protection",
+      "smart home"
+    ],
+    "licenseInformation": {
+      "type": "free",
+      "license": "MIT"
+    },
+    "platform": "Javascript/Node.js",
+    "icon": "shutters.png",
+    "enabled": true,
+    "extIcon": "https://raw.githubusercontent.com/steinwedel/ioBroker.shutters/main/admin/shutters.png",
+    "readme": "https://github.com/steinwedel/ioBroker.shutters/blob/main/README.md",
+    "loglevel": "info",
+    "tier": 3,
+    "mode": "daemon",
+    "type": "climate-control",
+    "compact": true,
+    "connectionType": "local",
+    "dataSource": "poll",
+    "messagebox": true,
+    "supportedMessages": {
+      "custom": true
+    },
+    "adminUI": {
+      "config": "materialize"
+    },
+    "dependencies": [
+      {
+        "js-controller": ">=6.0.11"
+      }
+    ],
+    "globalDependencies": [
+      {
+        "admin": ">=7.0.23"
+      }
+    ]
+  },
+  "native": {
+    "shutters": [],
+    "areas": [],
+    "holidayStateId": "",
+    "weather": {},
+    "groups": [],
+    "scenes": []
+  },
+  "objects": [],
+  "instanceObjects": []
 }
