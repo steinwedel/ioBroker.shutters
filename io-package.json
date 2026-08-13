@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "news": {
+      "0.0.4": {
+        "en": "Add a lightweight, self-contained state-ID picker (search + list) for the holiday state field in the admin UI",
+        "de": "Fügen Sie in der Admin-Oberfläche einen schlanken, eigenständigen Bundesstaat-ID-Picker (Suche + Liste) für das Feld „Feiertagsbundesland“ hinzu.",
+        "ru": "Добавьте в административный интерфейс легковесный, автономный инструмент выбора идентификатора штата (поиск + список) для поля «Штат праздника».",
+        "pt": "Adicione um seletor de ID de estado leve e independente (pesquisa + lista) para o campo de estado do feriado na interface administrativa.",
+        "nl": "Voeg een lichtgewicht, op zichzelf staande selectietool (zoeken + lijst) voor de staat-ID toe aan het veld voor de vakantiestaat in de beheerdersinterface.",
+        "fr": "Ajoutez un sélecteur d'identifiant d'état léger et autonome (recherche + liste) pour le champ « État férié » dans l'interface d'administration.",
+        "it": "Aggiungi un selettore di ID stato leggero e autonomo (ricerca + elenco) per il campo dello stato festivo nell'interfaccia utente di amministrazione.",
+        "es": "Agregue un selector de ID de estado ligero e independiente (búsqueda + lista) para el campo de estado de vacaciones en la interfaz de administración.",
+        "pl": "Dodaj lekki, samodzielny selektor identyfikatorów stanu (wyszukiwanie + lista) dla pola stanu świątecznego w interfejsie administratora",
+        "uk": "Додайте легкий, автономний засіб вибору ідентифікатора штату (пошук + список) для поля штату свята в інтерфейсі адміністратора",
+        "zh-cn": "在管理界面中，为节假日所在州/省份字段添加一个轻量级、独立的州/省份 ID 选择器（搜索 + 列表）。"
+      },
       "0.0.3": {
         "en": "Simplify public holiday detection to a single configurable boolean state, with an object-tree picker in the admin UI",
         "de": "Vereinfachen Sie die Erkennung von Feiertagen auf einen einzigen konfigurierbaren booleschen Zustand mit einer Objektbaumauswahl in der Admin-Oberfläche.",

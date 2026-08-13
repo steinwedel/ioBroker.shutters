@@ -1,5 +1,5 @@
 # Changelog
-## **WORK IN PROGRESS**
+## 0.0.4 (2026-08-13)
 
 * (steinwedel) Add a lightweight, self-contained state-ID picker (search + list) for the holiday state field in the admin UI
 
