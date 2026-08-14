@@ -212,8 +212,11 @@ export class ShutterController {
         return this.config;
     }
 
-    /** @returns The area/zone name configured for this covering, used to group schedule triggers. */
-    public getArea(): string | undefined {
+    public getAreaId(): string | undefined {
+        return this.config.areaId;
+    }
+
+    public getLegacyAreaName(): string | undefined {
         return this.config.area;
     }
 

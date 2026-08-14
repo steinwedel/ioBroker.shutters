@@ -153,9 +153,26 @@ function shuttersEnsureDefaults(settings) {
         settings.windCloseAllowedThreshold != null ? settings.windCloseAllowedThreshold : 25;
     settings.frostThreshold = settings.frostThreshold != null ? settings.frostThreshold : 2;
 
+    var usedAreaIds = {};
+    settings.areas.forEach(function (area) {
+        if (!area.id || usedAreaIds[area.id]) {
+            area.id = nextAvailableAreaId(usedAreaIds);
+        }
+        usedAreaIds[area.id] = true;
+    });
     settings.shutters.forEach(function (s) {
         s.states = s.states || {};
         if (s.automationEnabled === undefined) s.automationEnabled = true;
+        if (!s.areaId && s.area) {
+            var matchingAreas = settings.areas.filter(function (area) {
+                return area.name === s.area;
+            });
+            var targetArea = matchingAreas.length === 1 ? matchingAreas[0] : settings.areas.length === 1 ? settings.areas[0] : undefined;
+            if (targetArea) {
+                s.areaId = targetArea.id;
+                delete s.area;
+            }
+        }
     });
 }
 
@@ -193,7 +210,7 @@ function shuttersInitAdmin(settings, onChange) {
         onChangeFired();
     };
     document.getElementById('shutters-add-area-btn').onclick = function () {
-        shuttersConfig.areas.push({ name: '', weekday: {}, weekend: {} });
+        shuttersConfig.areas.push({ id: nextAvailableAreaId(), name: '', weekday: {}, weekend: {} });
         setCardCollapsed('areas', shuttersConfig.areas.length - 1, false);
         renderAreas();
         onChangeFired();
@@ -645,8 +662,8 @@ function makeSelectPlain(id, label, value, optionValues, colWidth, onChangeCb) {
     select.id = id;
 
     var values = optionValues.slice();
-    if (value && values.indexOf(value) === -1) {
-        values.push(value);
+    if (value && !values.some(function (option) { return option.value === value; })) {
+        values.push({ value: value, text: value });
     }
 
     var emptyOpt = document.createElement('option');
@@ -655,11 +672,11 @@ function makeSelectPlain(id, label, value, optionValues, colWidth, onChangeCb) {
     if (!value) emptyOpt.selected = true;
     select.appendChild(emptyOpt);
 
-    values.forEach(function (v) {
+    values.forEach(function (option) {
         var opt = document.createElement('option');
-        opt.value = v;
-        opt.text = v;
-        if (v === value) opt.selected = true;
+        opt.value = option.value;
+        opt.text = option.text;
+        if (option.value === value) opt.selected = true;
         select.appendChild(opt);
     });
     select.onchange = function () {
@@ -701,21 +718,31 @@ function nextAvailableCoveringId() {
     shuttersConfig.shutters.forEach(function (s) {
         if (s.id) used[s.id] = true;
     });
-    var n = 1;
-    while (used['shutter' + n]) {
-        n++;
-    }
-    return 'shutter' + n;
+    return nextAvailableAreaId(used, 'shutter');
 }
 
-// Returns the configured plan (area) names, excluding empty ones, for the covering's plan dropdown.
-function getPlanNames() {
+function nextAvailableAreaId(used, prefix) {
+    var areaIds = used || {};
+    if (!used) {
+        shuttersConfig.areas.forEach(function (area) {
+            if (area.id) areaIds[area.id] = true;
+        });
+    }
+    var idPrefix = prefix || 'area';
+    var n = 1;
+    while (areaIds[idPrefix + n]) {
+        n++;
+    }
+    return idPrefix + n;
+}
+
+function getPlanOptions() {
     return shuttersConfig.areas
-        .map(function (a) {
-            return a.name;
+        .filter(function (area) {
+            return !!area.id && !!area.name;
         })
-        .filter(function (n) {
-            return !!n;
+        .map(function (area) {
+            return { value: area.id, text: area.name };
         });
 }
 
@@ -878,10 +905,11 @@ function renderCoveringCard(covering, index) {
     var row2 = document.createElement('div');
     row2.className = 'shutters-row row';
     row2.appendChild(
-        makeSelectPlain('cov-' + index + '-area', 'area', covering.area, getPlanNames(), 3, function (v) {
-            covering.area = v;
-            onChangeFired();
-        }),
+            makeSelectPlain('cov-' + index + '-area', 'area', covering.areaId, getPlanOptions(), 3, function (v) {
+                covering.areaId = v;
+                delete covering.area;
+                onChangeFired();
+            }),
     );
     row2.appendChild(
         makeText(

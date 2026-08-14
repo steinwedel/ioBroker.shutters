@@ -1,11 +1,11 @@
 # Context
 
 ## Current Task
-- Added object browsers to all weather-data state fields in the admin UI.
+- Replaced name-based plan assignments with stable plan IDs.
 
 ## Key Decisions
-- Reused the existing generic state-ID field helper.
-- Kept the state picker unrestricted because weather fields accept numeric and boolean values.
+- Existing assignments migrate automatically at adapter startup.
+- A renamed legacy assignment is migrated when only one plan exists.
 
 ## Next Steps
-- Deploy the adapter and verify the weather-data object browsers in ioBroker Admin.
+- Deploy the change and verify the plan assignment in ioBroker Admin.

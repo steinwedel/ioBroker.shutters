@@ -199,7 +199,7 @@ export class Scheduler {
         private readonly areas: IAreaScheduleConfig[],
         private readonly isPublicHoliday: () => boolean,
         private readonly location: { latitude: number; longitude: number } | undefined,
-        private readonly onTrigger: (areaName: string, action: ScheduleAction) => void,
+        private readonly onTrigger: (area: IAreaScheduleConfig, action: ScheduleAction) => void,
     ) {}
 
     /** (Re-)schedules all areas for the remainder of today, and arranges the next midnight recompute. */
@@ -217,9 +217,13 @@ export class Scheduler {
         const now = new Date();
 
         for (const area of this.areas) {
+            if (!area.id) {
+                this.adapter.log.warn(`Scheduler: area "${area.name}" has no ID - skipped.`);
+                continue;
+            }
             const daySchedule = this.resolveTodaySchedule(area, now);
-            this.scheduleAction(area.name, 'open', daySchedule.open, now);
-            this.scheduleAction(area.name, 'close', daySchedule.close, now);
+            this.scheduleAction(area, 'open', daySchedule.open, now);
+            this.scheduleAction(area, 'close', daySchedule.close, now);
         }
 
         this.scheduleMidnightRecompute(now);
@@ -235,35 +239,38 @@ export class Scheduler {
         return resolveDaySchedule(area, now, this.isPublicHoliday());
     }
 
-    private scheduleAction(areaName: string, action: ScheduleAction, value: string | undefined, now: Date): void {
+    private scheduleAction(
+        area: IAreaScheduleConfig,
+        action: ScheduleAction,
+        value: string | undefined,
+        now: Date,
+    ): void {
         if (!value) {
             return;
         }
         const entry = parseScheduleEntry(value, now);
         if (!entry) {
             this.adapter.log.warn(
-                `Scheduler: invalid schedule value "${value}" for area "${areaName}" (${action}) - skipped.`,
+                `Scheduler: invalid schedule value "${value}" for area "${area.name}" (${action}) - skipped.`,
             );
             return;
         }
 
         if (entry.kind === 'time') {
-            this.scheduleAt(areaName, action, entry.time, now);
+            this.scheduleAt(area, action, entry.time, now);
             return;
         }
 
         if (entry.kind === 'sunOffset') {
-            const target = this.computeSunOffsetTarget(areaName, action, entry.minutes, entry.useTwilight, now);
+            const target = this.computeSunOffsetTarget(area.name, action, entry.minutes, entry.useTwilight, now);
             if (target) {
-                this.scheduleAt(areaName, action, target, now);
+                this.scheduleAt(area, action, target, now);
             }
             return;
         }
 
-        // sunOffsetCapped: the cap always applies, even if the sun-event time itself could not be
-        // computed (e.g. missing location or a polar day/night), so it never simply falls through.
-        const sunTarget = this.computeSunOffsetTarget(areaName, action, entry.minutes, entry.useTwilight, now);
-        this.scheduleAt(areaName, action, pickSunOffsetCappedTarget(sunTarget, entry.capTime), now);
+        const sunTarget = this.computeSunOffsetTarget(area.name, action, entry.minutes, entry.useTwilight, now);
+        this.scheduleAt(area, action, pickSunOffsetCappedTarget(sunTarget, entry.capTime), now);
     }
 
     /**
@@ -311,19 +318,19 @@ export class Scheduler {
     /**
      * Schedules `onTrigger` to fire at `target`, unless it already lies in the past for today.
      *
-     * @param areaName - Area name to pass through to `onTrigger`.
+     * @param area - Area to pass through to `onTrigger`.
      * @param action - Action to pass through to `onTrigger`.
      * @param target - Absolute time to fire at.
      * @param now - Current time, used to decide whether `target` already lies in the past.
      */
-    private scheduleAt(areaName: string, action: ScheduleAction, target: Date, now: Date): void {
+    private scheduleAt(area: IAreaScheduleConfig, action: ScheduleAction, target: Date, now: Date): void {
         if (target.getTime() <= now.getTime()) {
             // Already past for today; will apply again from tomorrow's recompute.
             return;
         }
 
         const delayMs = target.getTime() - now.getTime();
-        const timer = this.adapter.setTimeout(() => this.onTrigger(areaName, action), delayMs);
+        const timer = this.adapter.setTimeout(() => this.onTrigger(area, action), delayMs);
         if (timer) {
             this.timers.push(timer);
         }

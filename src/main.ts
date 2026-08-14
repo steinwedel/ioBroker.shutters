@@ -4,6 +4,7 @@
  */
 
 import * as utils from '@iobroker/adapter-core';
+import { normalizeAreaAssignments } from './lib/area-assignment';
 import { AutomationEngine } from './lib/automation';
 import { GroupController } from './lib/group-controller';
 import { nextAvailableCoveringId } from './lib/id-generator';
@@ -79,9 +80,9 @@ class Shutters extends utils.Adapter {
         });
 
         if (await this.migrateLegacyCoveringIds()) {
-            // native.shutters[]/groups[]/scenes[] were just rewritten, which triggers the usual adapter
-            // restart for a config change - the rest of onReady() would only run against the
-            // about-to-be-replaced old config, so stop here and let the restart pick up the new one.
+            return;
+        }
+        if (await this.migrateAreaAssignments()) {
             return;
         }
 
@@ -126,8 +127,8 @@ class Shutters extends utils.Adapter {
             this.config.areas ?? [],
             () => this.isPublicHoliday,
             location,
-            (areaName, action) => {
-                this.onScheduleTrigger(areaName, action);
+            (area, action) => {
+                this.onScheduleTrigger(area.id!, area.name, action);
             },
         );
         this.scheduler.start();
@@ -242,19 +243,13 @@ class Shutters extends utils.Adapter {
         return undefined;
     }
 
-    /**
-     * Feeds a schedule-triggered open/close action into the automation
-     * engine for every covering in the given area that has automation
-     * enabled; the engine applies it at its next tick, arbitrated against
-     * wind/rain/sun/frost protection (plan section 8).
-     *
-     * @param areaName - Area/zone name as configured on the triggered coverings.
-     * @param action - Whether to open (0%) or close (100%) the affected coverings.
-     */
-    private onScheduleTrigger(areaName: string, action: 'open' | 'close'): void {
+    private onScheduleTrigger(areaId: string, areaName: string, action: 'open' | 'close'): void {
         const targetPercent = action === 'open' ? 0 : 100;
         for (const [id, controller] of this.controllers) {
-            if (controller.getArea() !== areaName || !controller.isAutomationEnabled()) {
+            const matchesArea =
+                controller.getAreaId() === areaId ||
+                (!controller.getAreaId() && controller.getLegacyAreaName() === areaName);
+            if (!matchesArea || !controller.isAutomationEnabled()) {
                 continue;
             }
             this.automationEngine?.setScheduleTarget(id, targetPercent);
@@ -376,6 +371,21 @@ class Shutters extends utils.Adapter {
 
         await this.extendForeignObjectAsync(`system.adapter.${this.namespace}`, {
             native: { shutters: updatedShutters, groups: updatedGroups, scenes: updatedScenes },
+        });
+        return true;
+    }
+
+    private async migrateAreaAssignments(): Promise<boolean> {
+        const result = normalizeAreaAssignments(this.config.areas ?? [], this.config.shutters ?? []);
+        if (!result.changed) {
+            return false;
+        }
+
+        for (const name of result.ambiguousAreaNames) {
+            this.log.warn(`Could not migrate covering assignment for duplicate area name "${name}".`);
+        }
+        await this.extendForeignObjectAsync(`system.adapter.${this.namespace}`, {
+            native: { areas: result.areas, shutters: result.shutters },
         });
         return true;
     }

@@ -59,7 +59,7 @@ Advanced settings (calibration, sun/wind/frost protection thresholds, groups, sc
 
 Each covering is automatically assigned a stable, sequential ID (e.g. `shutter1`, `shutter2`, ...) when added, shown for reference but not editable - it is the ioBroker object ID for that covering's own states (`shutters.<instance>.<id>.*`), so changing it later would orphan those states and break any automation/VIS binding that references them. Coverings still using an older, non-sequential ID (from before this scheme existed) are migrated to it automatically on the next adapter start, including updating any group/scene reference to the old ID; the old covering's state tree is deleted and recreated under the new ID as part of that. It is configured with:
 
-- A display name and an assigned plan, selected from a dropdown of the plans configured on the Plans tab.
+- A display name and an assigned plan, selected from a dropdown of the plans configured on the Plans tab. The assignment uses a stable internal plan ID, so renaming a plan does not change its assigned coverings.
 - A covering type (roller shutter, external venetian blind, awning, vertical lamella blind).
 - The connected system (driver) and the relevant state IDs — filled in automatically by the scan, or entered manually.
 - Optional window orientation, used by sun protection.

@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.12 (2026-08-14)
+
+* (steinwedel) **FIXED**: Use stable plan IDs for covering assignments and migrate legacy name-based assignments
+
 ## 0.0.11 (2026-08-14)
 
 * (steinwedel) **FIXED**: Make the automation checkbox and weather-data state selectors usable in the Admin UI

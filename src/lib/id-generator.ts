@@ -12,6 +12,10 @@
  * @param prefix - ID prefix; defaults to `"shutter"`.
  */
 export function nextAvailableCoveringId(existingIds: Iterable<string>, prefix = 'shutter'): string {
+    return nextAvailableAreaId(existingIds, prefix);
+}
+
+export function nextAvailableAreaId(existingIds: Iterable<string>, prefix = 'area'): string {
     const used = new Set(existingIds);
     let n = 1;
     while (used.has(`${prefix}${n}`)) {

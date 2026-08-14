@@ -38,7 +38,7 @@ export interface IShutterConfig {
     driverType: DriverType;
     /** Kind of covering; determines position/tilt semantics, see covering-types.ts. */
     coveringType: CoveringType;
-    /** Area/zone name, used for schedule grouping (Abschnitt 5). */
+    areaId?: string;
     area?: string;
     /** Window orientation in degrees (0-359), used by the optional azimuth-based sun protection (6.2). */
     orientation?: number;
@@ -226,7 +226,8 @@ export type ScheduleMode = 'uniform' | 'weekdayWeekend' | 'perWeekday';
 
 /** Daily open/close schedule for one area/zone (plan section 5). */
 export interface IAreaScheduleConfig {
-    /** Area/zone name; matched against `IShutterConfig.area`. */
+    id?: string;
+    /** Area/zone name shown in the admin UI. */
     name: string;
     /**
      * Which fields define this plan's schedule, see `ScheduleMode`. Defaults to `'weekdayWeekend'` if
