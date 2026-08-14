@@ -85,6 +85,9 @@ class Shutters extends utils.Adapter {
         if (await this.migrateAreaAssignments()) {
             return;
         }
+        if (await this.migrateOrientationTolerance()) {
+            return;
+        }
 
         await this.createShutterControllers();
         await this.createGroupControllers();
@@ -434,6 +437,54 @@ class Shutters extends utils.Adapter {
         }
         await this.extendForeignObjectAsync(`system.adapter.${this.namespace}`, {
             native: { areas: result.areas, shutters: result.shutters },
+        });
+        return true;
+    }
+
+    /**
+     * One-time startup migration: replaces the old, single `orientationToleranceDeg` field (a
+     * symmetric ± half-width) with the separate `orientationToleranceMinusDeg`/`orientationTolerancePlusDeg`
+     * bounds it was superseded by (plan section 6.2), on every covering that still has the old field
+     * set to a number. The previously configured tolerance is preserved symmetrically on both sides
+     * (`-orientationToleranceDeg`/`+orientationToleranceDeg`) so existing behavior does not change.
+     *
+     * The legacy field is explicitly overwritten with `null` (not simply omitted) in the persisted
+     * patch: `extendForeignObjectAsync` deep-merges the patch into the stored object and never deletes
+     * a key just because it is absent from the patch, so omitting it here would silently leave the old
+     * value in storage and make this migration re-trigger (and the adapter restart) forever.
+     *
+     * @returns True if any covering was migrated (and the config was persisted, which triggers the
+     *   usual adapter restart for a config change - callers should stop the rest of `onReady()` in that
+     *   case).
+     */
+    private async migrateOrientationTolerance(): Promise<boolean> {
+        const shutters = this.config.shutters ?? [];
+        let changed = false;
+        const updatedShutters = shutters.map(shutter => {
+            const legacyShutter = shutter as IShutterConfig & { orientationToleranceDeg?: number | null };
+            const legacy = legacyShutter.orientationToleranceDeg;
+            if (typeof legacy !== 'number') {
+                // Either never set, or already migrated in a previous pass (left behind as `null`, see
+                // above) - nothing to do either way.
+                return shutter;
+            }
+            changed = true;
+            return {
+                ...legacyShutter,
+                orientationToleranceDeg: null,
+                orientationToleranceMinusDeg: legacyShutter.orientationToleranceMinusDeg ?? -legacy,
+                orientationTolerancePlusDeg: legacyShutter.orientationTolerancePlusDeg ?? legacy,
+            };
+        });
+        if (!changed) {
+            return false;
+        }
+
+        this.log.info(
+            'Migrating covering(s) from the old, single "orientationToleranceDeg" field to separate minus/plus tolerance bounds.',
+        );
+        await this.extendForeignObjectAsync(`system.adapter.${this.namespace}`, {
+            native: { shutters: updatedShutters },
         });
         return true;
     }

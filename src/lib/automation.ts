@@ -301,13 +301,18 @@ export class AutomationEngine {
      * location are configured, otherwise falling back to the fixed `sunWindowStart`/`sunWindowEnd`
      * clock-time window (6.1).
      *
-     * @param config - The covering's configuration, providing `orientation`/`orientationToleranceDeg` or the `sunWindowStart`/`sunWindowEnd` fallback.
+     * @param config - The covering's configuration, providing `orientation`/`orientationToleranceMinusDeg`/`orientationTolerancePlusDeg` or the `sunWindowStart`/`sunWindowEnd` fallback.
      * @param now - Current time.
      */
     private isWithinSunWindow(config: IShutterConfig, now: Date): boolean {
         if (config.orientation !== undefined && this.options.location) {
             const sun = getSunPosition(now, this.options.location.latitude, this.options.location.longitude);
-            return isWithinOrientationWindow(sun.azimuthDeg, config.orientation, config.orientationToleranceDeg ?? 70);
+            return isWithinOrientationWindow(
+                sun.azimuthDeg,
+                config.orientation,
+                config.orientationToleranceMinusDeg ?? -70,
+                config.orientationTolerancePlusDeg ?? 70,
+            );
         }
         return isWithinTimeWindow(now, config.sunWindowStart, config.sunWindowEnd);
     }

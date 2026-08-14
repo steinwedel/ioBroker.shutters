@@ -47,21 +47,26 @@ export function isSunProtectionEligible(
 /**
  * Orientation-based alternative to `isWithinTimeWindow()` (plan section 6.2): the sun is
  * "in front of" a facade facing `orientationDeg` (compass degrees, 0=N/90=E/180=S/270=W)
- * whenever its current azimuth lies within `toleranceDeg` on either side, e.g. a south-facing
- * window (`orientationDeg=180`) with the default 70° tolerance is active for azimuths 110-250°.
+ * whenever its current azimuth lies within `[orientationDeg + toleranceMinusDeg, orientationDeg +
+ * tolerancePlusDeg]`, e.g. a south-facing window (`orientationDeg=180`) with the default -70°/+70°
+ * bounds is active for azimuths 110-250°. The two bounds need not be symmetric.
  *
  * @param sunAzimuthDeg - Current sun azimuth, compass degrees clockwise from North.
  * @param orientationDeg - Facade orientation, compass degrees clockwise from North (`IShutterConfig.orientation`).
- * @param toleranceDeg - Half-width of the active azimuth range around `orientationDeg`.
- * @returns Whether the sun's azimuth currently lies within `orientationDeg ± toleranceDeg`.
+ * @param toleranceMinusDeg - Lower bound offset (typically negative, e.g. -70) relative to `orientationDeg`, see `IShutterConfig.orientationToleranceMinusDeg`.
+ * @param tolerancePlusDeg - Upper bound offset (typically positive, e.g. 70) relative to `orientationDeg`, see `IShutterConfig.orientationTolerancePlusDeg`.
+ * @returns Whether the sun's azimuth currently lies within `orientationDeg + [toleranceMinusDeg, tolerancePlusDeg]`.
  */
 export function isWithinOrientationWindow(
     sunAzimuthDeg: number,
     orientationDeg: number,
-    toleranceDeg: number,
+    toleranceMinusDeg: number,
+    tolerancePlusDeg: number,
 ): boolean {
-    const diff = Math.abs(((sunAzimuthDeg - orientationDeg + 540) % 360) - 180);
-    return diff <= toleranceDeg;
+    // Signed difference in (-180, 180], i.e. how far `sunAzimuthDeg` is ahead of (positive) or behind
+    // (negative) `orientationDeg`, avoiding a naive subtraction breaking down near the 0°/360° wrap.
+    const diff = ((sunAzimuthDeg - orientationDeg + 540) % 360) - 180;
+    return diff >= toleranceMinusDeg && diff <= tolerancePlusDeg;
 }
 
 /** Evaluation inputs for `evaluateSunProtection()`. */

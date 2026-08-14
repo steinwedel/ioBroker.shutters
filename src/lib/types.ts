@@ -57,8 +57,18 @@ export interface IShutterConfig {
     sunProtectionEnabled?: boolean;
     /** Target covering position while sun protection is active, 0-100. Default: 70. */
     sunTargetPercent?: number;
-    /** Half-width in degrees of the active sun azimuth range around `orientation`; sun protection may only apply while the sun's azimuth is within `orientation ± orientationToleranceDeg`. Default: 70. Only used when `orientation` is set. */
-    orientationToleranceDeg?: number;
+    /**
+     * Lower bound (typically negative) of the active sun-azimuth range around `orientation`, in degrees
+     * relative to it; sun protection may only apply while the sun's azimuth lies within
+     * `orientation + orientationToleranceMinusDeg` .. `orientation + orientationTolerancePlusDeg`. The
+     * admin UI auto-fills this with -70 whenever a covering with sun protection enabled is shown and it
+     * is still unset, so no runtime default is needed for coverings configured through the UI; a
+     * startup migration additionally converts any covering still using the old, single
+     * `orientationToleranceDeg` field. Only used when `orientation` is set.
+     */
+    orientationToleranceMinusDeg?: number;
+    /** Upper bound (typically positive) of the active sun-azimuth range, see `orientationToleranceMinusDeg`. Auto-filled with +70 under the same conditions. */
+    orientationTolerancePlusDeg?: number;
     /** Start of the daily time window sun protection may apply in, "HH:MM". Fallback used only when `orientation` is not set. */
     sunWindowStart?: string;
     /** End of the daily time window sun protection may apply in, "HH:MM". Fallback used only when `orientation` is not set. */

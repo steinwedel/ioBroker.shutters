@@ -44,9 +44,25 @@ systemDictionary = {
     },
     sunProtectionEnabled: { en: 'Sun protection', de: 'Sonnenschutz' },
     sunTargetPercent: { en: 'Sun target %', de: 'Sonnenschutz-Ziel %' },
-    orientationToleranceDeg: {
-        en: 'Sun window tolerance (°, ± around orientation)',
-        de: 'Sonnenschutz-Toleranz (°, ± um Ausrichtung)',
+    orientationToleranceMinusDeg: {
+        en: 'Sun window tolerance, lower bound (°, relative to orientation)',
+        de: 'Sonnenschutz-Toleranz, Untergrenze (°, relativ zur Ausrichtung)',
+    },
+    orientationTolerancePlusDeg: {
+        en: 'Sun window tolerance, upper bound (°, relative to orientation)',
+        de: 'Sonnenschutz-Toleranz, Obergrenze (°, relativ zur Ausrichtung)',
+    },
+    orientationToleranceTimeHintLabel: {
+        en: 'Corresponds to about',
+        de: 'Entspricht etwa',
+    },
+    orientationToleranceNoLocationHint: {
+        en: 'Corresponding time unknown (no location configured in system.config).',
+        de: 'Entsprechende Uhrzeit unbekannt (kein Standort in system.config konfiguriert).',
+    },
+    orientationToleranceNoTimeHint: {
+        en: "Corresponding time: sun does not reach today's azimuth window at this orientation.",
+        de: 'Entsprechende Uhrzeit: Sonne erreicht das Azimutfenster bei dieser Ausrichtung heute nicht.',
     },
     sunWindowStart: { en: 'Sun window start (fallback, no orientation set)', de: 'Sonnenschutz-Fenster Start (Fallback ohne Ausrichtung)' },
     sunWindowEnd: { en: 'Sun window end (fallback, no orientation set)', de: 'Sonnenschutz-Fenster Ende (Fallback ohne Ausrichtung)' },

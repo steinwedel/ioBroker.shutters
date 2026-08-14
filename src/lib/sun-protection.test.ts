@@ -31,23 +31,30 @@ describe('sun-protection', () => {
 
     describe('isWithinOrientationWindow', () => {
         it('is active when the sun azimuth equals the orientation', () => {
-            expect(isWithinOrientationWindow(180, 180, 70)).to.equal(true);
+            expect(isWithinOrientationWindow(180, 180, -70, 70)).to.equal(true);
         });
 
         it('is active exactly at the tolerance boundary on either side', () => {
-            expect(isWithinOrientationWindow(110, 180, 70)).to.equal(true);
-            expect(isWithinOrientationWindow(250, 180, 70)).to.equal(true);
+            expect(isWithinOrientationWindow(110, 180, -70, 70)).to.equal(true);
+            expect(isWithinOrientationWindow(250, 180, -70, 70)).to.equal(true);
         });
 
         it('is inactive just outside the tolerance on either side', () => {
-            expect(isWithinOrientationWindow(109, 180, 70)).to.equal(false);
-            expect(isWithinOrientationWindow(251, 180, 70)).to.equal(false);
+            expect(isWithinOrientationWindow(109, 180, -70, 70)).to.equal(false);
+            expect(isWithinOrientationWindow(251, 180, -70, 70)).to.equal(false);
         });
 
         it('handles wraparound near 0°/360° correctly', () => {
-            expect(isWithinOrientationWindow(5, 350, 70)).to.equal(true);
-            expect(isWithinOrientationWindow(355, 10, 70)).to.equal(true);
-            expect(isWithinOrientationWindow(180, 350, 70)).to.equal(false);
+            expect(isWithinOrientationWindow(5, 350, -70, 70)).to.equal(true);
+            expect(isWithinOrientationWindow(355, 10, -70, 70)).to.equal(true);
+            expect(isWithinOrientationWindow(180, 350, -70, 70)).to.equal(false);
+        });
+
+        it('supports independent, asymmetric minus/plus bounds', () => {
+            expect(isWithinOrientationWindow(150, 180, -20, 70)).to.equal(false); // -30°, below the -20° minus bound
+            expect(isWithinOrientationWindow(170, 180, -20, 70)).to.equal(true); // -10°, within -20°..+70°
+            expect(isWithinOrientationWindow(240, 180, -20, 70)).to.equal(true); // +60°, within -20°..+70°
+            expect(isWithinOrientationWindow(260, 180, -20, 70)).to.equal(false); // +80°, above the +70° plus bound
         });
     });
 

@@ -358,6 +358,212 @@ function fetchStateValues(cb) {
     });
 }
 
+// ---- Location (needed for the sun-protection tolerance clock-time preview below) ----
+
+// Mirrors `resolveLocation()` in main.ts: prefers `native.latitude`/`native.longitude` if set, otherwise
+// falls back to the global ioBroker location in `system.config`. Cached after the first (async) lookup;
+// `shuttersLocationLoaded` distinguishes "not asked yet" from "asked, but no location is available".
+var shuttersLocationCache = null;
+var shuttersLocationLoaded = false;
+function ensureShuttersLocation(cb) {
+    if (shuttersConfig.latitude !== undefined && shuttersConfig.longitude !== undefined) {
+        cb({ latitude: shuttersConfig.latitude, longitude: shuttersConfig.longitude });
+        return;
+    }
+    if (shuttersLocationLoaded) {
+        cb(shuttersLocationCache);
+        return;
+    }
+    socket.emit('getObject', 'system.config', function (err, obj) {
+        shuttersLocationLoaded = true;
+        var common = (obj && obj.common) || {};
+        shuttersLocationCache =
+            !err && common.latitude !== undefined && common.longitude !== undefined
+                ? { latitude: common.latitude, longitude: common.longitude }
+                : null;
+        cb(shuttersLocationCache);
+    });
+}
+
+// ---- Sun azimuth (needed for the sun-protection tolerance clock-time preview below) ----
+// Minimal azimuth-only port of the position calculation in SunCalc (https://github.com/mourner/suncalc,
+// (c) Vladimir Agafonkin, MIT licensed) - the same library `twilight.ts` uses on the backend. Kept as a
+// small, self-contained copy here since this admin settings page is plain, dependency-free browser JS
+// with no build/bundling step (see index_m.html). Ignores SunCalc's own sub-minute deltaT correction,
+// which is irrelevant at the "which clock time roughly" precision this preview needs.
+var SHUTTERS_RAD = Math.PI / 180;
+var SHUTTERS_DAY_MS = 1000 * 60 * 60 * 24;
+var SHUTTERS_J1970 = 2440588;
+var SHUTTERS_J2000 = 2451545;
+
+function shuttersToDays(date) {
+    return date.valueOf() / SHUTTERS_DAY_MS - 0.5 + SHUTTERS_J1970 - SHUTTERS_J2000;
+}
+
+function shuttersSunCoords(d) {
+    var t = d / 36525;
+    var L0 = SHUTTERS_RAD * (280.46646 + t * (36000.76983 + t * 0.0003032));
+    var M = SHUTTERS_RAD * (357.52911 + t * (35999.05029 - t * 0.0001537));
+    var sinM = Math.sin(M);
+    var cosM = Math.cos(M);
+    var C =
+        SHUTTERS_RAD *
+        ((1.914602 - t * (0.004817 + t * 0.000014)) * sinM +
+            (0.019993 - 0.000101 * t) * 2 * sinM * cosM +
+            0.000289 * sinM * (3 - 4 * sinM * sinM));
+    var Om = SHUTTERS_RAD * (125.04 - 1934.136 * t);
+    var L = L0 + C - SHUTTERS_RAD * (0.00569 + 0.00478 * Math.sin(Om));
+    var e =
+        SHUTTERS_RAD * (23.439291 - t * (0.0130042 + t * (0.00000016 - t * 0.000000504))) +
+        SHUTTERS_RAD * 0.00256 * Math.cos(Om);
+    return {
+        ra: Math.atan2(Math.cos(e) * Math.sin(L), Math.cos(L)),
+        dec: Math.asin(Math.sin(e) * Math.sin(L)),
+    };
+}
+
+function shuttersSiderealTime(d, lw) {
+    return SHUTTERS_RAD * (280.46061837 + 360.98564736629 * d) - lw;
+}
+
+// Sun azimuth in compass degrees (0=N/90=E/180=S/270=W, clockwise from North), matching
+// `SunCalc.getPosition().azimuth` / `getSunPosition()` in twilight.ts.
+function shuttersSunAzimuthDeg(date, latitude, longitude) {
+    var lw = SHUTTERS_RAD * -longitude;
+    var phi = SHUTTERS_RAD * latitude;
+    var d = shuttersToDays(date);
+    var c = shuttersSunCoords(d);
+    var H = shuttersSiderealTime(d, lw) - c.ra;
+    return (Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(phi) - Math.tan(c.dec) * Math.cos(phi)) / SHUTTERS_RAD + 540) % 360;
+}
+
+// If `target` (compass degrees) lies between the azimuths at `prevTime`/`curTime`, linearly interpolates
+// the crossing time between them; otherwise returns undefined. Skips crossings that would require
+// wrapping past 0°/360° (the azimuth's own discontinuity, only relevant right around midnight) - the
+// sun's azimuth does not actually wrap during the day at the latitudes this adapter targets.
+function shuttersInterpolateCrossing(prevTime, prevAz, curTime, curAz, target) {
+    if (curAz === prevAz) {
+        return undefined;
+    }
+    var lo = Math.min(prevAz, curAz);
+    var hi = Math.max(prevAz, curAz);
+    if (hi - lo > 180 || target < lo || target > hi) {
+        return undefined;
+    }
+    var fraction = (target - prevAz) / (curAz - prevAz);
+    return new Date(prevTime.getTime() + fraction * (curTime.getTime() - prevTime.getTime()));
+}
+
+// Finds the local time on `date` at which the sun's azimuth first reaches `targetAzimuthDeg`, by
+// sampling every two minutes from local midnight and interpolating across the sample where the azimuth
+// crosses the target (see `shuttersInterpolateCrossing`). Returns undefined if the sun's azimuth never
+// reaches that value on that day (e.g. a tolerance bound facing away from where the sun ever gets to).
+function shuttersFindAzimuthTime(date, latitude, longitude, targetAzimuthDeg) {
+    var target = ((targetAzimuthDeg % 360) + 360) % 360;
+    var dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+    var stepMinutes = 2;
+    var stepsPerDay = Math.floor((24 * 60) / stepMinutes);
+    var prevTime = dayStart;
+    var prevAz = shuttersSunAzimuthDeg(prevTime, latitude, longitude);
+    for (var i = 1; i <= stepsPerDay; i++) {
+        var curTime = new Date(dayStart.getTime() + i * stepMinutes * 60000);
+        var curAz = shuttersSunAzimuthDeg(curTime, latitude, longitude);
+        var crossing = shuttersInterpolateCrossing(prevTime, prevAz, curTime, curAz, target);
+        if (crossing) {
+            return crossing;
+        }
+        prevTime = curTime;
+        prevAz = curAz;
+    }
+    return undefined;
+}
+
+function shuttersFormatTime(date) {
+    if (!date) {
+        return undefined;
+    }
+    var hh = ('0' + date.getHours()).slice(-2);
+    var mm = ('0' + date.getMinutes()).slice(-2);
+    return hh + ':' + mm;
+}
+
+// DOM element per covering index showing the tolerance clock-time hint, rebuilt on every
+// renderCoverings() call; used so a later tolerance/orientation field edit can update the hint text in
+// place without a full re-render.
+var shuttersToleranceHintElements = {};
+
+// Caches the last computed hint text per covering index, keyed by every input that affects it
+// (orientation/bounds/location). Deliberately NOT cleared on re-render (unlike
+// shuttersToleranceHintElements above): a full renderCoverings() re-render calls
+// updateOrientationToleranceHint() again for every covering with sun protection + orientation set, and
+// without this cache that would redo the ~1440-sample azimuth search for every one of them even though
+// nothing relevant actually changed. A mismatched key (e.g. after coverings were reordered/removed)
+// simply misses the cache and recomputes correctly.
+var shuttersToleranceHintCache = {};
+
+// Debounce timers for the tolerance-bound fields' oninput handlers (keyed by covering index), so typing
+// in `orientationToleranceMinusDeg`/`orientationTolerancePlusDeg` doesn't re-run the azimuth search on
+// every single keystroke.
+var shuttersToleranceHintTimers = {};
+function scheduleOrientationToleranceHintUpdate(index) {
+    if (shuttersToleranceHintTimers[index]) {
+        clearTimeout(shuttersToleranceHintTimers[index]);
+    }
+    shuttersToleranceHintTimers[index] = setTimeout(function () {
+        delete shuttersToleranceHintTimers[index];
+        updateOrientationToleranceHint(index);
+    }, 300);
+}
+
+// Updates the "corresponds to about HH:MM and HH:MM" hint below a covering's sun-protection tolerance
+// fields (see renderCoverings()), based on its current orientation/tolerance values and the resolved
+// location. Runs asynchronously (location lookup); bails out if the element is no longer the current one
+// for this index (covering removed/re-rendered in the meantime).
+function updateOrientationToleranceHint(index) {
+    var el = shuttersToleranceHintElements[index];
+    if (!el) {
+        return;
+    }
+    var covering = shuttersConfig.shutters[index];
+    if (!covering || covering.orientation === undefined) {
+        el.innerText = '';
+        delete shuttersToleranceHintCache[index];
+        return;
+    }
+    var minus = covering.orientationToleranceMinusDeg === undefined ? -70 : covering.orientationToleranceMinusDeg;
+    var plus = covering.orientationTolerancePlusDeg === undefined ? 70 : covering.orientationTolerancePlusDeg;
+    ensureShuttersLocation(function (location) {
+        if (shuttersToleranceHintElements[index] !== el) {
+            return; // Re-rendered/removed in the meantime.
+        }
+        var cacheKey =
+            covering.orientation + '|' + minus + '|' + plus + '|' + (location ? location.latitude + ',' + location.longitude : 'none');
+        var cached = shuttersToleranceHintCache[index];
+        if (cached && cached.key === cacheKey) {
+            el.innerText = cached.text;
+            return;
+        }
+        var text;
+        if (!location) {
+            text = _('orientationToleranceNoLocationHint');
+        } else {
+            var now = new Date();
+            var startTime = shuttersFindAzimuthTime(now, location.latitude, location.longitude, covering.orientation + minus);
+            var endTime = shuttersFindAzimuthTime(now, location.latitude, location.longitude, covering.orientation + plus);
+            text =
+                !startTime && !endTime
+                    ? _('orientationToleranceNoTimeHint')
+                    : _('orientationToleranceTimeHintLabel') +
+                      ' ' +
+                      (shuttersFormatTime(startTime) || '?') +
+                      ' \u2013 ' +
+                      (shuttersFormatTime(endTime) || '?');
+        }
+        shuttersToleranceHintCache[index] = { key: cacheKey, text: text };
+        el.innerText = text;
+    });
+}
+
 // Builds a nested tree from the flat, dot-separated state ID list, e.g. "shutters.0.info.connection"
 // becomes root -> shutters -> 0 -> info -> connection (a leaf holding the full entry). Folders (non-leaf
 // nodes) are plain grouping nodes with no entry of their own.
@@ -835,6 +1041,9 @@ function makeCheckbox(id, label, checked, onChangeCb) {
 function renderCoverings() {
     var container = document.getElementById('shutters-coverings-container');
     container.innerHTML = '';
+    // Rebuilt below for every card that still shows a tolerance hint; stale entries from cards removed
+    // or no longer showing the hint (e.g. orientation cleared) must not linger.
+    shuttersToleranceHintElements = {};
 
     // Render the cards alphabetically (by name, falling back to id), while every callback/collapse-state
     // lookup still uses the covering's actual index in shuttersConfig.shutters, so editing/removing keeps
@@ -994,6 +1203,16 @@ function renderCoveringCard(covering, index) {
 
     // Only show sun-window fields when sun protection is actually enabled for this covering.
     if (covering.sunProtectionEnabled) {
+        // Auto-fill the tolerance bounds the moment sun protection is shown as enabled, so every saved
+        // covering always has an explicit value and no separate runtime default is needed to interpret
+        // an unset field.
+        if (covering.orientationToleranceMinusDeg === undefined) {
+            covering.orientationToleranceMinusDeg = -70;
+        }
+        if (covering.orientationTolerancePlusDeg === undefined) {
+            covering.orientationTolerancePlusDeg = 70;
+        }
+
         var sunRow = document.createElement('div');
         sunRow.className = 'shutters-row row';
         sunRow.appendChild(
@@ -1011,12 +1230,27 @@ function renderCoveringCard(covering, index) {
         );
         sunRow.appendChild(
             makeText(
-                'cov-' + index + '-orientationToleranceDeg',
-                'orientationToleranceDeg',
-                covering.orientationToleranceDeg,
+                'cov-' + index + '-orientationToleranceMinusDeg',
+                'orientationToleranceMinusDeg',
+                covering.orientationToleranceMinusDeg,
                 3,
                 function (v) {
-                    covering.orientationToleranceDeg = v;
+                    covering.orientationToleranceMinusDeg = v === undefined ? -70 : v;
+                    scheduleOrientationToleranceHintUpdate(index);
+                    onChangeFired();
+                },
+                'number',
+            ),
+        );
+        sunRow.appendChild(
+            makeText(
+                'cov-' + index + '-orientationTolerancePlusDeg',
+                'orientationTolerancePlusDeg',
+                covering.orientationTolerancePlusDeg,
+                3,
+                function (v) {
+                    covering.orientationTolerancePlusDeg = v === undefined ? 70 : v;
+                    scheduleOrientationToleranceHintUpdate(index);
                     onChangeFired();
                 },
                 'number',
@@ -1037,6 +1271,17 @@ function renderCoveringCard(covering, index) {
             );
         }
         card.appendChild(sunRow);
+
+        // Live preview of which clock time the two tolerance bounds correspond to today, given the
+        // covering's orientation and the resolved location (plan section 6.2) - only meaningful once an
+        // orientation is actually set.
+        if (covering.orientation !== undefined) {
+            var toleranceHint = document.createElement('p');
+            toleranceHint.className = 'shutters-hint';
+            card.appendChild(toleranceHint);
+            shuttersToleranceHintElements[index] = toleranceHint;
+            updateOrientationToleranceHint(index);
+        }
     }
 
     var doorRow = document.createElement('div');
