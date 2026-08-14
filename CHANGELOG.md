@@ -1,5 +1,5 @@
 # Changelog
-## **WORK IN PROGRESS**
+## 0.0.19 (2026-08-14)
 
 * (steinwedel) **ENHANCED**: Change the default sun-protection orientation tolerance from -70°/+70° to -60°/+60°
 * (steinwedel) **FIXED**: Persist the sun-protection manual-override deadline so it survives an adapter restart instead of being silently lost
