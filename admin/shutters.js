@@ -793,9 +793,10 @@ function makeCheckbox(id, label, checked, onChangeCb) {
         onChangeCb(input.checked);
     };
     var labelEl = document.createElement('label');
-    labelEl.setAttribute('for', id);
-    labelEl.innerText = _(label);
-    p.appendChild(input);
+    var labelText = document.createElement('span');
+    labelText.innerText = _(label);
+    labelEl.appendChild(input);
+    labelEl.appendChild(labelText);
     p.appendChild(labelEl);
     wrap.appendChild(p);
     return wrap;
@@ -1190,7 +1191,7 @@ function renderWeather() {
     row.className = 'shutters-row row';
     fields.forEach(function (f) {
         row.appendChild(
-            makeText('weather-' + f[0], f[1], w[f[0]], 6, function (v) {
+            makeStateIdField('weather-' + f[0], f[1], w[f[0]], 6, function (v) {
                 w[f[0]] = v;
                 onChangeFired();
             }),

@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.11 (2026-08-14)
+
+* (steinwedel) **FIXED**: Make the automation checkbox and weather-data state selectors usable in the Admin UI
+
 ## 0.0.10 (2026-08-13)
 
 * (steinwedel) Automatically migrate coverings still using an older, non-sequential ID to the new "shutterN" scheme on adapter start, rewriting group/scene references and recreating the state tree under the new ID
