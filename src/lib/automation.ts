@@ -153,6 +153,16 @@ export class AutomationEngine {
         }
     }
 
+    /**
+     * Forces an immediate re-evaluation of every covering instead of waiting for the next periodic
+     * tick (up to `tickMs` later). Call right after `setScheduleTarget()` for a schedule trigger, so a
+     * covering that is already eligible for e.g. sun protection is never briefly commanded to the plain
+     * schedule target first.
+     */
+    public evaluateNow(): void {
+        this.tick();
+    }
+
     private readonly handleDoorStateChange = (id: string, state: ioBroker.State | null | undefined): void => {
         if (!this.doorOpenByStateId.has(id)) {
             return;

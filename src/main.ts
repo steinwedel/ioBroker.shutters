@@ -108,6 +108,17 @@ class Shutters extends utils.Adapter {
         await this.weatherSource.start();
 
         const location = await this.resolveLocation();
+        await this.initHolidayState();
+
+        this.scheduler = new Scheduler(
+            this,
+            this.config.areas ?? [],
+            () => this.isPublicHoliday,
+            location,
+            (area, action) => {
+                this.onScheduleTrigger(area.id!, area.name, action);
+            },
+        );
 
         this.automationEngine = new AutomationEngine(this, this.controllers, this.weatherSource, {
             sunCloseThreshold: this.config.sunCloseThreshold ?? 200,
@@ -121,20 +132,38 @@ class Shutters extends utils.Adapter {
             tickMs: this.config.automationTickMs ?? 30_000,
             location,
         });
+
+        this.reconcileScheduleTargetsOnStartup();
+
         await this.automationEngine.start();
-
-        await this.initHolidayState();
-
-        this.scheduler = new Scheduler(
-            this,
-            this.config.areas ?? [],
-            () => this.isPublicHoliday,
-            location,
-            (area, action) => {
-                this.onScheduleTrigger(area.id!, area.name, action);
-            },
-        );
         this.scheduler.start();
+    }
+
+    /**
+     * Seeds every covering's schedule target from today's already-past open/close time before the
+     * automation engine's first tick, so a restart mid-day (or after the day's opening time has
+     * already passed) immediately commands the covering to its currently intended position - schedule
+     * target, further refined by sun/wind/rain/frost protection - instead of leaving it in whatever
+     * position it happened to be in until the next future schedule trigger (potentially tomorrow's).
+     */
+    private reconcileScheduleTargetsOnStartup(): void {
+        if (!this.scheduler || !this.automationEngine) {
+            return;
+        }
+        const now = new Date();
+        for (const area of this.config.areas ?? []) {
+            if (!area.id) {
+                continue;
+            }
+            const action = this.scheduler.resolveCurrentAction(area, now);
+            if (!action) {
+                continue;
+            }
+            const targetPercent = action === 'open' ? 0 : 100;
+            for (const [id] of this.matchingControllers(area.id, area.name)) {
+                this.automationEngine.setScheduleTarget(id, targetPercent);
+            }
+        }
     }
 
     /**
@@ -248,15 +277,31 @@ class Shutters extends utils.Adapter {
 
     private onScheduleTrigger(areaId: string, areaName: string, action: 'open' | 'close'): void {
         const targetPercent = action === 'open' ? 0 : 100;
+        for (const [id] of this.matchingControllers(areaId, areaName)) {
+            this.automationEngine?.setScheduleTarget(id, targetPercent);
+        }
+        // Re-evaluate immediately rather than waiting for the next periodic tick, so a covering that
+        // is already eligible for e.g. sun protection is never briefly commanded to the plain schedule
+        // target first.
+        this.automationEngine?.evaluateNow();
+    }
+
+    /**
+     * @param areaId - Stable area ID to match against `ShutterController.getAreaId()`.
+     * @param areaName - Legacy area name, matched only for coverings that predate stable area IDs, see `ShutterController.getLegacyAreaName()`.
+     * @returns Every automation-enabled covering assigned to the given area, as `[id, controller]` pairs.
+     */
+    private matchingControllers(areaId: string, areaName: string): [string, ShutterController][] {
+        const matches: [string, ShutterController][] = [];
         for (const [id, controller] of this.controllers) {
             const matchesArea =
                 controller.getAreaId() === areaId ||
                 (!controller.getAreaId() && controller.getLegacyAreaName() === areaName);
-            if (!matchesArea || !controller.isAutomationEnabled()) {
-                continue;
+            if (matchesArea && controller.isAutomationEnabled()) {
+                matches.push([id, controller]);
             }
-            this.automationEngine?.setScheduleTarget(id, targetPercent);
         }
+        return matches;
     }
 
     /**

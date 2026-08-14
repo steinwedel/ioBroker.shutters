@@ -207,6 +207,38 @@ export class Scheduler {
         this.scheduleAll();
     }
 
+    /**
+     * Resolves which action (open/close) should currently be in effect for `area`, based on today's
+     * schedule and which of today's open/close times already lie in the past. Used at adapter startup
+     * to immediately reconcile each covering's position instead of waiting for the next future timer
+     * (which `scheduleAt()` deliberately does not fire for already-past times) or, worse, for tomorrow's
+     * recompute if today's trigger time has already passed.
+     *
+     * @param area - Area to resolve the current action for.
+     * @param now - Current time.
+     * @returns `'open'` or `'close'`, whichever of today's already-past open/close times is the most
+     *   recent, or undefined if neither has passed yet today (or neither is scheduled at all).
+     */
+    public resolveCurrentAction(area: IAreaScheduleConfig, now: Date): ScheduleAction | undefined {
+        const daySchedule = this.resolveTodaySchedule(area, now);
+        const openTime = this.resolveActionTime(area, 'open', daySchedule.open, now);
+        const closeTime = this.resolveActionTime(area, 'close', daySchedule.close, now);
+
+        const passed: { time: Date; action: ScheduleAction }[] = [];
+        if (openTime && openTime.getTime() <= now.getTime()) {
+            passed.push({ time: openTime, action: 'open' });
+        }
+        if (closeTime && closeTime.getTime() <= now.getTime()) {
+            passed.push({ time: closeTime, action: 'close' });
+        }
+        if (passed.length === 0) {
+            return undefined;
+        }
+        // Whichever of today's already-past times is the most recent wins, regardless of open/close order.
+        passed.sort((a, b) => b.time.getTime() - a.time.getTime());
+        return passed[0].action;
+    }
+
     /** Clears all pending timers. Call on adapter unload. */
     public stop(): void {
         this.clearTimers();
@@ -245,32 +277,50 @@ export class Scheduler {
         value: string | undefined,
         now: Date,
     ): void {
+        const target = this.resolveActionTime(area, action, value, now);
+        if (target) {
+            this.scheduleAt(area, action, target, now);
+        }
+    }
+
+    /**
+     * Resolves today's absolute target time for one action ("open" or "close") from its raw schedule
+     * string, see `parseScheduleEntry` for the accepted formats. Pure resolution, shared by
+     * `scheduleAction()` (which schedules a future timer for it) and `resolveCurrentAction()` (which
+     * only needs to know whether it already lies in the past).
+     *
+     * @param area - Area the value belongs to, used only for warning messages.
+     * @param action - Which action this value drives; determines the sunrise/dawn vs. sunset/dusk pairing for offset entries.
+     * @param value - Raw schedule string, or undefined/empty to skip this action entirely.
+     * @param now - Reference date for today's computation.
+     */
+    private resolveActionTime(
+        area: IAreaScheduleConfig,
+        action: ScheduleAction,
+        value: string | undefined,
+        now: Date,
+    ): Date | undefined {
         if (!value) {
-            return;
+            return undefined;
         }
         const entry = parseScheduleEntry(value, now);
         if (!entry) {
             this.adapter.log.warn(
                 `Scheduler: invalid schedule value "${value}" for area "${area.name}" (${action}) - skipped.`,
             );
-            return;
+            return undefined;
         }
 
         if (entry.kind === 'time') {
-            this.scheduleAt(area, action, entry.time, now);
-            return;
+            return entry.time;
         }
 
         if (entry.kind === 'sunOffset') {
-            const target = this.computeSunOffsetTarget(area.name, action, entry.minutes, entry.useTwilight, now);
-            if (target) {
-                this.scheduleAt(area, action, target, now);
-            }
-            return;
+            return this.computeSunOffsetTarget(area.name, action, entry.minutes, entry.useTwilight, now);
         }
 
         const sunTarget = this.computeSunOffsetTarget(area.name, action, entry.minutes, entry.useTwilight, now);
-        this.scheduleAt(area, action, pickSunOffsetCappedTarget(sunTarget, entry.capTime), now);
+        return pickSunOffsetCappedTarget(sunTarget, entry.capTime);
     }
 
     /**

@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.16",
+    "version": "0.0.17",
     "news": {
+      "0.0.17": {
+        "en": "**ENHANCED**: Reconcile every covering's intended position (schedule/sun/wind/rain/frost) immediately on adapter startup, and re-evaluate immediately on every schedule trigger instead of waiting up to `automationTickMs`",
+        "de": "**VERBESSERT**: Gleicht die vorgesehene Position jeder Abdeckung (Zeitplan/Sonne/Wind/Regen/Frost) sofort beim Start des Adapters ab und bewertet sie bei jedem Zeitplanauslöser sofort neu, anstatt bis zu `automationTickMs` zu warten.",
+        "ru": "**УЛУЧШЕНО**: Мгновенное согласование предполагаемого положения каждого покрытия (расписание/солнце/ветер/дождь/мороз) при запуске адаптера и немедленная переоценка при каждом срабатывании расписания вместо ожидания `automationTickMs`.",
+        "pt": "**APRIMORADO**: Concilia a posição pretendida de cada cobertura (programação/sol/vento/chuva/geada) imediatamente na inicialização do adaptador e reavalia imediatamente a cada acionamento de programação, em vez de esperar até `automationTickMs`.",
+        "nl": "**VERBETERD**: De beoogde positie van elke afdekking (planning/zon/wind/regen/vorst) wordt direct bij het opstarten van de adapter afgestemd en onmiddellijk opnieuw geëvalueerd bij elke planningstrigger, in plaats van te wachten tot `automationTickMs`.",
+        "fr": "**AMÉLIORÉ** : La position prévue de chaque couverture (programmation/soleil/vent/pluie/gel) est automatiquement rééquilibrée dès le démarrage de l’adaptateur, et une réévaluation immédiate est effectuée à chaque déclenchement de la programmation au lieu d’attendre `automationTickMs`.",
+        "it": "**MIGLIORATO**: Riconcilia la posizione prevista di ogni copertura (programma/sole/vento/pioggia/gelo) immediatamente all'avvio dell'adattatore e rivaluta immediatamente ad ogni attivazione della programmazione invece di attendere fino a `automationTickMs`",
+        "es": "**MEJORADO**: Sincroniza la posición prevista de cada cubierta (horario/sol/viento/lluvia/helada) inmediatamente al iniciar el adaptador, y reevalúa inmediatamente en cada activador del horario en lugar de esperar hasta `automationTickMs`.",
+        "pl": "**ULEPSZONE**: Natychmiastowe uzgadnianie zamierzonej pozycji każdego pokrycia (harmonogram/słońce/wiatr/deszcz/mróz) po uruchomieniu adaptera i ponowna ocena natychmiast po każdym wyzwoleniu harmonogramu zamiast czekania na `automationTickMs`",
+        "uk": "**ПОКРАЩЕНО**: Узгоджуйте передбачуване положення кожного покриття (розклад/сонце/вітер/дощ/мороз) негайно під час запуску адаптера та повторно оцінюйте його негайно під час кожного спрацьовування розкладу, замість того, щоб чекати до `automationTickMs`.",
+        "zh-cn": "**增强功能**：在适配器启动时立即协调每个遮盖物的预期位置（日程安排/日照/风向/雨水/霜冻），并在每次日程触发时立即重新评估，而不是等待到 `automationTickMs`。"
+      },
       "0.0.16": {
         "en": "**ENHANCED**: Derive the sun-protection active window from window orientation (± tolerance) and sun azimuth instead of a fixed clock-time window",
         "de": "**VERBESSERT**: Das aktive Sonnenschutzfenster wird nun aus der Fensterausrichtung (± Toleranz) und dem Sonnenazimut anstatt aus einem festen Zeitfenster abgeleitet.",
@@ -80,19 +93,6 @@
         "pl": "**NAPRAWIONO**: Umożliwiono używanie pola wyboru automatyzacji i selektorów stanu danych pogodowych w interfejsie administratora",
         "uk": "**ВИПРАВЛЕНО**: Зроблено прапорець автоматизації та селектори стану даних про погоду придатними для використання в інтерфейсі адміністратора",
         "zh-cn": "**已修复**：使自动化复选框和天气数据状态选择器在管理界面中可用。"
-      },
-      "0.0.10": {
-        "en": "Automatically migrate coverings still using an older, non-sequential ID to the new \"shutterN\" scheme on adapter start, rewriting group/scene references and recreating the state tree under the new ID",
-        "de": "Automatische Migration von Abdeckungen, die noch eine ältere, nicht-sequenzielle ID verwenden, auf das neue Schema „shutterN“ beim Start des Adapters, wobei Gruppen-/Szenenreferenzen neu geschrieben und der Zustandsbaum unter der neuen ID neu erstellt werden.",
-        "ru": "При запуске адаптера автоматически выполняется перенос покрытий, все еще использующих старый, непоследовательный идентификатор, на новую схему \"shutterN\", при этом переписываются ссылки на группы/сцены и создается дерево состояний под новым идентификатором.",
-        "pt": "Migre automaticamente as coberturas que ainda usam um ID antigo e não sequencial para o novo esquema \"shutterN\" na inicialização do adaptador, reescrevendo as referências de grupo/cena e recriando a árvore de estado sob o novo ID.",
-        "nl": "Migreer automatisch bekledingen die nog steeds een oudere, niet-opeenvolgende ID gebruiken naar het nieuwe \"shutterN\"-schema bij het opstarten van de adapter, waarbij groeps-/scèneverwijzingen worden herschreven en de statusstructuur onder de nieuwe ID opnieuw wordt aangemaakt.",
-        "fr": "Migration automatique des habillages utilisant encore un ancien identifiant non séquentiel vers le nouveau schéma « shutterN » au démarrage de l’adaptateur, réécriture des références de groupe/scène et recréation de l’arbre d’état sous le nouvel identifiant.",
-        "it": "All'avvio dell'adattatore, migra automaticamente le coperture che utilizzano ancora un ID precedente non sequenziale al nuovo schema \"shutterN\", riscrivendo i riferimenti a gruppi/scene e ricreando l'albero degli stati con il nuovo ID.",
-        "es": "Migra automáticamente las cubiertas que aún utilizan un ID antiguo y no secuencial al nuevo esquema \"shutterN\" al iniciar el adaptador, reescribiendo las referencias de grupo/escena y recreando el árbol de estado bajo el nuevo ID.",
-        "pl": "Automatyczna migracja pokryć nadal korzystających ze starszego, niesekwencyjnego identyfikatora do nowego schematu „shutterN” podczas uruchamiania adaptera, nadpisanie odniesień do grup/scen i ponowne utworzenie drzewa stanów pod nowym identyfikatorem",
-        "uk": "Автоматично перенести покриття, що все ще використовують старий, не послідовний ідентифікатор, на нову схему \"shutterN\" під час запуску адаптера, перезаписавши посилання на групи/сцени та відтворивши дерево станів під новим ідентифікатором",
-        "zh-cn": "在适配器启动时，自动将仍使用旧版非顺序 ID 的覆盖层迁移到新的“shutterN”方案，重写组/场景引用，并在新 ID 下重新创建状态树。"
       }
     },
     "titleLang": {

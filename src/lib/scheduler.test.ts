@@ -1,6 +1,17 @@
 import { expect } from 'chai';
-import { parseScheduleEntry, parseTimeToday, pickSunOffsetCappedTarget, resolveDaySchedule } from './scheduler';
+import {
+    parseScheduleEntry,
+    parseTimeToday,
+    pickSunOffsetCappedTarget,
+    resolveDaySchedule,
+    Scheduler,
+} from './scheduler';
 import type { IAreaScheduleConfig } from './types';
+
+/** Minimal fake adapter exposing only what `Scheduler` needs for `resolveCurrentAction()` (no timers involved). */
+function createFakeAdapter(): ioBroker.Adapter {
+    return { log: { warn: () => {} } } as unknown as ioBroker.Adapter;
+}
 
 describe('scheduler', () => {
     describe('parseTimeToday', () => {
@@ -280,6 +291,80 @@ describe('scheduler', () => {
                 };
                 expect(resolveDaySchedule(areaWithoutDays, monday, false)).to.deep.equal({});
             });
+        });
+    });
+
+    describe('Scheduler.resolveCurrentAction', () => {
+        const area: IAreaScheduleConfig = {
+            id: 'area1',
+            name: 'Living room',
+            scheduleMode: 'uniform',
+            weekday: { open: '07:30', close: '21:00' },
+            weekend: {},
+        };
+
+        function createScheduler(): Scheduler {
+            return new Scheduler(
+                createFakeAdapter(),
+                [area],
+                () => false,
+                undefined,
+                () => {},
+            );
+        }
+
+        it("returns undefined before today's opening time", () => {
+            const beforeOpen = new Date(2026, 6, 15, 6, 0, 0, 0);
+            expect(createScheduler().resolveCurrentAction(area, beforeOpen)).to.be.undefined;
+        });
+
+        it("returns 'open' once today's opening time has passed", () => {
+            const afterOpen = new Date(2026, 6, 15, 8, 0, 0, 0);
+            expect(createScheduler().resolveCurrentAction(area, afterOpen)).to.equal('open');
+        });
+
+        it("returns 'close' once today's closing time has also passed", () => {
+            const afterClose = new Date(2026, 6, 15, 22, 0, 0, 0);
+            expect(createScheduler().resolveCurrentAction(area, afterClose)).to.equal('close');
+        });
+
+        it('returns undefined when neither action is scheduled today', () => {
+            const emptyArea: IAreaScheduleConfig = {
+                id: 'area2',
+                name: 'Empty',
+                scheduleMode: 'uniform',
+                weekday: {},
+                weekend: {},
+            };
+            const scheduler = new Scheduler(
+                createFakeAdapter(),
+                [emptyArea],
+                () => false,
+                undefined,
+                () => {},
+            );
+            const noon = new Date(2026, 6, 15, 12, 0, 0, 0);
+            expect(scheduler.resolveCurrentAction(emptyArea, noon)).to.be.undefined;
+        });
+
+        it('picks whichever already-past time is most recent, regardless of open/close order', () => {
+            // An unusual schedule where "close" (e.g. a midday break) is earlier than "open" again later.
+            const reversedArea: IAreaScheduleConfig = {
+                id: 'area3',
+                name: 'Shop',
+                scheduleMode: 'uniform',
+                weekday: { open: '14:00', close: '12:00' },
+                weekend: {},
+            };
+            const scheduler = new Scheduler(
+                createFakeAdapter(),
+                [reversedArea],
+                () => false,
+                undefined,
+                () => {},
+            );
+            expect(scheduler.resolveCurrentAction(reversedArea, new Date(2026, 6, 15, 13, 0, 0, 0))).to.equal('close');
+            expect(scheduler.resolveCurrentAction(reversedArea, new Date(2026, 6, 15, 15, 0, 0, 0))).to.equal('open');
         });
     });
 });

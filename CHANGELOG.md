@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.17 (2026-08-14)
+
+* (steinwedel) **ENHANCED**: Reconcile every covering's intended position (schedule/sun/wind/rain/frost) immediately on adapter startup, and re-evaluate immediately on every schedule trigger instead of waiting up to `automationTickMs`
+
 ## 0.0.16 (2026-08-14)
 
 * (steinwedel) **ENHANCED**: Derive the sun-protection active window from window orientation (± tolerance) and sun azimuth instead of a fixed clock-time window
