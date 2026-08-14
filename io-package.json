@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.15",
+    "version": "0.0.16",
     "news": {
+      "0.0.16": {
+        "en": "**ENHANCED**: Derive the sun-protection active window from window orientation (± tolerance) and sun azimuth instead of a fixed clock-time window",
+        "de": "**VERBESSERT**: Das aktive Sonnenschutzfenster wird nun aus der Fensterausrichtung (± Toleranz) und dem Sonnenazimut anstatt aus einem festen Zeitfenster abgeleitet.",
+        "ru": "**УЛУЧШЕНО**: Активное окно защиты от солнца определяется ориентацией окна (с допуском ±) и азимутом солнца, а не фиксированным временным интервалом.",
+        "pt": "**APRIMORADO**: Calcule a janela ativa de proteção solar a partir da orientação da janela (com tolerância de ±) e do azimute solar, em vez de uma janela de horário fixa.",
+        "nl": "**VERBETERD**: Bepaal het actieve zonweringsvenster op basis van de raamoriëntatie (± tolerantie) en de zonazimut in plaats van een vast tijdvenster.",
+        "fr": "**AMÉLIORÉ** : La fenêtre active de protection solaire est désormais calculée à partir de l’orientation de la fenêtre (à ± tolérance) et de l’azimut du soleil, et non plus à partir d’une plage horaire fixe.",
+        "it": "**MIGLIORATO**: Calcola la finestra temporale attiva per la protezione solare in base all'orientamento della finestra (± tolleranza) e all'azimut del sole, anziché in base a un intervallo orario fisso.",
+        "es": "**MEJORADO**: Derive la ventana activa de protección solar a partir de la orientación de la ventana (± tolerancia) y el acimut solar en lugar de una ventana de tiempo fija.",
+        "pl": "**ULEPSZONE**: Wyznaczanie aktywnego okna ochrony przeciwsłonecznej na podstawie orientacji okna (± tolerancja) i azymutu słońca zamiast stałego okna czasowego",
+        "uk": "**ПОКРАЩЕНО**: Визначення активного вікна сонцезахисту здійснюється на основі орієнтації вікна (± допуск) та азимуту сонця замість фіксованого вікна за годинником.",
+        "zh-cn": "**增强功能**：根据窗户朝向（±公差）和太阳方位角而非固定的时钟时间窗口来确定防晒有效窗口。"
+      },
       "0.0.15": {
         "en": "**ENHANCED**: Restrict sun protection to the scheduled-open period and optional summer mode",
         "de": "**VERBESSERT**: Sonnenschutz auf die planmäßige Öffnungszeit und den optionalen Sommermodus beschränken.",
@@ -80,19 +93,6 @@
         "pl": "Automatyczna migracja pokryć nadal korzystających ze starszego, niesekwencyjnego identyfikatora do nowego schematu „shutterN” podczas uruchamiania adaptera, nadpisanie odniesień do grup/scen i ponowne utworzenie drzewa stanów pod nowym identyfikatorem",
         "uk": "Автоматично перенести покриття, що все ще використовують старий, не послідовний ідентифікатор, на нову схему \"shutterN\" під час запуску адаптера, перезаписавши посилання на групи/сцени та відтворивши дерево станів під новим ідентифікатором",
         "zh-cn": "在适配器启动时，自动将仍使用旧版非顺序 ID 的覆盖层迁移到新的“shutterN”方案，重写组/场景引用，并在新 ID 下重新创建状态树。"
-      },
-      "0.0.9": {
-        "en": "Assign coverings a stable, sequential ID (shutter1, shutter2, ...) instead of deriving it from the source system's state ID; the ID field is now shown but not editable",
-        "de": "Weisen Sie den Abdeckungen eine stabile, fortlaufende ID (Verschluss1, Verschluss2, ...) zu, anstatt sie von der Zustands-ID des Quellsystems abzuleiten; das ID-Feld wird nun angezeigt, ist aber nicht bearbeitbar.",
-        "ru": "Функция присваивания покрытий стабильного последовательного идентификатора (затвор1, затвор2, ...) вместо его получения из идентификатора состояния исходной системы; поле идентификатора теперь отображается, но недоступно для редактирования.",
-        "pt": "Atribua um ID estável e sequencial às coberturas (obturador1, obturador2, ...) em vez de derivá-lo do ID de estado do sistema de origem; o campo ID agora é exibido, mas não editável.",
-        "nl": "Wijs aan de afdekkingen een stabiele, opeenvolgende ID toe (sluiter1, sluiter2, ...) in plaats van deze af te leiden van de status-ID van het bronsysteem; het ID-veld wordt nu wel weergegeven, maar is niet bewerkbaar.",
-        "fr": "Attribuez à chaque volet un identifiant stable et séquentiel (volet1, volet2, ...) au lieu de le déduire de l'identifiant d'état du système source ; le champ ID est désormais affiché mais non modifiable.",
-        "it": "Assegna alle coperture un ID sequenziale stabile (otturatore1, otturatore2, ...) invece di derivarlo dall'ID di stato del sistema sorgente; il campo ID è ora visualizzato ma non modificabile.",
-        "es": "Asigne a las cubiertas un ID estable y secuencial (persiana1, persiana2, ...) en lugar de derivarlo del ID de estado del sistema de origen; el campo ID ahora se muestra, pero no se puede editar.",
-        "pl": "Przypisz pokryciom stabilny, sekwencyjny identyfikator (migawka1, migawka2, ...) zamiast wywodzić go z identyfikatora stanu systemu źródłowego; pole identyfikatora jest teraz wyświetlane, ale nie można go edytować",
-        "uk": "Призначте покриттям стабільний послідовний ідентифікатор (shutter1, shutter2, ...) замість того, щоб виводити його з ідентифікатора стану вихідної системи; поле ідентифікатора тепер відображається, але не можна редагувати.",
-        "zh-cn": "为遮光罩分配一个稳定的、顺序的 ID（例如 shutter1、shutter2 等），而不是从源系统的状态 ID 派生；ID 字段现在显示，但不可编辑。"
       }
     },
     "titleLang": {

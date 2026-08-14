@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.16 (2026-08-14)
+
+* (steinwedel) **ENHANCED**: Derive the sun-protection active window from window orientation (± tolerance) and sun azimuth instead of a fixed clock-time window
+
 ## 0.0.15 (2026-08-14)
 
 * (steinwedel) **ENHANCED**: Restrict sun protection to the scheduled-open period and optional summer mode

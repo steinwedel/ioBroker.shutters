@@ -3,8 +3,14 @@ import { evaluateFrostProtection } from './frost-protection';
 import { BelowThresholdHysteresis } from './generic-hysteresis';
 import { evaluateRainProtection } from './rain-protection';
 import type { ShutterController } from './shutter-controller';
-import { evaluateSunProtection, isSunProtectionEligible, isWithinTimeWindow } from './sun-protection';
-import type { CoveringType } from './types';
+import {
+    evaluateSunProtection,
+    isSunProtectionEligible,
+    isWithinOrientationWindow,
+    isWithinTimeWindow,
+} from './sun-protection';
+import { getSunPosition } from './twilight';
+import type { CoveringType, IShutterConfig } from './types';
 import { evaluateWindProtection } from './wind-protection';
 import type { WeatherSource } from './weather-source';
 
@@ -50,6 +56,8 @@ export interface IAutomationOptions {
     frostThreshold: number;
     /** How often the automation engine re-evaluates all coverings, in ms. */
     tickMs: number;
+    /** Location used to compute the sun's azimuth for orientation-based sun windows (6.2); undefined disables that mode, falling back to `sunWindowStart`/`sunWindowEnd` for every covering. */
+    location: { latitude: number; longitude: number } | undefined;
 }
 
 /**
@@ -225,12 +233,13 @@ export class AutomationEngine {
         const sunEnabled = config.sunProtectionEnabled ?? true;
         const sunOverrideActive = nowMs < state.sunOverrideUntilMs;
         const scheduleOpen = this.scheduleTargets.get(id) === 0;
+        const inWindow = this.isWithinSunWindow(config, now);
         const sunEligible = isSunProtectionEligible(
             this.options.sunProtectionGlobalEnabled,
             sunEnabled,
             this.weather.getIsSummer(),
             scheduleOpen,
-            isWithinTimeWindow(now, config.sunWindowStart, config.sunWindowEnd),
+            inWindow,
             sunOverrideActive,
         );
         if (!sunEligible) {
@@ -274,6 +283,23 @@ export class AutomationEngine {
         if (scheduleTarget !== undefined) {
             this.applyTarget(id, controller, scheduleTarget, 'Schedule', config.doorContactStateId);
         }
+    }
+
+    /**
+     * Resolves whether sun protection may currently apply to a covering, based on the sun's
+     * azimuth relative to the covering's `orientation` (6.2) when both `orientation` and a
+     * location are configured, otherwise falling back to the fixed `sunWindowStart`/`sunWindowEnd`
+     * clock-time window (6.1).
+     *
+     * @param config - The covering's configuration, providing `orientation`/`orientationToleranceDeg` or the `sunWindowStart`/`sunWindowEnd` fallback.
+     * @param now - Current time.
+     */
+    private isWithinSunWindow(config: IShutterConfig, now: Date): boolean {
+        if (config.orientation !== undefined && this.options.location) {
+            const sun = getSunPosition(now, this.options.location.latitude, this.options.location.longitude);
+            return isWithinOrientationWindow(sun.azimuthDeg, config.orientation, config.orientationToleranceDeg ?? 70);
+        }
+        return isWithinTimeWindow(now, config.sunWindowStart, config.sunWindowEnd);
     }
 
     private applyTarget(

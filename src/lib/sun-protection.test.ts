@@ -1,5 +1,10 @@
 import { expect } from 'chai';
-import { evaluateSunProtection, isSunProtectionEligible, isWithinTimeWindow } from './sun-protection';
+import {
+    evaluateSunProtection,
+    isSunProtectionEligible,
+    isWithinOrientationWindow,
+    isWithinTimeWindow,
+} from './sun-protection';
 
 describe('sun-protection', () => {
     describe('isWithinTimeWindow', () => {
@@ -21,6 +26,28 @@ describe('sun-protection', () => {
         it('returns false when now is at/after the window end (exclusive)', () => {
             const end = new Date(2026, 6, 15, 16, 0, 0, 0);
             expect(isWithinTimeWindow(end, '10:00', '16:00')).to.equal(false);
+        });
+    });
+
+    describe('isWithinOrientationWindow', () => {
+        it('is active when the sun azimuth equals the orientation', () => {
+            expect(isWithinOrientationWindow(180, 180, 70)).to.equal(true);
+        });
+
+        it('is active exactly at the tolerance boundary on either side', () => {
+            expect(isWithinOrientationWindow(110, 180, 70)).to.equal(true);
+            expect(isWithinOrientationWindow(250, 180, 70)).to.equal(true);
+        });
+
+        it('is inactive just outside the tolerance on either side', () => {
+            expect(isWithinOrientationWindow(109, 180, 70)).to.equal(false);
+            expect(isWithinOrientationWindow(251, 180, 70)).to.equal(false);
+        });
+
+        it('handles wraparound near 0°/360° correctly', () => {
+            expect(isWithinOrientationWindow(5, 350, 70)).to.equal(true);
+            expect(isWithinOrientationWindow(355, 10, 70)).to.equal(true);
+            expect(isWithinOrientationWindow(180, 350, 70)).to.equal(false);
         });
     });
 

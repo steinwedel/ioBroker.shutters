@@ -40,7 +40,7 @@ export interface IShutterConfig {
     coveringType: CoveringType;
     areaId?: string;
     area?: string;
-    /** Window orientation in degrees (0-359), used by the optional azimuth-based sun protection (6.2). */
+    /** Window orientation in degrees (0-359, compass, clockwise from North), used to derive the active sun-protection window (6.2). */
     orientation?: number;
     /** Whether this covering participates in automated control at all. */
     automationEnabled: boolean;
@@ -57,9 +57,11 @@ export interface IShutterConfig {
     sunProtectionEnabled?: boolean;
     /** Target covering position while sun protection is active, 0-100. Default: 70. */
     sunTargetPercent?: number;
-    /** Start of the daily time window sun protection may apply in, "HH:MM". */
+    /** Half-width in degrees of the active sun azimuth range around `orientation`; sun protection may only apply while the sun's azimuth is within `orientation ± orientationToleranceDeg`. Default: 70. Only used when `orientation` is set. */
+    orientationToleranceDeg?: number;
+    /** Start of the daily time window sun protection may apply in, "HH:MM". Fallback used only when `orientation` is not set. */
     sunWindowStart?: string;
-    /** End of the daily time window sun protection may apply in, "HH:MM". */
+    /** End of the daily time window sun protection may apply in, "HH:MM". Fallback used only when `orientation` is not set. */
     sunWindowEnd?: string;
 
     /** Whether rain protection (plan section 7) is enabled for this covering. Default: true. */

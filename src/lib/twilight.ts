@@ -43,3 +43,20 @@ export function computeSunEventTime(
     }
     return new Date(base.getTime() + offsetMinutes * 60_000);
 }
+
+/** Current sun position, degrees; matches `SunCalc.getPosition()`'s convention (azimuth clockwise from North, altitude 0=horizon/90=zenith). */
+export interface ISunPosition {
+    azimuthDeg: number;
+    elevationDeg: number;
+}
+
+/**
+ * @param date - Instant to compute the sun position for.
+ * @param latitude - Location latitude in degrees.
+ * @param longitude - Location longitude in degrees.
+ * @returns The sun's current azimuth/elevation at the given location, see `ISunPosition`.
+ */
+export function getSunPosition(date: Date, latitude: number, longitude: number): ISunPosition {
+    const pos = SunCalc.getPosition(date, latitude, longitude);
+    return { azimuthDeg: pos.azimuth, elevationDeg: pos.altitude };
+}

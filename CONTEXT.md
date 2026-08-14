@@ -1,11 +1,12 @@
 # Context
 
 ## Current Task
-- Aligned sun protection with the reference script's summer/schedule gating.
+- Replaced the fixed HH:MM sun window with an orientation/azimuth-based window.
 
 ## Key Decisions
-- Sun protection now requires global enable, summer state, and an open schedule.
-- Leaving a covering's time window immediately falls back to the schedule target.
+- Active window = sun azimuth within `orientation ± orientationToleranceDeg` (default 70°).
+- `sunWindowStart`/`sunWindowEnd` remain only as a fallback when no orientation is set.
+- `admin/i18n/*.json` is unused by the live Materialize UI; `words.js` is the real source.
 
 ## Next Steps
-- Deploy the change and configure the optional summer-mode state.
+- Deploy and verify sun protection engages only while each window faces the sun.

@@ -107,6 +107,8 @@ class Shutters extends utils.Adapter {
         this.weatherSource = new WeatherSource(this, this.config.weather ?? {});
         await this.weatherSource.start();
 
+        const location = await this.resolveLocation();
+
         this.automationEngine = new AutomationEngine(this, this.controllers, this.weatherSource, {
             sunCloseThreshold: this.config.sunCloseThreshold ?? 200,
             sunProtectionGlobalEnabled: this.config.sunProtectionGlobalEnabled ?? true,
@@ -117,12 +119,12 @@ class Shutters extends utils.Adapter {
             windCalmMinDurationMs: this.config.windCalmMinDurationMs ?? 600_000,
             frostThreshold: this.config.frostThreshold ?? 2,
             tickMs: this.config.automationTickMs ?? 30_000,
+            location,
         });
         await this.automationEngine.start();
 
         await this.initHolidayState();
 
-        const location = await this.resolveLocation();
         this.scheduler = new Scheduler(
             this,
             this.config.areas ?? [],
@@ -239,7 +241,7 @@ class Shutters extends utils.Adapter {
             return { latitude: common.latitude, longitude: common.longitude };
         }
         this.log.warn(
-            'No location configured (neither adapter settings nor system.config) - areas using a sunrise/sunset offset will not be scheduled.',
+            'No location configured (neither adapter settings nor system.config) - areas using a sunrise/sunset offset will not be scheduled, and orientation-based sun protection will fall back to sunWindowStart/sunWindowEnd.',
         );
         return undefined;
     }

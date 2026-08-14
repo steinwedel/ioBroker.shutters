@@ -24,6 +24,15 @@ export function isWithinTimeWindow(now: Date, windowStart: string | undefined, w
     return now >= start && now < end;
 }
 
+/**
+ * @param globalEnabled - Whether sun protection is enabled adapter-wide, see `IAutomationOptions.sunProtectionGlobalEnabled`.
+ * @param coveringEnabled - Whether sun protection is enabled for this covering, see `IShutterConfig.sunProtectionEnabled`.
+ * @param isSummer - Whether the configured summer/heating-period state currently reads "summer" (or no such state is configured).
+ * @param scheduleOpen - Whether the daily schedule currently wants this covering open (0%).
+ * @param inWindow - Whether the sun is currently within this covering's active window, see `isWithinTimeWindow()`/`isWithinOrientationWindow()`.
+ * @param overridden - Whether a manual command has suspended sun protection until local midnight, see `AutomationEngine.handleManualCommand()`.
+ * @returns Whether sun protection may currently apply to this covering, before evaluating the radiation threshold/hysteresis itself.
+ */
 export function isSunProtectionEligible(
     globalEnabled: boolean,
     coveringEnabled: boolean,
@@ -33,6 +42,26 @@ export function isSunProtectionEligible(
     overridden: boolean,
 ): boolean {
     return globalEnabled && coveringEnabled && isSummer && scheduleOpen && inWindow && !overridden;
+}
+
+/**
+ * Orientation-based alternative to `isWithinTimeWindow()` (plan section 6.2): the sun is
+ * "in front of" a facade facing `orientationDeg` (compass degrees, 0=N/90=E/180=S/270=W)
+ * whenever its current azimuth lies within `toleranceDeg` on either side, e.g. a south-facing
+ * window (`orientationDeg=180`) with the default 70° tolerance is active for azimuths 110-250°.
+ *
+ * @param sunAzimuthDeg - Current sun azimuth, compass degrees clockwise from North.
+ * @param orientationDeg - Facade orientation, compass degrees clockwise from North (`IShutterConfig.orientation`).
+ * @param toleranceDeg - Half-width of the active azimuth range around `orientationDeg`.
+ * @returns Whether the sun's azimuth currently lies within `orientationDeg ± toleranceDeg`.
+ */
+export function isWithinOrientationWindow(
+    sunAzimuthDeg: number,
+    orientationDeg: number,
+    toleranceDeg: number,
+): boolean {
+    const diff = Math.abs(((sunAzimuthDeg - orientationDeg + 540) % 360) - 180);
+    return diff <= toleranceDeg;
 }
 
 /** Evaluation inputs for `evaluateSunProtection()`. */

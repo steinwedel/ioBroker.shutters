@@ -920,6 +920,7 @@ function renderCoveringCard(covering, index) {
             3,
             function (v) {
                 covering.orientation = v;
+                renderCoverings(); // re-render: sunWindowStart/End fallback fields only relevant without an orientation
                 onChangeFired();
             },
             'number',
@@ -956,6 +957,11 @@ function renderCoveringCard(covering, index) {
     protectionTitle.className = 'shutters-section-title';
     protectionTitle.innerText = _('protectionSectionTitle');
     card.appendChild(protectionTitle);
+
+    var sunHint = document.createElement('p');
+    sunHint.className = 'shutters-hint translate';
+    sunHint.innerText = _('sunProtectionHintText');
+    card.appendChild(sunHint);
 
     var protectionRow1 = document.createElement('div');
     protectionRow1.className = 'shutters-row row';
@@ -1004,17 +1010,32 @@ function renderCoveringCard(covering, index) {
             ),
         );
         sunRow.appendChild(
-            makeText('cov-' + index + '-sunWindowStart', 'sunWindowStart', covering.sunWindowStart, 3, function (v) {
-                covering.sunWindowStart = v;
-                onChangeFired();
-            }),
+            makeText(
+                'cov-' + index + '-orientationToleranceDeg',
+                'orientationToleranceDeg',
+                covering.orientationToleranceDeg,
+                3,
+                function (v) {
+                    covering.orientationToleranceDeg = v;
+                    onChangeFired();
+                },
+                'number',
+            ),
         );
-        sunRow.appendChild(
-            makeText('cov-' + index + '-sunWindowEnd', 'sunWindowEnd', covering.sunWindowEnd, 3, function (v) {
-                covering.sunWindowEnd = v;
-                onChangeFired();
-            }),
-        );
+        if (!covering.orientation) {
+            sunRow.appendChild(
+                makeText('cov-' + index + '-sunWindowStart', 'sunWindowStart', covering.sunWindowStart, 3, function (v) {
+                    covering.sunWindowStart = v;
+                    onChangeFired();
+                }),
+            );
+            sunRow.appendChild(
+                makeText('cov-' + index + '-sunWindowEnd', 'sunWindowEnd', covering.sunWindowEnd, 3, function (v) {
+                    covering.sunWindowEnd = v;
+                    onChangeFired();
+                }),
+            );
+        }
         card.appendChild(sunRow);
     }
 
