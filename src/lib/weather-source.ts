@@ -53,6 +53,11 @@ export class WeatherSource {
         return this.getNumber('solarRadiationStateId');
     }
 
+    public getIsSummer(): boolean {
+        const stateId = this.config.isSummerStateId;
+        return !stateId || this.values.get(stateId) === true;
+    }
+
     /** @returns Current wind speed (or gust) in km/h, or undefined if not configured/not yet received. */
     public getWindSpeed(): number | undefined {
         return this.getNumber('windSpeedStateId');

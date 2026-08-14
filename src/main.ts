@@ -109,6 +109,7 @@ class Shutters extends utils.Adapter {
 
         this.automationEngine = new AutomationEngine(this, this.controllers, this.weatherSource, {
             sunCloseThreshold: this.config.sunCloseThreshold ?? 200,
+            sunProtectionGlobalEnabled: this.config.sunProtectionGlobalEnabled ?? true,
             sunOpenThreshold: this.config.sunOpenThreshold ?? 150,
             sunOpenMinDurationMs: this.config.sunOpenMinDurationMs ?? 600_000,
             windOpenThreshold: this.config.windOpenThreshold ?? 40,

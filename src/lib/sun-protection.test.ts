@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { evaluateSunProtection, isWithinTimeWindow } from './sun-protection';
+import { evaluateSunProtection, isSunProtectionEligible, isWithinTimeWindow } from './sun-protection';
 
 describe('sun-protection', () => {
     describe('isWithinTimeWindow', () => {
@@ -21,6 +21,18 @@ describe('sun-protection', () => {
         it('returns false when now is at/after the window end (exclusive)', () => {
             const end = new Date(2026, 6, 15, 16, 0, 0, 0);
             expect(isWithinTimeWindow(end, '10:00', '16:00')).to.equal(false);
+        });
+    });
+
+    describe('isSunProtectionEligible', () => {
+        it('requires global and covering enable, summer, an open schedule and the local time window', () => {
+            expect(isSunProtectionEligible(true, true, true, true, true, false)).to.equal(true);
+            expect(isSunProtectionEligible(false, true, true, true, true, false)).to.equal(false);
+            expect(isSunProtectionEligible(true, false, true, true, true, false)).to.equal(false);
+            expect(isSunProtectionEligible(true, true, false, true, true, false)).to.equal(false);
+            expect(isSunProtectionEligible(true, true, true, false, true, false)).to.equal(false);
+            expect(isSunProtectionEligible(true, true, true, true, false, false)).to.equal(false);
+            expect(isSunProtectionEligible(true, true, true, true, true, true)).to.equal(false);
         });
     });
 

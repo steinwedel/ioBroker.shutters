@@ -13,6 +13,7 @@ declare global {
             longitude?: number;
             weather?: IWeatherConfig;
             sunCloseThreshold?: number;
+            sunProtectionGlobalEnabled?: boolean;
             sunOpenThreshold?: number;
             sunOpenMinDurationMs?: number;
             windOpenThreshold?: number;

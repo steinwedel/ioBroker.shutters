@@ -147,6 +147,7 @@ function shuttersEnsureDefaults(settings) {
     settings.weather = settings.weather || {};
     settings.holidayStateId = settings.holidayStateId || '';
     settings.sunCloseThreshold = settings.sunCloseThreshold != null ? settings.sunCloseThreshold : 200;
+    if (settings.sunProtectionGlobalEnabled === undefined) settings.sunProtectionGlobalEnabled = true;
     settings.sunOpenThreshold = settings.sunOpenThreshold != null ? settings.sunOpenThreshold : 150;
     settings.windOpenThreshold = settings.windOpenThreshold != null ? settings.windOpenThreshold : 40;
     settings.windCloseAllowedThreshold =
@@ -1214,6 +1215,7 @@ function renderWeather() {
         ['rainStateId', 'weatherRain'],
         ['outdoorTempStateId', 'weatherOutdoorTemp'],
         ['humidityStateId', 'weatherHumidity'],
+        ['isSummerStateId', 'weatherIsSummer'],
     ];
     var row = document.createElement('div');
     row.className = 'shutters-row row';
@@ -1258,6 +1260,12 @@ function renderThresholds() {
             ),
         );
     });
+    row.appendChild(
+        makeCheckbox('threshold-sunProtectionGlobalEnabled', 'sunProtectionGlobalEnabled', shuttersConfig.sunProtectionGlobalEnabled, function (v) {
+            shuttersConfig.sunProtectionGlobalEnabled = v;
+            onChangeFired();
+        }),
+    );
     container.appendChild(row);
     if (typeof translateAll === 'function') translateAll();
 }

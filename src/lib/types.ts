@@ -107,6 +107,7 @@ export interface IWeatherConfig {
     outdoorTempStateId?: string;
     /** Foreign state, relative humidity in %, used together with `outdoorTempStateId` by frost protection (7b). */
     humidityStateId?: string;
+    isSummerStateId?: string;
 }
 
 /** One covering/target-position pair used by a group or scene action. */
@@ -162,6 +163,7 @@ export interface IShuttersNativeConfig {
 
     /** Solar radiation (W/m²) at/above which sun protection closes. Default: 200. */
     sunCloseThreshold?: number;
+    sunProtectionGlobalEnabled?: boolean;
     /** Solar radiation (W/m²) below which sun protection may open again, after `sunOpenMinDurationMs`. Default: 150. */
     sunOpenThreshold?: number;
     /** How long solar radiation must stay below `sunOpenThreshold` before opening again (hysteresis, plan section 6.1). Default: 600000 (10 min). */

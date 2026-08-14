@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.15 (2026-08-14)
+
+* (steinwedel) **ENHANCED**: Restrict sun protection to the scheduled-open period and optional summer mode
+
 ## 0.0.14 (2026-08-14)
 
 * (steinwedel) **FIXED**: Use Homematic's configured 0-100 LEVEL percentage scale for shutter commands

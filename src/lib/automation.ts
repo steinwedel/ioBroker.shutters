@@ -3,7 +3,7 @@ import { evaluateFrostProtection } from './frost-protection';
 import { BelowThresholdHysteresis } from './generic-hysteresis';
 import { evaluateRainProtection } from './rain-protection';
 import type { ShutterController } from './shutter-controller';
-import { evaluateSunProtection, isWithinTimeWindow } from './sun-protection';
+import { evaluateSunProtection, isSunProtectionEligible, isWithinTimeWindow } from './sun-protection';
 import type { CoveringType } from './types';
 import { evaluateWindProtection } from './wind-protection';
 import type { WeatherSource } from './weather-source';
@@ -34,6 +34,8 @@ interface ICoveringAutomationState {
 export interface IAutomationOptions {
     /** Solar radiation (W/m²) at/above which sun protection closes. */
     sunCloseThreshold: number;
+    /** Whether sun protection is globally enabled. */
+    sunProtectionGlobalEnabled: boolean;
     /** Solar radiation (W/m²) below which sun protection may open again, after `sunOpenMinDurationMs`. */
     sunOpenThreshold: number;
     /** How long solar radiation must stay below `sunOpenThreshold` before opening again. */
@@ -222,21 +224,32 @@ export class AutomationEngine {
 
         const sunEnabled = config.sunProtectionEnabled ?? true;
         const sunOverrideActive = nowMs < state.sunOverrideUntilMs;
-        const openAllowed = state.sunHysteresis.update(
-            this.weather.getSolarRadiation(),
-            this.options.sunOpenThreshold,
-            this.options.sunOpenMinDurationMs,
+        const scheduleOpen = this.scheduleTargets.get(id) === 0;
+        const sunEligible = isSunProtectionEligible(
+            this.options.sunProtectionGlobalEnabled,
+            sunEnabled,
+            this.weather.getIsSummer(),
+            scheduleOpen,
+            isWithinTimeWindow(now, config.sunWindowStart, config.sunWindowEnd),
+            sunOverrideActive,
         );
-        state.sunActive =
-            sunEnabled &&
-            !sunOverrideActive &&
-            evaluateSunProtection({
-                inWindow: isWithinTimeWindow(now, config.sunWindowStart, config.sunWindowEnd),
+        if (!sunEligible) {
+            state.sunHysteresis.reset();
+            state.sunActive = false;
+        } else {
+            const openAllowed = state.sunHysteresis.update(
+                this.weather.getSolarRadiation(),
+                this.options.sunOpenThreshold,
+                this.options.sunOpenMinDurationMs,
+            );
+            state.sunActive = evaluateSunProtection({
+                inWindow: true,
                 solarRadiation: this.weather.getSolarRadiation(),
                 closeThreshold: this.options.sunCloseThreshold,
                 openAllowed,
                 wasActive: state.sunActive,
             });
+        }
         if (state.sunActive) {
             const target = config.sunTargetPercent ?? 70;
             this.applyTarget(id, controller, target, 'Sun protection', config.doorContactStateId);

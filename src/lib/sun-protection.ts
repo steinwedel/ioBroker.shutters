@@ -24,6 +24,17 @@ export function isWithinTimeWindow(now: Date, windowStart: string | undefined, w
     return now >= start && now < end;
 }
 
+export function isSunProtectionEligible(
+    globalEnabled: boolean,
+    coveringEnabled: boolean,
+    isSummer: boolean,
+    scheduleOpen: boolean,
+    inWindow: boolean,
+    overridden: boolean,
+): boolean {
+    return globalEnabled && coveringEnabled && isSummer && scheduleOpen && inWindow && !overridden;
+}
+
 /** Evaluation inputs for `evaluateSunProtection()`. */
 export interface ISunProtectionEvaluation {
     /** Whether sun protection currently applies to this covering (inside its time window). */

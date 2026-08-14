@@ -1,11 +1,11 @@
 # Context
 
 ## Current Task
-- Corrected Homematic LEVEL direction using the live percentage-state schema.
+- Aligned sun protection with the reference script's summer/schedule gating.
 
 ## Key Decisions
-- Adapter positions remain 0=open and 100=closed.
-- Homematic LEVEL maps 0=open to 100 and 100=closed to 0.
+- Sun protection now requires global enable, summer state, and an open schedule.
+- Leaving a covering's time window immediately falls back to the schedule target.
 
 ## Next Steps
-- Deploy the hotfix and verify a scheduled opening.
+- Deploy the change and configure the optional summer-mode state.
