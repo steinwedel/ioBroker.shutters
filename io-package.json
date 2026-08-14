@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.13",
+    "version": "0.0.14",
     "news": {
+      "0.0.14": {
+        "en": "**FIXED**: Use Homematic's configured 0-100 LEVEL percentage scale for shutter commands",
+        "de": "**BEHOBEN**: Verwenden Sie die von Homematic konfigurierte 0-100-Prozentskala für Rollladenbefehle.",
+        "ru": "**ИСПРАВЛЕНО**: Используйте настроенную в Homematic шкалу уровней от 0 до 100 для команд управления затвором.",
+        "pt": "**CORRIGIDO**: Use a escala percentual de 0 a 100 configurada pela Homematic para comandos de persianas.",
+        "nl": "**OPGELOST**: Gebruik de door Homematic ingestelde 0-100 procentuele schaal voor sluitercommando's.",
+        "fr": "**CORRIGÉ** : Utiliser l’échelle de pourcentage de niveau 0-100 configurée par Homematic pour les commandes d’obturateur.",
+        "it": "**RISOLTO**: Utilizzare la scala percentuale di LIVELLO 0-100 configurata da Homematic per i comandi dell'otturatore",
+        "es": "**CORREGIDO**: Utilice la escala porcentual de NIVEL 0-100 configurada por Homematic para los comandos del obturador.",
+        "pl": "**NAPRAWIONO**: Użyj skonfigurowanej przez Homematic skali procentowej POZIOMU 0–100 dla poleceń dotyczących okiennic",
+        "uk": "**ВИПРАВЛЕНО**: Використовуйте налаштовану Homematic шкалу відсотків 0-100 LEVEL для команд затвора.",
+        "zh-cn": "**已修复**：快门命令使用 Homematic 配置的 0-100 级百分比刻度"
+      },
       "0.0.13": {
         "en": "**FIXED**: Convert Homematic LEVEL values between the adapter's covering position and the Homematic 0-1 direction",
         "de": "**BEHOBEN**: Umrechnung der Homematic-LEVEL-Werte zwischen der Abdeckungsposition des Adapters und der Homematic-0-1-Richtung",
@@ -80,19 +93,6 @@
         "pl": "Naprawiono błąd, przez który pola identyfikatorów stanu karty Pokrycia (Pozycja/Pozycja rzeczywista/Zatrzymanie/Otwarcie/Zamknięcie) zawsze wyświetlały się jako puste: odczytywano/zapisywano niewłaściwe klucze states.* („statePosition” itp.) zamiast rzeczywistych kluczy sterownika („position” itp.), przez co istniejące wartości nigdy nie były wyświetlane, mimo że były poprawnie zapisywane",
         "uk": "Виправлено помилку, через яку поля ідентифікатора стану вкладки «Покриття» (Position/Actual-Position/Stop/Open/Close) завжди відображалися порожніми: вони зчитували/записували неправильні значення ключів states.* («statePosition» тощо) замість фактичних ключів драйвера («position» тощо), тому існуючі значення ніколи не відображалися непомітно, навіть якщо вони були правильно збережені.",
         "zh-cn": "修复“覆盖”选项卡中的状态 ID 字段（位置/实际位置/停止/打开/关闭）始终显示为空的问题：它们读取/写入了错误的 states.* 键（“statePosition” 等），而不是实际的驱动程序键（“position” 等），因此即使已正确保存，现有值也从未被静默显示。"
-      },
-      "0.0.7": {
-        "en": "Add the state-ID browse button/picker to the Coverings tab's state and door contact fields, reusing the same tree/search picker",
-        "de": "Fügen Sie die Schaltfläche/den Auswahldialog für die Bundesland-ID zu den Bundesland- und Türkontaktfeldern der Registerkarte „Überdachungen“ hinzu und verwenden Sie dabei dieselbe Baumstruktur/den gleichen Suchdialog.",
-        "ru": "Добавьте кнопку/элемент выбора идентификатора штата в поля «Штат» и «Контактная информация о двери», используя тот же элемент выбора типа дерева/поиска.",
-        "pt": "Adicione o botão/seletor de navegação por ID do estado aos campos de estado e contato da porta na aba Revestimentos, reutilizando a mesma árvore/seletor de pesquisa.",
-        "nl": "Voeg de knop/kiezer voor het selecteren van de staats-ID toe aan de velden voor staat en deurcontact op het tabblad Bekleding, waarbij dezelfde boomstructuur/zoekkiezer wordt hergebruikt.",
-        "fr": "Ajoutez le bouton/sélecteur de navigation par ID d'état aux champs « État » et « Contact de porte » de l'onglet « Revêtements », en réutilisant le même arbre/sélecteur de recherche.",
-        "it": "Aggiungi il pulsante/selettore di navigazione per ID stato ai campi stato e contatto porta della scheda Rivestimenti, riutilizzando lo stesso selettore ad albero/ricerca",
-        "es": "Agregue el botón/selector de búsqueda de ID de estado a los campos de estado y contacto de puerta de la pestaña Revestimientos, reutilizando el mismo selector de árbol/búsqueda.",
-        "pl": "Dodaj przycisk przeglądania/selektor stanu-ID do pól stanu i kontaktu drzwiowego na karcie Pokrycia, ponownie wykorzystując ten sam selektor drzewa/wyszukiwania",
-        "uk": "Додайте кнопку/вибір за ідентифікатором штату до полів стану та контакту дверей на вкладці «Покриття», повторно використовуючи те саме дерево/вибір пошуку",
-        "zh-cn": "将州 ID 浏览按钮/选择器添加到“覆盖物”选项卡的“州”和“门联系人”字段中，并重用相同的树状/搜索选择器。"
       }
     },
     "titleLang": {

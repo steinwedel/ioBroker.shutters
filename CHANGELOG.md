@@ -1,7 +1,11 @@
 # Changelog
+## 0.0.14 (2026-08-14)
+
+* (steinwedel) **FIXED**: Use Homematic's configured 0-100 LEVEL percentage scale for shutter commands
+
 ## 0.0.13 (2026-08-14)
 
-* (steinwedel) **FIXED**: Convert Homematic LEVEL values between the adapter's covering position and the Homematic 0-1 direction
+* (steinwedel) **FIXED**: Convert Homematic LEVEL values between the adapter's covering position and the inverted Homematic percentage direction
 
 ## 0.0.12 (2026-08-14)
 

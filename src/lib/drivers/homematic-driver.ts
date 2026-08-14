@@ -8,10 +8,10 @@ export class HomematicDriver extends PositionStopDriverBase {
     public readonly type = 'homematic';
 
     protected toExternalPosition(targetPercent: number): number {
-        return 1 - targetPercent / 100;
+        return 100 - targetPercent;
     }
 
     protected fromExternalPosition(position: number): number {
-        return (1 - position) * 100;
+        return 100 - position;
     }
 }

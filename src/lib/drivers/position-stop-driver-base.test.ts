@@ -49,12 +49,10 @@ describe('PositionStopDriverBase (via HomematicDriver)', () => {
 
         await driver.setPosition(42);
 
-        expect(setForeignStateCalls).to.have.length(1);
-        expect(setForeignStateCalls[0].id).to.equal('hm-rpc.0.ABC.1.LEVEL');
-        expect(setForeignStateCalls[0].val).to.be.closeTo(0.58, 0.000_001);
+        expect(setForeignStateCalls).to.deep.equal([{ id: 'hm-rpc.0.ABC.1.LEVEL', val: 58 }]);
     });
 
-    it('opens with LEVEL 1 and closes with LEVEL 0', async () => {
+    it('opens with LEVEL 100 and closes with LEVEL 0', async () => {
         const { adapter, setForeignStateCalls } = createFakeAdapter();
         const driver = new HomematicDriver(adapter, 'hm-rpc.0.ABC.1.LEVEL', 'hm-rpc.0.ABC.1.LEVEL', undefined);
 
@@ -62,7 +60,7 @@ describe('PositionStopDriverBase (via HomematicDriver)', () => {
         await driver.close();
 
         expect(setForeignStateCalls).to.deep.equal([
-            { id: 'hm-rpc.0.ABC.1.LEVEL', val: 1 },
+            { id: 'hm-rpc.0.ABC.1.LEVEL', val: 100 },
             { id: 'hm-rpc.0.ABC.1.LEVEL', val: 0 },
         ]);
     });
@@ -100,9 +98,9 @@ describe('PositionStopDriverBase (via HomematicDriver)', () => {
 
         expect(driver.getCurrentPosition()).to.be.undefined;
 
-        emitStateChange('hm-rpc.0.ABC.1.LEVEL', 0.45);
+        emitStateChange('hm-rpc.0.ABC.1.LEVEL', 45);
 
-        expect(driver.getCurrentPosition()).to.be.closeTo(55, 0.000_001);
+        expect(driver.getCurrentPosition()).to.equal(55);
     });
 
     it('ignores state changes for unrelated states', () => {
