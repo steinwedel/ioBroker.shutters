@@ -1,4 +1,11 @@
 # Changelog
+## **WORK IN PROGRESS**
+
+* (steinwedel) **ENHANCED**: Change the default sun-protection orientation tolerance from -70°/+70° to -60°/+60°
+* (steinwedel) **FIXED**: Persist the sun-protection manual-override deadline so it survives an adapter restart instead of being silently lost
+* (steinwedel) **NEW**: Add a configurable minimum pause between movement commands (`minCommandIntervalMs`) to protect the motor from excessive short-cycling; wind protection always bypasses it
+* (steinwedel) **FIXED**: Correct README claims for features that are not implemented yet (additional drivers, notifications, external weather-service fallback, summer night cooling)
+
 ## 0.0.18 (2026-08-14)
 
 * (steinwedel) **ENHANCED**: Split the sun-protection orientation tolerance into independent lower/upper bounds (`orientationToleranceMinusDeg`/`orientationTolerancePlusDeg`, default -70°/+70°), auto-filled by the admin UI and migrated from the old single `orientationToleranceDeg` field; the admin UI now also shows the approximate clock time each bound corresponds to today

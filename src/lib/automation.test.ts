@@ -1,0 +1,577 @@
+import { expect } from 'chai';
+import sinon from 'sinon';
+import { AutomationEngine, type IAutomationOptions } from './automation';
+import type { ShutterController } from './shutter-controller';
+import type { IShutterConfig } from './types';
+import type { WeatherSource } from './weather-source';
+
+/** Mutable weather readings, duck-typed as `WeatherSource` (a concrete class) so automation.ts's real evaluation logic runs against controllable inputs without needing a real adapter/foreign states. */
+interface IFakeWeatherHandle {
+    weather: WeatherSource;
+    windSpeed: number | undefined;
+    rain: boolean | undefined;
+    solarRadiation: number | undefined;
+    isSummer: boolean;
+    outdoorTemp: number | undefined;
+    humidity: number | undefined;
+}
+
+function createFakeWeather(): IFakeWeatherHandle {
+    const handle: IFakeWeatherHandle = {
+        weather: undefined as unknown as WeatherSource,
+        windSpeed: undefined,
+        rain: undefined,
+        solarRadiation: undefined,
+        isSummer: true,
+        outdoorTemp: undefined,
+        humidity: undefined,
+    };
+    handle.weather = {
+        getWindSpeed: () => handle.windSpeed,
+        getRain: () => handle.rain,
+        getSolarRadiation: () => handle.solarRadiation,
+        getIsSummer: () => handle.isSummer,
+        getOutdoorTemperature: () => handle.outdoorTemp,
+        getHumidity: () => handle.humidity,
+    } as unknown as WeatherSource;
+    return handle;
+}
+
+/** Records every `applyAutomatedPosition()` call and lets tests drive `getCurrentCoveringPercent()`/the persisted override, duck-typed as `ShutterController`. */
+interface IFakeControllerHandle {
+    controller: ShutterController;
+    config: IShutterConfig;
+    appliedCalls: { percent: number; reason: string; bypass: boolean }[];
+    overrideSetCalls: number[];
+    currentPercent: number | undefined;
+    persistedOverrideUntil: number;
+}
+
+function createFakeController(config: IShutterConfig, persistedOverrideUntil = 0): IFakeControllerHandle {
+    const handle: IFakeControllerHandle = {
+        controller: undefined as unknown as ShutterController,
+        config,
+        appliedCalls: [],
+        overrideSetCalls: [],
+        currentPercent: undefined,
+        persistedOverrideUntil,
+    };
+    handle.controller = {
+        onManualCommand: undefined as (() => void) | undefined,
+        getConfig: () => config,
+        isAutomationEnabled: () => config.automationEnabled,
+        getCurrentCoveringPercent: () => handle.currentPercent,
+        // eslint-disable-next-line @typescript-eslint/require-await -- intentionally synchronous test double for an async controller method
+        applyAutomatedPosition: async (percent: number, reason: string, bypass = false) => {
+            handle.appliedCalls.push({ percent, reason, bypass });
+        },
+        // eslint-disable-next-line @typescript-eslint/require-await -- intentionally synchronous test double for an async controller method
+        getPersistedSunProtectionOverrideUntil: async () => handle.persistedOverrideUntil,
+        // eslint-disable-next-line @typescript-eslint/require-await -- intentionally synchronous test double for an async controller method
+        setSunProtectionOverrideUntil: async (untilMs: number) => {
+            handle.persistedOverrideUntil = untilMs;
+            handle.overrideSetCalls.push(untilMs);
+        },
+    } as unknown as ShutterController;
+    return handle;
+}
+
+/** Minimal fake adapter exposing only what `AutomationEngine` needs (door-contact subscription + `setInterval`/`clearInterval`, never actually fired in these tests - see `evaluateNow()` used instead of waiting for the tick timer). */
+function createFakeAdapter(): {
+    adapter: ioBroker.Adapter;
+    foreignStates: Map<string, ioBroker.State>;
+    emitForeignStateChange: (id: string, val: ioBroker.StateValue) => void;
+} {
+    const foreignStates = new Map<string, ioBroker.State>();
+    const listeners: ((id: string, state: ioBroker.State | null | undefined) => void)[] = [];
+
+    const adapter = {
+        log: { error: () => {}, warn: () => {} },
+        setInterval: () => ({}) as unknown as ioBroker.Interval,
+        clearInterval: () => {},
+        subscribeForeignStatesAsync: async () => {},
+        // eslint-disable-next-line @typescript-eslint/require-await -- intentionally synchronous test double for an async adapter method
+        getForeignStateAsync: async (id: string) => foreignStates.get(id),
+        on: (event: string, listener: (id: string, state: ioBroker.State | null | undefined) => void) => {
+            if (event === 'stateChange') {
+                listeners.push(listener);
+            }
+        },
+        removeListener: () => {},
+    } as unknown as ioBroker.Adapter;
+
+    return {
+        adapter,
+        foreignStates,
+        emitForeignStateChange: (id: string, val: ioBroker.StateValue) => {
+            for (const listener of listeners) {
+                listener(id, { val, ack: true } as ioBroker.State);
+            }
+        },
+    };
+}
+
+function makeConfig(overrides: Partial<IShutterConfig> = {}): IShutterConfig {
+    return {
+        id: 'shutter1',
+        name: 'Test Shutter',
+        driverType: 'generic-position',
+        coveringType: 'rolladen',
+        automationEnabled: true,
+        states: {},
+        ...overrides,
+    };
+}
+
+const DEFAULT_OPTIONS: IAutomationOptions = {
+    sunCloseThreshold: 200,
+    sunProtectionGlobalEnabled: true,
+    sunOpenThreshold: 150,
+    sunOpenMinDurationMs: 600_000,
+    windOpenThreshold: 40,
+    windCloseAllowedThreshold: 25,
+    windCalmMinDurationMs: 600_000,
+    frostThreshold: 2,
+    tickMs: 30_000,
+    location: undefined,
+};
+
+describe('AutomationEngine', () => {
+    let clock: sinon.SinonFakeTimers;
+
+    beforeEach(() => {
+        // A summer afternoon, comfortably inside any plausible sun-protection time window (no
+        // sunWindowStart/End configured in these tests means "always", but a realistic instant still
+        // makes override/midnight-boundary math in the 6.4 tests easy to reason about).
+        clock = sinon.useFakeTimers({ now: new Date(2026, 6, 15, 14, 0, 0, 0).getTime() });
+    });
+
+    afterEach(() => {
+        clock.restore();
+    });
+
+    describe('priority order (plan section 8)', () => {
+        it('wind protection wins over rain, sun and schedule', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(makeConfig({ sunProtectionEnabled: true }));
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            weather.windSpeed = 50; // >= windOpenThreshold (40)
+            weather.rain = true;
+            weather.solarRadiation = 999;
+            engine.setScheduleTarget(controllerHandle.config.id, 100);
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 0, reason: 'Wind protection', bypass: true },
+            ]);
+        });
+
+        it('rain protection wins over sun protection and schedule (but not wind)', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(makeConfig({ sunProtectionEnabled: true }));
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            weather.windSpeed = 0;
+            weather.rain = true;
+            weather.solarRadiation = 999; // would also trigger sun protection if evaluated
+            engine.setScheduleTarget(controllerHandle.config.id, 100);
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 100, reason: 'Rain protection', bypass: false },
+            ]);
+        });
+
+        it('sun protection wins over the schedule', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(
+                makeConfig({ sunProtectionEnabled: true, sunTargetPercent: 70 }),
+            );
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            weather.windSpeed = 0;
+            weather.rain = false;
+            weather.solarRadiation = 300; // >= sunCloseThreshold (200)
+            weather.isSummer = true;
+            // Sun protection is only eligible while the schedule currently wants the covering open (0%).
+            engine.setScheduleTarget(controllerHandle.config.id, 0);
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 70, reason: 'Sun protection', bypass: false },
+            ]);
+        });
+
+        it('frost protection suppresses the schedule entirely (no call at all)', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(makeConfig({ sunProtectionEnabled: false }));
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            weather.windSpeed = 0;
+            weather.rain = false;
+            weather.outdoorTemp = 0; // <= frostThreshold (2)
+            weather.humidity = 90; // "damp" via humidity, since rain would otherwise win priority over frost
+            engine.setScheduleTarget(controllerHandle.config.id, 100);
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([]);
+        });
+
+        it('applies the schedule target when no protection is active', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(makeConfig({ sunProtectionEnabled: false }));
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            weather.windSpeed = 0;
+            weather.rain = false;
+            engine.setScheduleTarget(controllerHandle.config.id, 100);
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([{ percent: 100, reason: 'Schedule', bypass: false }]);
+        });
+
+        it('does nothing when neither a protection nor a schedule target apply', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(makeConfig({ sunProtectionEnabled: false }));
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            weather.windSpeed = 0;
+            weather.rain = false;
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([]);
+        });
+
+        it('skips coverings with automation disabled', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(makeConfig({ automationEnabled: false }));
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            weather.rain = true;
+            engine.setScheduleTarget(controllerHandle.config.id, 100);
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([]);
+        });
+    });
+
+    describe('re-apply/dedupe behavior', () => {
+        it('does not re-apply an unchanged schedule target on a later evaluation', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(makeConfig({ sunProtectionEnabled: false }));
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            engine.setScheduleTarget(controllerHandle.config.id, 100);
+            engine.evaluateNow();
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.have.length(1);
+        });
+
+        it('re-applies once the resolved target actually changes', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(makeConfig({ sunProtectionEnabled: false }));
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            engine.setScheduleTarget(controllerHandle.config.id, 100);
+            engine.evaluateNow();
+            engine.setScheduleTarget(controllerHandle.config.id, 0);
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 100, reason: 'Schedule', bypass: false },
+                { percent: 0, reason: 'Schedule', bypass: false },
+            ]);
+        });
+
+        it('always re-asserts wind protection, even with an unchanged target', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(makeConfig());
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            weather.windSpeed = 50;
+            engine.evaluateNow();
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 0, reason: 'Wind protection', bypass: true },
+                { percent: 0, reason: 'Wind protection', bypass: true },
+            ]);
+        });
+    });
+
+    describe('covering-type defaults for wind/frost protection (plan section 2a.5/7a/7b)', () => {
+        it('does not activate wind protection for a lamellen covering by default', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(
+                makeConfig({ coveringType: 'lamellen', sunProtectionEnabled: false }),
+            );
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            weather.windSpeed = 50; // would activate wind protection for a rolladen
+            engine.setScheduleTarget(controllerHandle.config.id, 100);
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([{ percent: 100, reason: 'Schedule', bypass: false }]);
+        });
+
+        it('activates wind protection for a lamellen covering when explicitly enabled', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(
+                makeConfig({ coveringType: 'lamellen', windProtectionEnabled: true }),
+            );
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            weather.windSpeed = 50;
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 0, reason: 'Wind protection', bypass: true },
+            ]);
+        });
+    });
+
+    describe('door-contact clamping (plan section 7e)', () => {
+        it('clamps a closing schedule target to the current position while the door is open', async () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(
+                makeConfig({ doorContactStateId: 'foreign.door', sunProtectionEnabled: false }),
+            );
+            controllerHandle.currentPercent = 20;
+            const { adapter, foreignStates, emitForeignStateChange } = createFakeAdapter();
+            foreignStates.set('foreign.door', { val: true, ack: true } as ioBroker.State);
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            await engine.start();
+            engine.setScheduleTarget(controllerHandle.config.id, 100);
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([{ percent: 20, reason: 'Schedule', bypass: false }]);
+
+            emitForeignStateChange('foreign.door', false);
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 20, reason: 'Schedule', bypass: false },
+                { percent: 100, reason: 'Schedule', bypass: false },
+            ]);
+
+            engine.stop();
+        });
+
+        it('never clamps an opening target', async () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(
+                makeConfig({ doorContactStateId: 'foreign.door', sunProtectionEnabled: false }),
+            );
+            controllerHandle.currentPercent = 80;
+            const { adapter, foreignStates } = createFakeAdapter();
+            foreignStates.set('foreign.door', { val: true, ack: true } as ioBroker.State);
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            await engine.start();
+            engine.setScheduleTarget(controllerHandle.config.id, 0);
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([{ percent: 0, reason: 'Schedule', bypass: false }]);
+
+            engine.stop();
+        });
+    });
+
+    describe('manual sun-protection override (plan section 6.4/9a.2)', () => {
+        it('suspends sun protection until midnight after a manual command, and persists the deadline', async () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(
+                makeConfig({ sunProtectionEnabled: true, sunTargetPercent: 70 }),
+            );
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+            await engine.start();
+
+            weather.windSpeed = 0;
+            weather.rain = false;
+            weather.solarRadiation = 300;
+            engine.setScheduleTarget(controllerHandle.config.id, 0);
+            engine.evaluateNow();
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 70, reason: 'Sun protection', bypass: false },
+            ]);
+
+            // Simulate a manual command: ShutterController would call this directly.
+            controllerHandle.controller.onManualCommand?.();
+
+            expect(controllerHandle.overrideSetCalls).to.have.length(1);
+            const expectedMidnight = new Date(2026, 6, 16, 0, 0, 0, 0).getTime();
+            expect(controllerHandle.overrideSetCalls[0]).to.equal(expectedMidnight);
+
+            engine.evaluateNow();
+            // Sun protection is now suppressed; the schedule (still "open", i.e. 0%) applies instead.
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 70, reason: 'Sun protection', bypass: false },
+                { percent: 0, reason: 'Schedule', bypass: false },
+            ]);
+
+            engine.stop();
+        });
+
+        it('restores a persisted override deadline on start(), suppressing sun protection across a restart', async () => {
+            const weather = createFakeWeather();
+            const futureOverride = new Date(2026, 6, 16, 0, 0, 0, 0).getTime(); // later tonight
+            const controllerHandle = createFakeController(
+                makeConfig({ sunProtectionEnabled: true, sunTargetPercent: 70 }),
+                futureOverride,
+            );
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            await engine.start();
+
+            weather.windSpeed = 0;
+            weather.rain = false;
+            weather.solarRadiation = 300;
+            engine.setScheduleTarget(controllerHandle.config.id, 0);
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([{ percent: 0, reason: 'Schedule', bypass: false }]);
+
+            engine.stop();
+        });
+
+        it('clears the override (in-memory and persisted) once its deadline has passed', async () => {
+            const weather = createFakeWeather();
+            const pastOverride = new Date(2026, 6, 15, 0, 0, 0, 0).getTime(); // earlier today, already expired
+            const controllerHandle = createFakeController(
+                makeConfig({ sunProtectionEnabled: true, sunTargetPercent: 70 }),
+                pastOverride,
+            );
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            await engine.start();
+
+            weather.windSpeed = 0;
+            weather.rain = false;
+            weather.solarRadiation = 300;
+            engine.setScheduleTarget(controllerHandle.config.id, 0);
+            engine.evaluateNow();
+
+            // The expired override no longer suppresses sun protection...
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 70, reason: 'Sun protection', bypass: false },
+            ]);
+            // ...and was explicitly cleared back to 0 in storage, not left at the stale past timestamp.
+            expect(controllerHandle.overrideSetCalls).to.deep.equal([0]);
+            expect(controllerHandle.persistedOverrideUntil).to.equal(0);
+
+            engine.stop();
+        });
+    });
+});

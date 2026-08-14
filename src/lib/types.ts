@@ -61,13 +61,13 @@ export interface IShutterConfig {
      * Lower bound (typically negative) of the active sun-azimuth range around `orientation`, in degrees
      * relative to it; sun protection may only apply while the sun's azimuth lies within
      * `orientation + orientationToleranceMinusDeg` .. `orientation + orientationTolerancePlusDeg`. The
-     * admin UI auto-fills this with -70 whenever a covering with sun protection enabled is shown and it
+     * admin UI auto-fills this with -60 whenever a covering with sun protection enabled is shown and it
      * is still unset, so no runtime default is needed for coverings configured through the UI; a
      * startup migration additionally converts any covering still using the old, single
      * `orientationToleranceDeg` field. Only used when `orientation` is set.
      */
     orientationToleranceMinusDeg?: number;
-    /** Upper bound (typically positive) of the active sun-azimuth range, see `orientationToleranceMinusDeg`. Auto-filled with +70 under the same conditions. */
+    /** Upper bound (typically positive) of the active sun-azimuth range, see `orientationToleranceMinusDeg`. Auto-filled with +60 under the same conditions. */
     orientationTolerancePlusDeg?: number;
     /** Start of the daily time window sun protection may apply in, "HH:MM". Fallback used only when `orientation` is not set. */
     sunWindowStart?: string;
@@ -105,6 +105,16 @@ export interface IShutterConfig {
      * responding. Default: 60.
      */
     maxRuntimeSecs?: number;
+
+    /**
+     * Minimum time (ms) between two actually-executed movement commands to the driver, regardless of
+     * which module (schedule, sun protection, manual command, ...) triggered it - protects the motor
+     * from excessive short-cycling, e.g. from hysteresis edge cases or rapid repeated user taps (plan
+     * section 7d). Commands arriving within the cooldown are not discarded: only the most recently
+     * requested target is buffered and applied once, after the cooldown elapses. Wind protection (7a)
+     * always bypasses this, and a `stop` command is never delayed by it either. Default: 8000 (8s).
+     */
+    minCommandIntervalMs?: number;
 }
 
 /** Central weather inputs shared by all protection modules (plan section 5a). All are optional; a missing value simply disables the modules that need it. */

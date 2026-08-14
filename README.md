@@ -15,22 +15,21 @@ Unified control and automation for roller shutters, external venetian blinds, aw
 
 ### Features
 
-- **One control interface for many systems** — Homematic (CCU and Homematic IP), KNX, Shelly, Zigbee (`ioBroker.zigbee` and `ioBroker.zigbee2mqtt`), Tuya, Somfy, Velux, EnOcean, Velbus, Loxone, Homey, generic MQTT covers and generic relay/position outputs are all controlled through the same set of states — mix and match systems freely, even within the same group.
+- **One control interface for several systems** — Homematic (CCU), KNX, Shelly, Zigbee (`ioBroker.zigbee` and `ioBroker.zigbee2mqtt`) and generic relay/position outputs are all controlled through the same set of states — mix and match systems freely, even within the same group. Homematic IP Cloud, Tuya, Somfy, Velux, EnOcean, Velbus, Loxone, Homey and generic MQTT covers are planned but not implemented yet (see "Planned" below).
 - **Auto-discovery** — scans the object tree of connected adapter instances to find existing shutters/blinds/awnings automatically and suggests them for import instead of requiring every state ID to be entered by hand.
 - **Multiple covering types** — Roller shutter, external venetian blind (with slat tilt), awning and vertical lamella blind are each handled with the correct movement/safety logic for that type (e.g. an awning must retract in wind, not extend, unlike a roller shutter).
-- **Height-to-runtime calibration** — a configurable calibration curve compensates for coverings where covering height is not proportional to motor runtime, with a guided calibration run.
-- **Daily schedule** — automatic opening/closing per plan, in one of three schedule modes ("all days the same", "weekday / weekend / public holiday", or "individual weekday + public holiday"), only showing the fields relevant to the selected mode; optional calendar (iCal) override for individual days, and sunrise/sunset/dawn/dusk-relative timing: each open/close field accepts a plain "HH:MM" clock time, an offset from sunrise/sunset (or civil dawn/dusk, with a trailing `d`) prefixed with `+`/`-` in plain minutes (e.g. `-30`, `-30d`) or an "HH:MM" duration (e.g. `+01:30`), or that offset combined with a "!HH:MM" cap (e.g. `+30!19:00` = 30 minutes after sunset, but never later than 19:00; analogous for opening/sunrise).
+- **Height-to-runtime calibration** — a configurable calibration curve compensates for coverings where covering height is not proportional to motor runtime; the guided calibration run itself is planned but not implemented yet.
+- **Daily schedule** — automatic opening/closing per plan, in one of three schedule modes ("all days the same", "weekday / weekend / public holiday", or "individual weekday + public holiday"), only showing the fields relevant to the selected mode; sunrise/sunset/dawn/dusk-relative timing: each open/close field accepts a plain "HH:MM" clock time, an offset from sunrise/sunset (or civil dawn/dusk, with a trailing `d`) prefixed with `+`/`-` in plain minutes (e.g. `-30`, `-30d`) or an "HH:MM" duration (e.g. `+01:30`), or that offset combined with a "!HH:MM" cap (e.g. `+30!19:00` = 30 minutes after sunset, but never later than 19:00; analogous for opening/sunrise). A calendar (iCal) override for individual days is planned but not implemented yet.
 - **Sun protection** — automatically lowers coverings to a configurable intermediate position on hot, sunny days within a configurable time window, with flicker-free behavior when clouds pass by. An optional geometry-based mode (window orientation and sun position) is available for coverings without a fixed sun-facing time window.
 - **Rain protection** — closes coverings automatically when rain is detected.
 - **Storm/wind protection** — immediately moves coverings to their safe position when wind speed exceeds a configurable limit, overriding every other rule; can be enabled/disabled per covering since wind relevance depends heavily on the covering type.
 - **Frost protection** — pauses automated movement during freezing, damp conditions to avoid ice damage, can be enabled/disabled per covering.
 - **Door contact protection** — prevents a shutter above a terrace/balcony door from closing automatically while the door is open; manual commands are never blocked.
-- **Summer night cooling** — optionally keeps coverings open overnight when it is warm inside and cooler outside, to help rooms cool down (opt-in, disabled by default).
-- **Manual override awareness** — a manual command issued while sun protection is active suspends sun protection for that covering until midnight, so it does not immediately re-close after you open it.
-- **Weather data with fallback** — uses your own weather station if configured; any missing weather value (solar radiation, wind, rain, temperature, forecast) can optionally be fetched from a free external weather service, so the adapter works even without your own weather station.
+- **Motor protection** — enforces a minimum pause between movement commands regardless of what triggered them (schedule, protection, or a manual command); storm protection always bypasses it so a safety reaction is never delayed.
+- **Manual override awareness** — a manual command issued while sun protection is active suspends sun protection for that covering until midnight, so it does not immediately re-close after you open it; this suspension survives an adapter restart.
+- **Weather data** — uses your own weather station states (solar radiation, wind, rain, temperature, humidity); an optional fallback to a free external weather service for values you have not configured is planned but not implemented yet.
 - **Groups** — combine any number of coverings, even from different systems, into a group with combined open/close/position control.
 - **Human-readable status per covering** — always shows in plain language why a covering is in its current position (schedule, sun protection, wind protection, etc.).
-- **Notifications** — optional alerts (e.g. via Pushover/Telegram) for a covering that stops responding, or when storm protection activates.
 
 ### Covering types
 
@@ -64,7 +63,8 @@ Each covering is automatically assigned a stable, sequential ID (e.g. `shutter1`
 - The connected system (driver) and the relevant state IDs — filled in automatically by the scan, or entered manually.
 - Optional window orientation, used by sun protection.
 - Optional calibration curve, if covering height is not proportional to motor runtime.
-- Optional protection toggles (wind, frost, night cooling), each enabled/disabled per covering with sensible defaults based on the covering type.
+- Optional protection toggles (wind, frost), each enabled/disabled per covering with sensible defaults based on the covering type.
+- Optional minimum pause between movement commands (motor protection), with a sensible default.
 
 ### Plans
 
@@ -88,7 +88,7 @@ Group multiple coverings — even from different connected systems — for combi
 
 ### Weather Data
 
-Configure your own weather station states where available. Any weather value that is not configured can optionally be retrieved from a free external weather service instead, without requiring an API key.
+Configure your own weather station states (solar radiation, wind, rain, temperature, humidity) where available. A fallback to a free external weather service for values you have not configured is planned but not implemented yet - without it, protection functions that need a value you have not configured simply stay inactive.
 
 ---
 
@@ -96,6 +96,15 @@ Configure your own weather station states where available. Any weather value tha
 
 - Auto-discovery is best-effort and depends on the connected adapter using standard object roles; unusual third-party device setups may need to be added manually.
 - Systems without a position feedback (e.g. simple open/close/stop relays) estimate the current position from runtime rather than a real sensor value.
+
+## Planned, not yet implemented
+
+- Additional driver systems: Homematic IP Cloud, Tuya, Somfy, Velux, EnOcean, Velbus, Loxone, Homey, generic MQTT covers.
+- Summer night cooling (keeping coverings open overnight when it is warm inside and cooler outside).
+- Calendar (iCal) schedule overrides for individual days.
+- Fallback to a free external weather service for weather values you have not configured yourself.
+- Notifications (e.g. via Pushover/Telegram) for a covering that stops responding or when storm protection activates.
+- Guided calibration run (the `calibrate` button currently only logs a reminder to configure the calibration curve manually).
 
 ## Changelog
 See [CHANGELOG.md](CHANGELOG.md)

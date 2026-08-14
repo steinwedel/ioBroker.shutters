@@ -7,6 +7,8 @@ import type { IShutterConfig } from './types';
 const WATCHDOG_TOLERANCE_PERCENT = 3;
 /** Extra time allowed on top of `maxRuntimeSecs` before the watchdog reports a stuck covering. */
 const WATCHDOG_GRACE_MS = 30_000;
+/** Default for `IShutterConfig.minCommandIntervalMs` (motor protection, plan section 7d) if unset. */
+const DEFAULT_MIN_COMMAND_INTERVAL_MS = 8_000;
 
 /**
  * Owns the ioBroker objects/states for a single covering and forwards
@@ -22,6 +24,12 @@ export class ShutterController {
     private automationEnabled: boolean;
     private pendingMove: { targetPercent: number; issuedAt: number } | undefined;
     private watchdogReported = false;
+    /** Timestamp (ms) of the last movement command that actually reached the driver, see `gatedSetPosition()`. */
+    private lastDriverCommandAt = 0;
+    /** Most recently requested command still waiting out the motor-protection cooldown, if any, see `gatedDriverCommand()`. */
+    private pendingBufferedCommand:
+        { targetPercent: number; invokeDriver: () => Promise<void>; afterDrive: () => Promise<void> } | undefined;
+    private bufferFlushTimer: ioBroker.Timeout | undefined;
 
     /** Called whenever a manual (user-issued) command is processed; used by `automation.ts` to apply the sun-protection override (plan section 6.4). */
     public onManualCommand: (() => void) | undefined;
@@ -189,6 +197,19 @@ export class ShutterController {
             native: {},
         });
 
+        await adapter.setObjectNotExistsAsync(`${basePath}.sunProtectionOverrideUntil`, {
+            type: 'state',
+            common: {
+                name: `${config.name} - sun protection suspended until (ms timestamp, 0 = not suspended)`,
+                type: 'number',
+                role: 'value',
+                read: true,
+                write: false,
+                expert: true,
+            },
+            native: {},
+        });
+
         await adapter.setStateAsync(`${basePath}.automationEnabled`, config.automationEnabled, true);
         await adapter.setStateAsync(`${basePath}.statusText`, 'Idle', true);
 
@@ -212,10 +233,12 @@ export class ShutterController {
         return this.config;
     }
 
+    /** @returns The covering's stable area ID (`IShutterConfig.areaId`), or undefined if never assigned to an area. */
     public getAreaId(): string | undefined {
         return this.config.areaId;
     }
 
+    /** @returns The covering's legacy, name-based area assignment (`IShutterConfig.area`), used only as a fallback for coverings that predate stable area IDs. */
     public getLegacyAreaName(): string | undefined {
         return this.config.area;
     }
@@ -274,42 +297,54 @@ export class ShutterController {
     /**
      * Drives to a target covering position as a direct user command (from
      * `handleStateChange()`, a group, or a scene). Notifies
-     * `onManualCommand` so automation can apply the sun-protection override.
+     * `onManualCommand` immediately - even if the actual drive ends up
+     * buffered by the motor-protection gate below - so automation applies
+     * the sun-protection override (plan section 6.4) right away rather than
+     * only once the (possibly delayed) command actually reaches the driver.
      *
      * @param coveringPercent - Target covering height/extension, 0-100.
      */
     public async commandPosition(coveringPercent: number): Promise<void> {
-        this.pendingMove = { targetPercent: coveringPercent, issuedAt: Date.now() };
-        this.watchdogReported = false;
-        await this.driver.setPosition(coveringToRuntime(coveringPercent, this.curve));
-        await this.acknowledge('position', coveringPercent);
-        await this.refreshPosition();
         this.onManualCommand?.();
+        await this.gatedDriverCommand(
+            coveringPercent,
+            () => this.driver.setPosition(coveringToRuntime(coveringPercent, this.curve)),
+            () => this.acknowledge('position', coveringPercent),
+            false,
+        );
     }
 
     /** Fully opens/retracts the covering as a direct user command. */
     public async commandOpen(): Promise<void> {
-        this.pendingMove = { targetPercent: 0, issuedAt: Date.now() };
-        this.watchdogReported = false;
-        await this.driver.open();
-        await this.acknowledge('open', false);
-        await this.refreshPosition();
         this.onManualCommand?.();
+        await this.gatedDriverCommand(
+            0,
+            () => this.driver.open(),
+            () => this.acknowledge('open', false),
+            false,
+        );
     }
 
     /** Fully closes/extends the covering as a direct user command. */
     public async commandClose(): Promise<void> {
-        this.pendingMove = { targetPercent: 100, issuedAt: Date.now() };
-        this.watchdogReported = false;
-        await this.driver.close();
-        await this.acknowledge('close', false);
-        await this.refreshPosition();
         this.onManualCommand?.();
+        await this.gatedDriverCommand(
+            100,
+            () => this.driver.close(),
+            () => this.acknowledge('close', false),
+            false,
+        );
     }
 
-    /** Stops the current movement as a direct user command. */
+    /**
+     * Stops the current movement as a direct user command. Exempt from the motor-protection gate
+     * (plan section 7d): halting movement is always safe to do immediately, unlike starting one, and
+     * any move still waiting out the cooldown in `pendingBufferedCommand` must not fire later once the
+     * user has explicitly stopped - so this also cancels it.
+     */
     public async commandStop(): Promise<void> {
         this.pendingMove = undefined;
+        this.cancelBufferedCommand();
         await this.driver.stop();
         await this.acknowledge('stop', false);
         this.onManualCommand?.();
@@ -324,14 +359,124 @@ export class ShutterController {
      *
      * @param coveringPercent - Target covering height/extension, 0-100.
      * @param reason - Human-readable reason shown in `statusText`, e.g. "Schedule: close".
+     * @param bypassMotorProtection - Skips the motor-protection cooldown (plan section 7d) entirely;
+     *   set by callers for wind protection (7a), since a storm-safety reaction must never wait on a
+     *   motor-protection timer.
      */
-    public async applyAutomatedPosition(coveringPercent: number, reason: string): Promise<void> {
-        this.pendingMove = { targetPercent: coveringPercent, issuedAt: Date.now() };
+    public async applyAutomatedPosition(
+        coveringPercent: number,
+        reason: string,
+        bypassMotorProtection = false,
+    ): Promise<void> {
+        await this.gatedDriverCommand(
+            coveringPercent,
+            () => this.driver.setPosition(coveringToRuntime(coveringPercent, this.curve)),
+            async () => {
+                await this.adapter.setStateAsync(`${this.basePath}.position`, { val: coveringPercent, ack: true });
+                await this.adapter.setStateAsync(`${this.basePath}.statusText`, { val: reason, ack: true });
+            },
+            bypassMotorProtection,
+        );
+    }
+
+    /**
+     * Reads the persisted sun-protection override deadline (plan section 6.4/9a.2), e.g. right after
+     * startup, so a "Tagessperre" set before an adapter restart is not silently lost.
+     *
+     * @returns Local midnight (ms since epoch) until which sun protection is suspended, or 0 if not currently suspended/never set.
+     */
+    public async getPersistedSunProtectionOverrideUntil(): Promise<number> {
+        const state = await this.adapter.getStateAsync(`${this.basePath}.sunProtectionOverrideUntil`);
+        return typeof state?.val === 'number' ? state.val : 0;
+    }
+
+    /**
+     * Persists the sun-protection override deadline so it survives an adapter restart (plan section
+     * 9a.2). Called by `automation.ts` whenever it changes the in-memory deadline (on a manual command,
+     * and once more to clear it back to 0 after it has passed).
+     *
+     * @param untilMs - Local midnight (ms since epoch) until which sun protection is suspended, or 0 to clear.
+     */
+    public async setSunProtectionOverrideUntil(untilMs: number): Promise<void> {
+        await this.adapter.setStateAsync(`${this.basePath}.sunProtectionOverrideUntil`, { val: untilMs, ack: true });
+    }
+
+    /**
+     * Central motor-protection gate (plan section 7d): every actual movement command - manual,
+     * schedule, or protection-module driven - goes through here. If less than `minCommandIntervalMs`
+     * has passed since the last command that actually reached the driver, the request is not
+     * discarded: only the most recently requested command is kept in `pendingBufferedCommand` and
+     * replayed exactly once, after the remaining cooldown elapses.
+     *
+     * @param targetPercent - Target covering height/extension, 0-100 (only used for watchdog tracking, see `executeDriverCommand()`).
+     * @param invokeDriver - Performs the actual driver call for this specific command (`setPosition`/`open`/`close`), preserving each entrypoint's exact original semantics.
+     * @param afterDrive - Acknowledges/updates whichever own states this specific command type needs, once `invokeDriver` has completed.
+     * @param bypassMotorProtection - Whether to skip the cooldown entirely (wind protection only, see `applyAutomatedPosition()`).
+     */
+    private async gatedDriverCommand(
+        targetPercent: number,
+        invokeDriver: () => Promise<void>,
+        afterDrive: () => Promise<void>,
+        bypassMotorProtection: boolean,
+    ): Promise<void> {
+        const minIntervalMs = bypassMotorProtection
+            ? 0
+            : (this.config.minCommandIntervalMs ?? DEFAULT_MIN_COMMAND_INTERVAL_MS);
+        const elapsedMs = Date.now() - this.lastDriverCommandAt;
+        if (minIntervalMs > 0 && elapsedMs < minIntervalMs) {
+            this.pendingBufferedCommand = { targetPercent, invokeDriver, afterDrive };
+            if (!this.bufferFlushTimer) {
+                this.bufferFlushTimer = this.adapter.setTimeout(() => {
+                    this.bufferFlushTimer = undefined;
+                    const buffered = this.pendingBufferedCommand;
+                    this.pendingBufferedCommand = undefined;
+                    if (buffered) {
+                        this.executeDriverCommand(
+                            buffered.targetPercent,
+                            buffered.invokeDriver,
+                            buffered.afterDrive,
+                        ).catch(err => {
+                            this.adapter.log.error(
+                                `Buffered motor-protection command for covering "${this.config.id}" failed: ${(err as Error).message}`,
+                            );
+                        });
+                    }
+                }, minIntervalMs - elapsedMs);
+            }
+            return;
+        }
+        await this.executeDriverCommand(targetPercent, invokeDriver, afterDrive);
+    }
+
+    /**
+     * Actually invokes the driver and updates the resulting states - the only place that does so, so
+     * `lastDriverCommandAt`/the watchdog's `pendingMove` always reflect what was truly commanded, not
+     * merely requested (which may still be sitting in `pendingBufferedCommand`, see `gatedDriverCommand()`).
+     *
+     * @param targetPercent - Target covering height/extension, 0-100.
+     * @param invokeDriver - Performs the actual driver call, see `gatedDriverCommand()`.
+     * @param afterDrive - Acknowledges/updates own states once `invokeDriver` has completed, see `gatedDriverCommand()`.
+     */
+    private async executeDriverCommand(
+        targetPercent: number,
+        invokeDriver: () => Promise<void>,
+        afterDrive: () => Promise<void>,
+    ): Promise<void> {
+        this.lastDriverCommandAt = Date.now();
+        this.pendingMove = { targetPercent, issuedAt: Date.now() };
         this.watchdogReported = false;
-        await this.driver.setPosition(coveringToRuntime(coveringPercent, this.curve));
-        await this.adapter.setStateAsync(`${this.basePath}.position`, { val: coveringPercent, ack: true });
-        await this.adapter.setStateAsync(`${this.basePath}.statusText`, { val: reason, ack: true });
+        await invokeDriver();
+        await afterDrive();
         await this.refreshPosition();
+    }
+
+    /** Discards any command still waiting out the motor-protection cooldown, without executing it. */
+    private cancelBufferedCommand(): void {
+        this.pendingBufferedCommand = undefined;
+        if (this.bufferFlushTimer) {
+            this.adapter.clearTimeout(this.bufferFlushTimer);
+            this.bufferFlushTimer = undefined;
+        }
     }
 
     /**
@@ -357,8 +502,9 @@ export class ShutterController {
         await this.checkWatchdog(runtimePercent);
     }
 
-    /** Releases the driver's subscriptions. Call on adapter unload. */
+    /** Releases the driver's subscriptions and cancels any pending motor-protection buffer timer. Call on adapter unload. */
     public destroy(): void {
+        this.cancelBufferedCommand();
         this.driver.destroy();
     }
 

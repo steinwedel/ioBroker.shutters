@@ -530,8 +530,8 @@ function updateOrientationToleranceHint(index) {
         delete shuttersToleranceHintCache[index];
         return;
     }
-    var minus = covering.orientationToleranceMinusDeg === undefined ? -70 : covering.orientationToleranceMinusDeg;
-    var plus = covering.orientationTolerancePlusDeg === undefined ? 70 : covering.orientationTolerancePlusDeg;
+    var minus = covering.orientationToleranceMinusDeg === undefined ? -60 : covering.orientationToleranceMinusDeg;
+    var plus = covering.orientationTolerancePlusDeg === undefined ? 60 : covering.orientationTolerancePlusDeg;
     ensureShuttersLocation(function (location) {
         if (shuttersToleranceHintElements[index] !== el) {
             return; // Re-rendered/removed in the meantime.
@@ -1207,10 +1207,10 @@ function renderCoveringCard(covering, index) {
         // covering always has an explicit value and no separate runtime default is needed to interpret
         // an unset field.
         if (covering.orientationToleranceMinusDeg === undefined) {
-            covering.orientationToleranceMinusDeg = -70;
+            covering.orientationToleranceMinusDeg = -60;
         }
         if (covering.orientationTolerancePlusDeg === undefined) {
-            covering.orientationTolerancePlusDeg = 70;
+            covering.orientationTolerancePlusDeg = 60;
         }
 
         var sunRow = document.createElement('div');
@@ -1235,7 +1235,7 @@ function renderCoveringCard(covering, index) {
                 covering.orientationToleranceMinusDeg,
                 3,
                 function (v) {
-                    covering.orientationToleranceMinusDeg = v === undefined ? -70 : v;
+                    covering.orientationToleranceMinusDeg = v === undefined ? -60 : v;
                     scheduleOrientationToleranceHintUpdate(index);
                     onChangeFired();
                 },
@@ -1249,7 +1249,7 @@ function renderCoveringCard(covering, index) {
                 covering.orientationTolerancePlusDeg,
                 3,
                 function (v) {
-                    covering.orientationTolerancePlusDeg = v === undefined ? 70 : v;
+                    covering.orientationTolerancePlusDeg = v === undefined ? 60 : v;
                     scheduleOrientationToleranceHintUpdate(index);
                     onChangeFired();
                 },

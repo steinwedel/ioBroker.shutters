@@ -48,13 +48,13 @@ export function isSunProtectionEligible(
  * Orientation-based alternative to `isWithinTimeWindow()` (plan section 6.2): the sun is
  * "in front of" a facade facing `orientationDeg` (compass degrees, 0=N/90=E/180=S/270=W)
  * whenever its current azimuth lies within `[orientationDeg + toleranceMinusDeg, orientationDeg +
- * tolerancePlusDeg]`, e.g. a south-facing window (`orientationDeg=180`) with the default -70°/+70°
- * bounds is active for azimuths 110-250°. The two bounds need not be symmetric.
+ * tolerancePlusDeg]`, e.g. a south-facing window (`orientationDeg=180`) with the default -60°/+60°
+ * bounds is active for azimuths 120-240°. The two bounds need not be symmetric.
  *
  * @param sunAzimuthDeg - Current sun azimuth, compass degrees clockwise from North.
  * @param orientationDeg - Facade orientation, compass degrees clockwise from North (`IShutterConfig.orientation`).
- * @param toleranceMinusDeg - Lower bound offset (typically negative, e.g. -70) relative to `orientationDeg`, see `IShutterConfig.orientationToleranceMinusDeg`.
- * @param tolerancePlusDeg - Upper bound offset (typically positive, e.g. 70) relative to `orientationDeg`, see `IShutterConfig.orientationTolerancePlusDeg`.
+ * @param toleranceMinusDeg - Lower bound offset (typically negative, e.g. -60) relative to `orientationDeg`, see `IShutterConfig.orientationToleranceMinusDeg`.
+ * @param tolerancePlusDeg - Upper bound offset (typically positive, e.g. 60) relative to `orientationDeg`, see `IShutterConfig.orientationTolerancePlusDeg`.
  * @returns Whether the sun's azimuth currently lies within `orientationDeg + [toleranceMinusDeg, tolerancePlusDeg]`.
  */
 export function isWithinOrientationWindow(

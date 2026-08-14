@@ -111,6 +111,17 @@ export class AutomationEngine {
 
     /** Subscribes all configured door-contact states and starts the periodic evaluation tick. */
     public async start(): Promise<void> {
+        // Restore any sun-protection override deadline that was still active when the adapter last
+        // stopped (plan section 9a.2) - without this, a "Tagessperre" set by a manual command would be
+        // silently lost on every restart, and sun protection could re-engage the same day even though
+        // the user had just overridden it.
+        for (const [id, controller] of this.controllers) {
+            const state = this.states.get(id);
+            if (state) {
+                state.sunOverrideUntilMs = await controller.getPersistedSunProtectionOverrideUntil();
+            }
+        }
+
         const doorStateIds = new Set<string>();
         for (const controller of this.controllers.values()) {
             const stateId = controller.getConfig().doorContactStateId;
@@ -173,7 +184,8 @@ export class AutomationEngine {
     /**
      * Called by a covering's `onManualCommand` hook. If sun protection was
      * active for that covering, suspends it until local midnight (plan
-     * section 6.4).
+     * section 6.4), persisting the deadline (9a.2) so it survives an
+     * adapter restart before that midnight.
      *
      * @param coveringId - `IShutterConfig.id` of the covering that was just manually commanded.
      */
@@ -187,6 +199,13 @@ export class AutomationEngine {
         midnight.setHours(0, 0, 0, 0);
         state.sunOverrideUntilMs = midnight.getTime();
         state.sunActive = false;
+
+        const controller = this.controllers.get(coveringId);
+        controller?.setSunProtectionOverrideUntil(state.sunOverrideUntilMs).catch(err => {
+            this.adapter.log.error(
+                `Persisting sun-protection override for covering "${coveringId}" failed: ${(err as Error).message}`,
+            );
+        });
     }
 
     private tick(): void {
@@ -228,7 +247,7 @@ export class AutomationEngine {
             });
 
         if (state.windActive) {
-            this.applyTarget(id, controller, 0, 'Wind protection', config.doorContactStateId);
+            this.applyTarget(id, controller, 0, 'Wind protection', config.doorContactStateId, true);
             return;
         }
 
@@ -238,6 +257,19 @@ export class AutomationEngine {
             const target = config.rainTargetPercent ?? 100;
             this.applyTarget(id, controller, target, 'Rain protection', config.doorContactStateId);
             return;
+        }
+
+        // Once the override deadline has passed, clear it (both in-memory and persisted, plan section
+        // 9a.2) so a stale future-looking timestamp does not linger in the visible state tree, and so a
+        // manual command later that same day starts from a clean slate rather than instantly appearing
+        // "already overridden" from a leftover value.
+        if (state.sunOverrideUntilMs !== 0 && nowMs >= state.sunOverrideUntilMs) {
+            state.sunOverrideUntilMs = 0;
+            controller.setSunProtectionOverrideUntil(0).catch(err => {
+                this.adapter.log.error(
+                    `Clearing sun-protection override for covering "${id}" failed: ${(err as Error).message}`,
+                );
+            });
         }
 
         const sunEnabled = config.sunProtectionEnabled ?? true;
@@ -310,19 +342,28 @@ export class AutomationEngine {
             return isWithinOrientationWindow(
                 sun.azimuthDeg,
                 config.orientation,
-                config.orientationToleranceMinusDeg ?? -70,
-                config.orientationTolerancePlusDeg ?? 70,
+                config.orientationToleranceMinusDeg ?? -60,
+                config.orientationTolerancePlusDeg ?? 60,
             );
         }
         return isWithinTimeWindow(now, config.sunWindowStart, config.sunWindowEnd);
     }
 
+    /**
+     * @param id - `IShutterConfig.id` of the affected covering.
+     * @param controller - The covering's controller.
+     * @param desiredPercent - Target covering height/extension, 0-100, before door-contact clamping.
+     * @param reason - Human-readable reason for `statusText`, see `ShutterController.applyAutomatedPosition()`.
+     * @param doorContactStateId - The covering's configured door-contact state ID, if any.
+     * @param bypassMotorProtection - Forwarded to `applyAutomatedPosition()`; set for wind protection (7a), which must never wait on the motor-protection cooldown (7d).
+     */
     private applyTarget(
         id: string,
         controller: ShutterController,
         desiredPercent: number,
         reason: string,
         doorContactStateId: string | undefined,
+        bypassMotorProtection = false,
     ): void {
         const currentPercent = controller.getCurrentCoveringPercent();
         const doorOpen = doorContactStateId ? (this.doorOpenByStateId.get(doorContactStateId) ?? false) : false;
@@ -336,7 +377,7 @@ export class AutomationEngine {
         }
 
         this.lastApplied.set(id, { percent: target, reason });
-        controller.applyAutomatedPosition(target, reason).catch(err => {
+        controller.applyAutomatedPosition(target, reason, bypassMotorProtection).catch(err => {
             this.adapter.log.error(
                 `Applying automated position for covering "${id}" failed: ${(err as Error).message}`,
             );
