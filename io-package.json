@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.17",
+    "version": "0.0.18",
     "news": {
+      "0.0.18": {
+        "en": "**ENHANCED**: Split the sun-protection orientation tolerance into independent lower/upper bounds (`orientationToleranceMinusDeg`/`orientationTolerancePlusDeg`, default -70°/+70°), auto-filled by the admin UI and migrated from the old single `orientationToleranceDeg` field; the admin UI now also shows the approximate clock time each bound corresponds to today",
+        "de": "**ENHANCED**: Teilen Sie die Ausrichtungstoleranz des Sonnenschutzes in unabhängige untere/obere Grenzen (`OrientationToleranceMinusDeg`/`OrientationTolerancePlusDeg`, standardmäßig -70°/+70°), automatisch gefüllt durch die Admin-Benutzeroberfläche und migriert aus dem alten Einzelfeld `OrientationToleranceDeg`; die Admin-Benutzeroberfläche zeigt nun auch die ungefähre Uhrzeit an, der jede Grenze heute entspricht",
+        "ru": "** УСТАНОВЛЕНИЕ**: Расщепление толерантности к ориентации на солнце на независимые нижние/верхние границы (`orientationToleranceMinusDeg`/`orientationTolerancePlusDeg`, по умолчанию -70°/+70°), автозаполненное пользовательским интерфейсом администратора и мигрировавшее из старого единого поля `orientationToleranceDeg`; пользовательский интерфейс администратора теперь также показывает приблизительное время часов, каждое ограничение соответствует сегодняшнему дню",
+        "pt": "**ENHANCED**: Divida a tolerância de orientação de proteção solar em limites inferiores/superiores independentes (`orientaçãoToleranceMinusDeg`/`orientationTolerancePlusDeg`, padrão -70°/+70°), preenchido automaticamente pela interface de administração e migrado do velho campo `orientaçãoToleranceDeg`; a interface de administração agora também mostra o tempo aproximado de relógio cada limite corresponde a hoje",
+        "nl": "**ENHANKELIJK**: Splits de tolerantie voor zonbescherming in onafhankelijke lagere/bovengrenzen (georiënteerdToleranceMinusDeg",
+        "fr": "**ENHARE**: Divisez la tolérance d'orientation de protection solaire en limites inférieures/upper indépendantes (`orientationToléranceMinusDeg`/`orientationTolérancePlusDeg`, par défaut -70°/+70°), remplies automatiquement par l'interface utilisateur d'administration et migrées à partir de l'ancien champ `orientationToléranceDeg`; l'interface utilisateur d'administration affiche maintenant également le temps d'horloge approximatif que chaque liaison correspond à aujourd'hui",
+        "it": "**ENHANCED**: Dividere la tolleranza di orientamento alla protezione del sole in limiti inferiori/upper indipendenti (`orientazioneToleranceMinusDeg`/`orientationTolerancePlusDeg`, default -70°/+70°), riempito automaticamente dall'interfaccia utente di amministrazione e migrato dal vecchio campo \"orientationToleranceDeg`; l'orologio di amministratore ora mostra anche il tempo approssimativo",
+        "es": "**ENHANCED**: Dividir la tolerancia de orientación de protección solar en límites independientes inferiores/upper (`orientaciónToleranciaMinusDeg`/`orientaciónToleranciaPlusDeg`, default -70°/+70°), auto-filled by the admin UI and migrated from the old single `orientationToleranceDeg` field; the admin UI now represent each time now",
+        "pl": "* *ENHANCED* *: Podziel tolerancję orientacji ochrony przeciwsłonecznej na niezależne dolne / górne granice ('OrientationToleranceMinusDeg' / 'OrientationTolerancePlusDeg', domyślnie -70 ° / + 70 °), auto- wypełniony przez admin UI i wyemitowany ze starego pola 'OrientationToleranceDeg'; admin UI teraz pokazuje również przybliżony czas zegara każdy związany odpowiada dzisiaj ",
+        "uk": "**ENHANCED**: Спліт толерантності до орієнтаційної орієнтації сонця в незалежну нижню/верхову межу (`orientationToleranceMinusDeg`/`orientationTolerancePlusDeg`, за замовчуванням -70°/+70°), автоматично заповнену адміністрацією UI та мігровано з старого поля `orientationToleranceDeg`; admin UI тепер також показує приблизний годинниковий час, який відповідає сьогодні",
+        "zh-cn": "** ENHANCED**:将太阳保护定向容忍分为独立的下/上界限(`定向容忍最小值'/`定向容忍最小值'/`定向容忍最小值',默认-70°/+70°),由管理员UI自动填充,并从旧单“定向容忍最小值”字段迁移;管理员UI现在还显示每个界限与今天相对应的大约时钟时间"
+      },
       "0.0.17": {
         "en": "**ENHANCED**: Reconcile every covering's intended position (schedule/sun/wind/rain/frost) immediately on adapter startup, and re-evaluate immediately on every schedule trigger instead of waiting up to `automationTickMs`",
         "de": "**VERBESSERT**: Gleicht die vorgesehene Position jeder Abdeckung (Zeitplan/Sonne/Wind/Regen/Frost) sofort beim Start des Adapters ab und bewertet sie bei jedem Zeitplanauslöser sofort neu, anstatt bis zu `automationTickMs` zu warten.",
@@ -80,19 +93,6 @@
         "pl": "**NAPRAWIONO**: Użyj stabilnych identyfikatorów planu do pokrycia przypisań i migruj starsze przypisania oparte na nazwie",
         "uk": "**ВИПРАВЛЕНО**: Використовуйте стабільні ідентифікатори планів для покриття призначень та переносьте застарілі призначення на основі імен",
         "zh-cn": "**已修复**：使用稳定的计划 ID 进行覆盖分配，并迁移旧版基于名称的分配。"
-      },
-      "0.0.11": {
-        "en": "**FIXED**: Make the automation checkbox and weather-data state selectors usable in the Admin UI",
-        "de": "**BEHOBEN**: Die Kontrollkästchen für die Automatisierung und die Statusauswahl für Wetterdaten sind nun in der Admin-Oberfläche nutzbar.",
-        "ru": "**ИСПРАВЛЕНО**: Теперь флажок автоматизации и селекторы состояний данных о погоде доступны в административном интерфейсе.",
-        "pt": "**CORRIGIDO**: Agora é possível usar a caixa de seleção de automação e os seletores de estado dos dados meteorológicos na interface de administração.",
-        "nl": "**OPGELOST**: De selectievakjes voor automatisering en de statusselectoren voor weergegevens zijn nu bruikbaar in de beheerdersinterface.",
-        "fr": "**CORRIGÉ** : Les cases à cocher d’automatisation et les sélecteurs d’état des données météorologiques sont désormais utilisables dans l’interface d’administration.",
-        "it": "**RISOLTO**: Rendi utilizzabili la casella di controllo dell'automazione e i selettori dello stato dei dati meteorologici nell'interfaccia utente di amministrazione.",
-        "es": "**CORREGIDO**: Se habilitan la casilla de verificación de automatización y los selectores de estado de datos meteorológicos en la interfaz de administración.",
-        "pl": "**NAPRAWIONO**: Umożliwiono używanie pola wyboru automatyzacji i selektorów stanu danych pogodowych w interfejsie administratora",
-        "uk": "**ВИПРАВЛЕНО**: Зроблено прапорець автоматизації та селектори стану даних про погоду придатними для використання в інтерфейсі адміністратора",
-        "zh-cn": "**已修复**：使自动化复选框和天气数据状态选择器在管理界面中可用。"
       }
     },
     "titleLang": {

@@ -1,5 +1,5 @@
 # Changelog
-## **WORK IN PROGRESS**
+## 0.0.18 (2026-08-14)
 
 * (steinwedel) **ENHANCED**: Split the sun-protection orientation tolerance into independent lower/upper bounds (`orientationToleranceMinusDeg`/`orientationTolerancePlusDeg`, default -70°/+70°), auto-filled by the admin UI and migrated from the old single `orientationToleranceDeg` field; the admin UI now also shows the approximate clock time each bound corresponds to today
 
