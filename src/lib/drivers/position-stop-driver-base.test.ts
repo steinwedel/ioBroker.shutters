@@ -1,7 +1,12 @@
 import { expect } from 'chai';
 import { HomematicDriver } from './homematic-driver';
+import { PositionStopDriverBase } from './position-stop-driver-base';
 
 /** Minimal fake adapter exposing only what `PositionStopDriverBase` needs. */
+class IdentityDriver extends PositionStopDriverBase {
+    public readonly type = 'identity';
+}
+
 function createFakeAdapter(): {
     adapter: ioBroker.Adapter;
     setForeignStateCalls: { id: string; val: ioBroker.StateValue }[];
@@ -38,16 +43,18 @@ function createFakeAdapter(): {
 }
 
 describe('PositionStopDriverBase (via HomematicDriver)', () => {
-    it('writes the target position to the configured state', async () => {
+    it('converts normalized positions to Homematic LEVEL values', async () => {
         const { adapter, setForeignStateCalls } = createFakeAdapter();
         const driver = new HomematicDriver(adapter, 'hm-rpc.0.ABC.1.LEVEL', 'hm-rpc.0.ABC.1.LEVEL', undefined);
 
         await driver.setPosition(42);
 
-        expect(setForeignStateCalls).to.deep.equal([{ id: 'hm-rpc.0.ABC.1.LEVEL', val: 42 }]);
+        expect(setForeignStateCalls).to.have.length(1);
+        expect(setForeignStateCalls[0].id).to.equal('hm-rpc.0.ABC.1.LEVEL');
+        expect(setForeignStateCalls[0].val).to.be.closeTo(0.58, 0.000_001);
     });
 
-    it('open()/close() drive to 0/100', async () => {
+    it('opens with LEVEL 1 and closes with LEVEL 0', async () => {
         const { adapter, setForeignStateCalls } = createFakeAdapter();
         const driver = new HomematicDriver(adapter, 'hm-rpc.0.ABC.1.LEVEL', 'hm-rpc.0.ABC.1.LEVEL', undefined);
 
@@ -55,9 +62,20 @@ describe('PositionStopDriverBase (via HomematicDriver)', () => {
         await driver.close();
 
         expect(setForeignStateCalls).to.deep.equal([
+            { id: 'hm-rpc.0.ABC.1.LEVEL', val: 1 },
             { id: 'hm-rpc.0.ABC.1.LEVEL', val: 0 },
-            { id: 'hm-rpc.0.ABC.1.LEVEL', val: 100 },
         ]);
+    });
+
+    it('keeps identity mapping for non-Homematic position drivers', async () => {
+        const { adapter, setForeignStateCalls, emitStateChange } = createFakeAdapter();
+        const driver = new IdentityDriver(adapter, 'foreign.position', 'foreign.position', undefined);
+
+        await driver.setPosition(42);
+        emitStateChange('foreign.position', 55);
+
+        expect(setForeignStateCalls).to.deep.equal([{ id: 'foreign.position', val: 42 }]);
+        expect(driver.getCurrentPosition()).to.equal(55);
     });
 
     it('stop() writes to the stop state if configured, otherwise is a no-op', async () => {
@@ -82,9 +100,9 @@ describe('PositionStopDriverBase (via HomematicDriver)', () => {
 
         expect(driver.getCurrentPosition()).to.be.undefined;
 
-        emitStateChange('hm-rpc.0.ABC.1.LEVEL', 55);
+        emitStateChange('hm-rpc.0.ABC.1.LEVEL', 0.45);
 
-        expect(driver.getCurrentPosition()).to.equal(55);
+        expect(driver.getCurrentPosition()).to.be.closeTo(55, 0.000_001);
     });
 
     it('ignores state changes for unrelated states', () => {

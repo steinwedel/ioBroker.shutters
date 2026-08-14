@@ -1,11 +1,11 @@
 # Context
 
 ## Current Task
-- Replaced name-based plan assignments with stable plan IDs.
+- Corrected Homematic LEVEL direction and scaling for shutter positions.
 
 ## Key Decisions
-- Existing assignments migrate automatically at adapter startup.
-- A renamed legacy assignment is migrated when only one plan exists.
+- Adapter positions remain 0=open and 100=closed.
+- Homematic LEVEL now maps 0=open to 1 and 100=closed to 0.
 
 ## Next Steps
-- Deploy the change and verify the plan assignment in ioBroker Admin.
+- Deploy the correction and verify a scheduled opening.

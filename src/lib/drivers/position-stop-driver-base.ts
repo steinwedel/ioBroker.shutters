@@ -1,19 +1,5 @@
 import type { IShutterDriver } from './types';
 
-/**
- * Shared implementation for drivers that control a covering via a single
- * 0-100 position state (write target, optionally a separate read-back
- * state) plus an optional stop command - the shape used by Homematic, KNX,
- * Shelly and Zigbee/Zigbee2MQTT in the plan's driver table (section 2a.2).
- * System-specific drivers extend this and only override `type` unless they
- * need genuinely different behavior (e.g. value scaling).
- *
- * Known limitation: assumes the position state already reports 0-100 per
- * the ioBroker `level.blind` convention. Some Homematic (`hm-rpc`) setups
- * expose the raw HomeMatic protocol value (0-1) instead - that scaling is
- * not handled here and would need a dedicated `HomematicDriver` override if
- * encountered in practice.
- */
 export abstract class PositionStopDriverBase implements IShutterDriver {
     public abstract readonly type: string;
 
@@ -38,16 +24,23 @@ export abstract class PositionStopDriverBase implements IShutterDriver {
 
         const handler = (id: string, state: ioBroker.State | null | undefined): void => {
             if (id === this.positionActualStateId && state && typeof state.val === 'number') {
-                this.currentPosition = state.val;
+                this.currentPosition = this.fromExternalPosition(state.val);
             }
         };
         this.adapter.on('stateChange', handler);
         this.unsubscribe = () => this.adapter.removeListener('stateChange', handler);
     }
 
-    /** @param targetPercent - Target position 0-100. */
     public async setPosition(targetPercent: number): Promise<void> {
-        await this.adapter.setForeignStateAsync(this.positionStateId, targetPercent, false);
+        await this.adapter.setForeignStateAsync(this.positionStateId, this.toExternalPosition(targetPercent), false);
+    }
+
+    protected toExternalPosition(targetPercent: number): number {
+        return targetPercent;
+    }
+
+    protected fromExternalPosition(position: number): number {
+        return position;
     }
 
     /** Drives to position 0 (fully open/retracted). */

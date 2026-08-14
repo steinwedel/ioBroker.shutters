@@ -6,4 +6,12 @@ import { PositionStopDriverBase } from './position-stop-driver-base';
  */
 export class HomematicDriver extends PositionStopDriverBase {
     public readonly type = 'homematic';
+
+    protected toExternalPosition(targetPercent: number): number {
+        return 1 - targetPercent / 100;
+    }
+
+    protected fromExternalPosition(position: number): number {
+        return (1 - position) * 100;
+    }
 }

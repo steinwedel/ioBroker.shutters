@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.12",
+    "version": "0.0.13",
     "news": {
+      "0.0.13": {
+        "en": "**FIXED**: Convert Homematic LEVEL values between the adapter's covering position and the Homematic 0-1 direction",
+        "de": "**BEHOBEN**: Umrechnung der Homematic-LEVEL-Werte zwischen der Abdeckungsposition des Adapters und der Homematic-0-1-Richtung",
+        "ru": "**ИСПРАВЛЕНО**: Преобразование значений Homematic LEVEL между положением крышки адаптера и направлением Homematic 0-1",
+        "pt": "**CORRIGIDO**: Converter valores de NÍVEL Homematic entre a posição de cobertura do adaptador e a direção Homematic 0-1.",
+        "nl": "**OPGELOST**: Converteer Homematic LEVEL-waarden tussen de afdekpositie van de adapter en de Homematic 0-1-richting.",
+        "fr": "**CORRIGÉ** : Conversion des valeurs Homematic LEVEL entre la position de recouvrement de l’adaptateur et la direction Homematic 0-1",
+        "it": "**CORRETTO**: Conversione dei valori di LIVELLO Homematic tra la posizione di copertura dell'adattatore e la direzione Homematic 0-1",
+        "es": "**CORREGIDO**: Convierta los valores de NIVEL de Homematic entre la posición de cobertura del adaptador y la dirección 0-1 de Homematic.",
+        "pl": "**NAPRAWIONO**: Konwertuj wartości poziomu Homematic pomiędzy pozycją zakrywającą adaptera a kierunkiem Homematic 0-1",
+        "uk": "**ВИПРАВЛЕНО**: Перетворення значень Homematic LEVEL між положенням покриття адаптера та напрямком Homematic 0-1",
+        "zh-cn": "**已修复**：转换适配器覆盖位置和 Homematic 0-1 方向之间的 Homematic LEVEL 值"
+      },
       "0.0.12": {
         "en": "**FIXED**: Use stable plan IDs for covering assignments and migrate legacy name-based assignments",
         "de": "**BEHOBEN**: Stabile Plan-IDs für die Abdeckung von Zuordnungen verwenden und veraltete namensbasierte Zuordnungen migrieren",
@@ -80,19 +93,6 @@
         "pl": "Dodaj przycisk przeglądania/selektor stanu-ID do pól stanu i kontaktu drzwiowego na karcie Pokrycia, ponownie wykorzystując ten sam selektor drzewa/wyszukiwania",
         "uk": "Додайте кнопку/вибір за ідентифікатором штату до полів стану та контакту дверей на вкладці «Покриття», повторно використовуючи те саме дерево/вибір пошуку",
         "zh-cn": "将州 ID 浏览按钮/选择器添加到“覆盖物”选项卡的“州”和“门联系人”字段中，并重用相同的树状/搜索选择器。"
-      },
-      "0.0.6": {
-        "en": "Rebuild the state picker as a hierarchical folder-tree browser (like the classic ioBroker object browser), with role/name/live-value display and a boolean-only filter",
-        "de": "Die Statusauswahl soll als hierarchischer Ordnerbaum-Browser (ähnlich dem klassischen ioBroker-Objektbrowser) mit Anzeige von Rolle/Name/Live-Wert und einem Filter für boolesche Werte neu gestaltet werden.",
-        "ru": "Перестройте средство выбора состояний в виде иерархического древовидного браузера папок (подобно классическому браузеру объектов ioBroker) с отображением роли/имени/действующего значения и фильтром только для логических значений.",
-        "pt": "Recrie o seletor de estado como um navegador hierárquico em árvore de pastas (como o navegador de objetos clássico do ioBroker), com exibição de função/nome/valor em tempo real e um filtro somente booleano.",
-        "nl": "Herbouw de statuskiezer als een hiërarchische mappenstructuurbrowser (zoals de klassieke ioBroker-objectbrowser), met weergave van rol/naam/live waarde en een filter dat alleen booleaanse waarden accepteert.",
-        "fr": "Reconstruisez le sélecteur d'état sous forme d'explorateur de dossiers hiérarchique (comme l'explorateur d'objets ioBroker classique), avec un affichage rôle/nom/valeur dynamique et un filtre booléen uniquement.",
-        "it": "Ricostruire il selettore di stato come un browser ad albero gerarchico di cartelle (simile al classico browser di oggetti ioBroker), con visualizzazione di ruolo/nome/valore in tempo reale e un filtro solo booleano.",
-        "es": "Reconstruir el selector de estado como un explorador de árbol de carpetas jerárquico (como el explorador de objetos clásico de ioBroker), con visualización de rol/nombre/valor en vivo y un filtro solo booleano.",
-        "pl": "Odbudowa selektora stanu jako hierarchicznej przeglądarki drzewa folderów (podobnej do klasycznej przeglądarki obiektów ioBroker) z wyświetlaniem roli/nazwy/wartości na żywo i filtrem wyłącznie logicznym",
-        "uk": "Перебудуйте засіб вибору стану як ієрархічний браузер дерева папок (як класичний браузер об'єктів ioBroker) з відображенням ролей/назв/активних значень та фільтром лише для логічних значень",
-        "zh-cn": "将状态选择器重构为一个层级式文件夹树浏览器（类似于经典的 ioBroker 对象浏览器），显示角色/名称/实时值，并添加一个仅布尔值的过滤器。"
       }
     },
     "titleLang": {

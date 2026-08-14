@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.13 (2026-08-14)
+
+* (steinwedel) **FIXED**: Convert Homematic LEVEL values between the adapter's covering position and the Homematic 0-1 direction
+
 ## 0.0.12 (2026-08-14)
 
 * (steinwedel) **FIXED**: Use stable plan IDs for covering assignments and migrate legacy name-based assignments
