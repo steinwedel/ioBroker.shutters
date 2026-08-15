@@ -20,6 +20,8 @@ declare global {
             sunProtectionGlobalEnabled?: boolean;
             sunOpenThreshold?: number;
             sunOpenMinDurationMs?: number;
+            sunProtectionCloudCoverTriggerEnabled?: boolean;
+            sunProtectionClearSkyCloudCoverMaxPercent?: number;
             windOpenThreshold?: number;
             windCloseAllowedThreshold?: number;
             windCalmMinDurationMs?: number;

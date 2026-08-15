@@ -14,6 +14,7 @@ interface IFakeWeatherHandle {
     isSummer: boolean;
     outdoorTemp: number | undefined;
     humidity: number | undefined;
+    cloudCover: number | undefined;
 }
 
 function createFakeWeather(): IFakeWeatherHandle {
@@ -25,6 +26,7 @@ function createFakeWeather(): IFakeWeatherHandle {
         isSummer: true,
         outdoorTemp: undefined,
         humidity: undefined,
+        cloudCover: undefined,
     };
     handle.weather = {
         getWindSpeed: () => handle.windSpeed,
@@ -33,6 +35,7 @@ function createFakeWeather(): IFakeWeatherHandle {
         getIsSummer: () => handle.isSummer,
         getOutdoorTemperature: () => handle.outdoorTemp,
         getHumidity: () => handle.humidity,
+        getCloudCover: () => handle.cloudCover,
     } as unknown as WeatherSource;
     return handle;
 }
@@ -128,6 +131,8 @@ const DEFAULT_OPTIONS: IAutomationOptions = {
     sunProtectionGlobalEnabled: true,
     sunOpenThreshold: 150,
     sunOpenMinDurationMs: 600_000,
+    sunProtectionCloudCoverTriggerEnabled: false,
+    sunProtectionClearSkyCloudCoverMaxPercent: 40,
     windOpenThreshold: 40,
     windCloseAllowedThreshold: 25,
     windCalmMinDurationMs: 600_000,
@@ -224,6 +229,91 @@ describe('AutomationEngine', () => {
             expect(controllerHandle.appliedCalls).to.deep.equal([
                 { percent: 70, reason: 'Sun protection', bypass: false },
             ]);
+        });
+
+        it('a clear sky triggers sun protection independent of radiation once the cloud-cover trigger is enabled (plan section 6.3)', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(
+                makeConfig({ sunProtectionEnabled: true, sunTargetPercent: 70 }),
+            );
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                {
+                    ...DEFAULT_OPTIONS,
+                    sunProtectionCloudCoverTriggerEnabled: true,
+                    sunProtectionClearSkyCloudCoverMaxPercent: 40,
+                },
+            );
+
+            weather.windSpeed = 0;
+            weather.rain = false;
+            weather.solarRadiation = 0; // well below sunCloseThreshold (200) - radiation alone would not trigger
+            weather.cloudCover = 10; // clear sky
+            weather.isSummer = true;
+            engine.setScheduleTarget(controllerHandle.config.id, 0);
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 70, reason: 'Sun protection', bypass: false },
+            ]);
+        });
+
+        it('does not use the cloud-cover trigger while it is disabled, even at a clear sky reading', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(
+                makeConfig({ sunProtectionEnabled: true, sunTargetPercent: 70 }),
+            );
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS, // sunProtectionCloudCoverTriggerEnabled: false
+            );
+
+            weather.windSpeed = 0;
+            weather.rain = false;
+            weather.solarRadiation = 0;
+            weather.cloudCover = 0; // perfectly clear, but the trigger is disabled
+            weather.isSummer = true;
+            engine.setScheduleTarget(controllerHandle.config.id, 0);
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([{ percent: 0, reason: 'Schedule', bypass: false }]);
+        });
+
+        it('does not trigger via cloud cover once the sky is no longer clear/mostly clear', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(
+                makeConfig({ sunProtectionEnabled: true, sunTargetPercent: 70 }),
+            );
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                {
+                    ...DEFAULT_OPTIONS,
+                    sunProtectionCloudCoverTriggerEnabled: true,
+                    sunProtectionClearSkyCloudCoverMaxPercent: 40,
+                },
+            );
+
+            weather.windSpeed = 0;
+            weather.rain = false;
+            weather.solarRadiation = 0;
+            weather.cloudCover = 80; // overcast
+            weather.isSummer = true;
+            engine.setScheduleTarget(controllerHandle.config.id, 0);
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([{ percent: 0, reason: 'Schedule', bypass: false }]);
         });
 
         it('sun protection stays inactive below sunProtectionMinTemp, even at high radiation (plan section 6.5)', () => {

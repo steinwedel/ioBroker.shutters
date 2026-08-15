@@ -83,6 +83,11 @@ export class WeatherSource {
         return this.getNumber('humidityStateId');
     }
 
+    /** @returns Current cloud cover in % (0 = clear sky, 100 = fully overcast), or undefined if not configured/not yet received. */
+    public getCloudCover(): number | undefined {
+        return this.getNumber('cloudCoverStateId');
+    }
+
     private getNumber(key: keyof IWeatherConfig): number | undefined {
         const stateId = this.config[key];
         if (!stateId) {

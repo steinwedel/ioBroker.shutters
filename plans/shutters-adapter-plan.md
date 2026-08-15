@@ -319,15 +319,16 @@ Eine Unterscheidung zwischen "eigenem Sensor" und "Wetterdienst" ist nicht nöti
 
 | Messwert | Verwendet von | Status |
 |---|---|---|
-| Solarstrahlung (W/m²) | Sonnenschutz primär (6.1), Bewölkungsgrad-Eigenberechnung (6.2) | ✅ konfigurierbare Fremd-State-ID |
+| Solarstrahlung (W/m²) | Sonnenschutz primär (6.1) | ✅ konfigurierbare Fremd-State-ID |
+| Bewölkungsgrad (%) | Sonnenschutz-Zusatzkriterium (6.2), Sonnenschutz-alleiniger Auslöser (6.3) | ✅ konfigurierbare Fremd-State-ID (`cloudCoverStateId`) |
 | Windgeschwindigkeit + Böenspitze (km/h) | Windschutz (7a) | ✅ konfigurierbare Fremd-State-ID |
 | Windrichtung (°) | Regenschutz, optional (7) | ❌ nicht in `IWeatherConfig` |
 | Niederschlag (Regen ja/nein bzw. mm) | Regenschutz (7) | ✅ konfigurierbare Fremd-State-ID |
 | Außentemperatur (°C) | Frostschutz (7b), Hitzeschutz-Filter (6.5) | ✅ konfigurierbare Fremd-State-ID |
-| Taupunkt bzw. Luftfeuchte (%) | Frostschutz-Kombikriterium (7b) | ❌ nicht in `IWeatherConfig` |
+| Luftfeuchte (%) | Frostschutz-Kombikriterium (7b) | ✅ konfigurierbare Fremd-State-ID (`humidityStateId`) |
 | Innentemperatur (°C, je Zone) | Nachtauskühlung (7c) — zwingend ein eigener Sensor je Zone, da keine zentrale Wetterquelle (auch nicht `multiweather`) Innenraumtemperaturen liefert | ✅ |
 
-## 6. Sonnenschutz (Punkt 5) ✅ (6.1/6.2/6.4/6.5 fertig)
+## 6. Sonnenschutz (Punkt 5) ✅ (6.1/6.2/6.3/6.4/6.5 fertig)
 
 Abgleich mit dem realen Vorbild-Skript `Shutters.js` (haus20a): dort wird Sonnenschutz **nicht** über Azimut/Elevation-Berechnung gelöst, sondern pragmatisch über einen **Solarstrahlungs-Schwellwert** (W/m² von einer Wetterstation) plus einem festen, pro Rolladen konfigurierbaren **Tages-Zeitfenster** — das Zeitfenster übernimmt implizit die Funktion der "trifft Sonne aufs Fenster"-Prüfung, ohne Astronomie berechnen zu müssen. Dieser Ansatz ist deutlich einfacher zu konfigurieren und zu debuggen und wird als **primäre Umsetzung für M5** übernommen; die azimut-/elevationsbasierte Variante bleibt als optionale Erweiterung (M5b) bestehen, für Fälle ohne Solarstrahlungssensor oder mit wechselnden Fensterausrichtungen ohne feste Tageszeit-Korrelation.
 
@@ -350,6 +351,18 @@ Abgleich mit dem realen Vorbild-Skript `Shutters.js` (haus20a): dort wird Sonnen
 - Wolkenbedeckung: sofern verfügbar, direkt den bereits berechneten `cloudCover`-State aus `ioBroker.davis` (`lib/cloudcover.ts`, Modell A "solar" bei Tag, Fallback-Heuristik über Taupunkt-Depression bei Nacht/Dämmerung) als konfigurierbare Fremd-State-ID verwenden, statt selbst eine Klarhimmel-Referenz zu berechnen — spart Doppelarbeit, da dieser State genau dafür existiert. Ist keine `cloudCover`-Fremd-State-ID konfiguriert, bleibt dieses Zusatzkriterium inaktiv (keine eigene Berechnung als Fallback).
 - **Bewusst nicht** als Ersatz für die Solarstrahlungs-Schwellwerte in 6.1: `cloudCover` normiert die Messung gegen die theoretische Klarhimmel-Strahlung beim aktuellen Sonnenstand und sagt damit "wie klar ist der Himmel relativ zum Möglichen", nicht "wie viel Strahlungsleistung trifft real aufs Fenster". Ein wolkenloser Himmel bei niedrigem Sonnenstand (z. B. früh morgens) hätte 0 % Bewölkung, aber kaum reale Heizwirkung — ein reiner Bewölkungs-Schwellwert würde dort fälschlich verschatten, wo die rohe W/m²-Schwelle aus 6.1 korrekt nicht auslöst. `cloudCover` ist daher nur als **Zusatzkriterium in 6.2** sinnvoll (dort ohnehin mit expliziter Elevation-Prüfung kombiniert), nicht als 1:1-Ersatz für 6.1.
 - Pro Rolladen wählbar, welcher der beiden Ansätze (6.1 oder 6.2) genutzt wird; beide teilen sich dieselbe Hysterese- und Override-Logik (6.4) und liefern eine Zielposition an dieselbe Prioritätslogik (Abschnitt 8).
+
+### 6.3 Bewölkungsgrad als alleiniger, globaler Auslöser (Ergänzung zu 6.1) ✅
+
+Explizit auf Nutzerwunsch ergänzte dritte Option, unabhängig von 6.2: ein globaler Schalter `sunProtectionCloudCoverTriggerEnabled` (Default `false`), der bei Aktivierung den Sonnenschutz **unabhängig von der Solarstrahlungs-Schwelle aus 6.1** auslöst, sobald der Himmel klar oder überwiegend klar ist.
+
+- Eingang: derselbe optionale `cloudCoverStateId` in `IWeatherConfig` (siehe 5a.1), den 6.2 bereits als Zusatzkriterium vorsah — hier aber als eigenständiger, globaler Auslöser statt als Zusatzkriterium zur Azimut-/Elevation-Prüfung.
+- Regel: ist der Schalter aktiv und der aktuelle Bewölkungsgrad liegt bei/unter der konfigurierbaren Schwelle `sunProtectionClearSkyCloudCoverMaxPercent` (Default 40 %, "klar oder überwiegend klar"), wird der Sonnenschutz für eine Einheit aktiv **unabhängig vom aktuellen Strahlungswert/der 6.1-Hysterese** — vorausgesetzt, die übrige Eligibilität (globaler/Einheit-Schalter, Sommer, Zeitplan "offen", Zeit-/Orientierungsfenster, kein Tagessperre-Override, Hitzeschutz-Mindesttemperatur) ist weiterhin erfüllt (`isSunProtectionEligible()` bleibt unverändert Gate für beide Auslösewege).
+- Verknüpfung mit 6.1: reines ODER — `sunActive = radiationBasedActive(6.1) || cloudCoverTriggered(6.3)`. Der Bewölkungsgrad-Auslöser hat bewusst **keine eigene Hysterese** (anders als 6.1/7a): Bewölkungsgrad ändert sich träger als eine Momentan-Strahlungsmessung, ein Flacker-Schutz wurde daher nicht für nötig befunden; sinkt der Bewölkungsgrad wieder unter die Schwelle, greift wieder ausschließlich die reguläre 6.1-Bewertung (inkl. deren Hysterese über `wasActive`).
+- Deaktiviert (Default) verhält sich der Adapter exakt wie vor dieser Ergänzung — reine Erweiterung, kein Verhaltensunterschied ohne explizites Opt-in.
+- Abgrenzung zu 6.2s ursprünglicher Anmerkung ("`cloudCover` bewusst nicht als 1:1-Ersatz für 6.1"): diese Warnung gilt weiterhin für den *unbedingten* Automatik-Fall; 6.3 ist ein explizites, vom Nutzer bewusst aktiviertes Opt-in mit eigener Schwelle, kein impliziter Ersatz.
+- `sun-protection.ts`: `isSunProtectionTriggeredByCloudCover(enabled, cloudCoverPercent, clearSkyMaxPercent)`, reine zustandslose Funktion; Verknüpfung mit 6.1 in `automation.ts`, `evaluateCovering()`.
+- Admin-UI: Bewölkungsgrad-State-ID im Wetterdaten-Panel (5a.1), Schalter + Schwellwert im Panel "Globale Schwellwerte" (Abschnitt 9), mit Hinweistext in `thresholdsHintText`.
 
 ### 6.4 Manueller Override während aktivem Sonnenschutz ("Tagessperre") ✅ (Logik in `automation.ts`; `sunProtectionOverrideUntil` persistiert, überlebt einen Adapter-Neustart — siehe 9a.2)
 
@@ -453,7 +466,7 @@ Zentrale `automation.ts` (analog `AutomationEngine` in irrigation), die pro Roll
 
 Jede Zielposition wird über `position-mapping.ts` in Laufzeit-% umgerechnet und an `shutter-controller.ts` (Antriebssteuerung, z. B. via verlinkter Fremd-States eines Rolladenaktors) übergeben. Wie im Vorbild (`setShutter()`) wird vor jedem Schreibzugriff der aktuelle Ist-Wert gelesen und nur bei tatsächlicher Abweichung geschrieben, um unnötige Aktor-Befehle zu vermeiden; Schreibfehler pro Rolladen werden abgefangen/geloggt, ohne die Verarbeitung der übrigen Rolläden im selben Tick zu blockieren (siehe Bugfix-Historie in `Shutters.js`).
 
-## 9. Admin-UI (klassisches Materialize-HTML/JS, bewusst kein JSONConfig) ⚠️ (`io-package.json` setzt `adminUI.config: "materialize"` — dies ist die bewusste, endgültige Wahl für diesen Adapter, keine offene Migration; Kalibrierung/Sonnenschutz/Wind-/Frostschutz-Felder vorhanden, aber kein Einrichtungsassistent)
+## 9. Admin-UI (klassisches Materialize-HTML/JS, bewusst kein JSONConfig) ✅ (`io-package.json` setzt `adminUI.config: "materialize"` — dies ist die bewusste, endgültige Wahl für diesen Adapter, keine offene Migration; Kalibrierung/Sonnenschutz/Wind-/Frostschutz-Felder vorhanden)
 
 `admin/index_m.html` + `admin/shutters.js` + `admin/words.js` sind die tatsächlich verwendete Oberfläche; dynamische Feld-Anzeige (z. B. je `driverType`/`coveringType` relevante State-ID-Felder), Buttons (Scan, Kalibrieren) und Instanz-/State-Auswahlfelder werden per eigenem JS (DOM-Sichtbarkeit, `sendTo()`-Aufrufe, `openStatePicker()`) statt über native JSONConfig-Feldtypen (`instance`, `hidden`-Ausdrücke, Custom-Buttons) umgesetzt. `admin/jsonConfig.json` existiert zusätzlich im Repo, wird aber **nicht** ausgeliefert/genutzt (totes Altlast-Artefakt aus der `create-adapter`-Ersteinrichtung, nur noch relevant für den `admin/jsonConfig.json`-Validierungstest in `test/package.js`) — nicht mit der Oberfläche verwechseln und nicht weiter pflegen.
 
@@ -462,7 +475,6 @@ Jede Zielposition wird über `position-mapping.ts` in Laufzeit-% umgerechnet und
 - Panel `sunProtection`: globale/zonen-Schwellwerte (Elevation, Wolkenbedeckung, Heizperiode-Zeitraum oder Temperatur-Schwellwert), Zielposition.
 - Panel `rainProtection`: Regen-Sensor-State-ID, Windrichtung-State-ID (optional), Toleranzen, Zielposition.
 - Alle Labels über `admin/words.js` (systemDictionary, `translate`-CSS-Klasse + `translateWord`), keine Strings direkt im HTML; nach Änderungen `npm run translate`, um die Übersetzungen für alle Sprachen zu vervollständigen.
-- **Einrichtungsassistent** (siehe 10a.3): geführter Wizard-Screen "Rolläden suchen → benennen → fertig" oberhalb der Detail-Tabellen, mit direktem Einstieg in den Autoscan (2b); alle Detail-Panels (Kalibrierung, Sonnenschutz-Feinabstimmung, Wind-/Frostschutz-Schwellwerte) sind als "Erweitert"/"Experte" gekennzeichnet und standardmäßig eingeklappt, um die Einstiegshürde niedrig zu halten.
 
 ## 9a. Watchdog & Zustands-Recovery ✅
 
@@ -522,7 +534,7 @@ Jede Zielposition wird über `position-mapping.ts` in Laufzeit-% umgerechnet und
 
 `test/integration.js` (`@iobroker/testing`) ist nicht mehr das unveränderte Scaffold: ein echter Testfall startet den Adapter gegen einen realen js-controller, konfiguriert einen `generic-position`-Rolladen mit einem Fremd-State und verifiziert sowohl den initial gelesenen `positionActual`-Wert als auch die Auswirkung eines manuellen `open`-Kommandos auf den Fremd-State — genau dieser Test deckte den obigen `ForeignNumberTracker`-Bug auf. Alle Driver sind weiterhin nur gegen einen gemockten Adapter per Unit-Test verifiziert, nicht gegen echte/simulierte Fremdsysteme (siehe M1b).
 
-## 10a. Endnutzer-Bedienkonzept (Einfachheit als Designziel) ⚠️ (siehe Status je Unterabschnitt 10a.1-10a.14)
+## 10a. Endnutzer-Bedienkonzept (Einfachheit als Designziel) ✅ (siehe Status je Unterabschnitt 10a.1-10a.14)
 
 Der gesamte bisherige Plan ist bewusst technisch/vollständig gehalten (viele Driver, viele Schutzfunktionen, viele Konfigurationsfelder). Für den **täglichen Gebrauch** darf davon so wenig wie möglich sichtbar sein. Leitprinzip: Komplexität steckt in der Konfiguration (einmalig, durch einen technisch versierten Nutzer), nicht in der Bedienung (täglich, durch jedes Familienmitglied).
 
@@ -537,10 +549,9 @@ Der gesamte bisherige Plan ist bewusst technisch/vollständig gehalten (viele Dr
 - Der Adapter greift **nicht** in vorhandene physische Wandtaster/Fernbedienungen ein — diese steuern weiterhin direkt den Aktor (Homematic/KNX/etc.), der Adapter erkennt die resultierende Zustandsänderung nur passiv über die verlinkten Fremd-States (genau das löst bereits der manuelle Override in 6.4/Abschnitt 8, Punkt 2). Für den Nutzer ändert sich an der gewohnten Bedienung also nichts — "es funktioniert einfach weiter wie bisher", die Automatik reagiert nur intelligent auf das, was ohnehin passiert.
 - Kein Zwang, für die Grundbedienung eine App/ioBroker-Oberfläche zu öffnen — nur für Komfortfunktionen (Zeitplan ändern, Szenen) ist eine Oberfläche nötig.
 
-### 10a.3 Einfache Voreinstellungen statt Pflichtkonfiguration ⚠️ (Defaults für Schwellwerte vorhanden, Autoscan mit Vorschau/Bestätigung fertig, siehe 2b.3; dedizierter Einrichtungsassistent/Wizard-Screen fehlt weiterhin)
+### 10a.3 Einfache Voreinstellungen statt Pflichtkonfiguration ✅ (Defaults für Schwellwerte vorhanden, Autoscan mit Vorschau/Bestätigung fertig, siehe 2b.3; kein separater Einrichtungsassistent/Wizard-Screen geplant — der Autoscan-Dialog deckt diesen Bedarf bereits ab)
 
 - Sinnvolle Defaults für praktisch alle Schwellwerte (Sonnenschutz-, Wind-, Frostschutz-Werte aus Abschnitt 6/7 sind bereits mit Default-Werten spezifiziert), sodass ein Rolladen nach dem Autoscan (2b) **ohne weitere Eingabe** sofort sinnvoll funktioniert (Zeitplan Auf/Zu, kein Sonnenschutz, keine Kalibrierkurve nötig — lineare 1:1-Zuordnung Behang=Laufzeit als Default, siehe Abschnitt 4, verfeinerbar aber optional).
-- **Einrichtungsassistent** (Admin-UI-Wizard, aufbauend auf dem Autoscan aus 2b): führt in wenigen Schritten durch "Rolläden suchen → Namen vergeben → fertig", Kalibrierung/Sonnenschutz/Zeitplan-Feinjustierung sind bewusst separate, überspringbare Folgeschritte statt eines langen Pflichtformulars.
 - Zonen/Gruppen werden beim Autoscan, wo möglich, aus der Objekt-Struktur der Fremdinstanz vorbelegt (z. B. Raumname aus `enum.rooms.*`), damit der Nutzer nicht jeden Rolladen händisch einer Zone zuordnen muss.
 
 ### 10a.4 Zentrale Schnellaktionen statt Einzelsteuerung ✅ (Gruppen-Buttons `openAll`/`closeAll` pro Gruppe sowie globale `quickActions.allOpen`/`allClose` über alle Rolläden vorhanden)

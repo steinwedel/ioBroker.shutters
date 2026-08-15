@@ -1,14 +1,14 @@
 # Context
 
 ## Current Task
-- Extended autoscan (`shutter-scanner.ts`) to detect the 9 newly-added driver systems.
+- Added a cloud-cover weather metric plus a global opt-in switch that triggers sun protection purely by cloud cover (clear/mostly clear sky), independent of the solar-radiation threshold (plan section 6.3).
 
 ## Key Decisions
-- HmIP/EnOcean/Velbus/Velux/KLF200/Somfy(tahoma): added to `ADAPTER_TO_DRIVER_TYPE`, reusing the existing `level.blind`-role scan (assumes they follow that convention like Homematic/KNX/Shelly/Zigbee - unverified against real systems, but low-risk since it only extends already-working infrastructure).
-- Broadened `findStopSibling()` to also match a lowercase `.stop` suffix (not just `.STOP`/`button.stop`), matching HmIP/Velbus's typical naming.
-- Tuya/Loxone/Homey don't use the `level.blind` role, so they get dedicated name-suffix detection passes instead (`scanTuyaCandidates`/`scanLoxoneCandidates`/`scanHomeyCandidates`); Tuya/Loxone are namespace-scoped (`tuya.*`/`loxone.*`) to avoid false positives, Homey is namespace-independent since bridge integrations vary. Tuya's suffix matching tolerates a DP-number prefix (e.g. `1_percent_control`), a real-world Tuya naming detail found while writing the test.
-- Generic MQTT is deliberately NOT auto-discovered - the plan itself states its topics have no fixed naming convention, so pattern-matching would be unreliable.
-- Also fixed `homey-driver.ts`'s doc comment: Homey's real `windowcoverings_state` capability is a string status enum, not a numeric position readback as previously (incorrectly) documented.
+- New `IWeatherConfig.cloudCoverStateId` + `WeatherSource.getCloudCover()` follow the exact same pattern as `humidityStateId`/`outdoorTempStateId` (optional, undefined disables the feature).
+- New global options `sunProtectionCloudCoverTriggerEnabled` (default `false`) and `sunProtectionClearSkyCloudCoverMaxPercent` (default 40) - opt-in, no behavior change unless explicitly enabled.
+- Wired as a plain OR with the existing 6.1 radiation/hysteresis result in `automation.ts` (`sunActive = radiationActive || cloudCoverActive`); the cloud-cover path itself has no hysteresis of its own, unlike 6.1/7a.
+- Also fixed two stale ❌ statuses in the plan's 5a.1 table (humidity/dew-point) that were already implemented (`humidityStateId` was added in an earlier, undocumented change) - only the plan text was wrong, not the code.
 
 ## Next Steps
-- None outstanding for this change.
+- None outstanding for this change. Remaining open item from 5a.1/section 11: wind direction for rain protection is still not implemented.
+

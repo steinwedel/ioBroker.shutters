@@ -173,6 +173,8 @@ class Shutters extends utils.Adapter {
             sunProtectionGlobalEnabled: this.config.sunProtectionGlobalEnabled ?? true,
             sunOpenThreshold: this.config.sunOpenThreshold ?? 150,
             sunOpenMinDurationMs: this.config.sunOpenMinDurationMs ?? 600_000,
+            sunProtectionCloudCoverTriggerEnabled: this.config.sunProtectionCloudCoverTriggerEnabled ?? false,
+            sunProtectionClearSkyCloudCoverMaxPercent: this.config.sunProtectionClearSkyCloudCoverMaxPercent ?? 40,
             windOpenThreshold: this.config.windOpenThreshold ?? 40,
             windCloseAllowedThreshold: this.config.windCloseAllowedThreshold ?? 25,
             windCalmMinDurationMs: this.config.windCalmMinDurationMs ?? 600_000,

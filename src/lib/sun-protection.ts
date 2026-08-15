@@ -68,6 +68,30 @@ export function isHeatProtectionMinTempSatisfied(
 }
 
 /**
+ * Optional alternative trigger (plan section 6.3): instead of (or rather, in addition to) the
+ * radiation threshold/hysteresis in `evaluateSunProtection()`, sun protection may also be forced
+ * active purely based on cloud cover, whenever the sky is clear or mostly clear - on a clear summer
+ * day the sun is reliably strong regardless of what a single radiation sensor currently reads (e.g. a
+ * momentary sensor glitch, a shaded sensor location, or a reading that has not caught up yet), so a
+ * low-enough cloud-cover reading alone is treated as sufficient justification to shade, independent
+ * of `sunCloseThreshold`/`sunOpenThreshold`. This is a straight boolean check with no hysteresis of
+ * its own (unlike the radiation path) - the plan does not call for one, and cloud cover is a slower-
+ * moving, less flicker-prone measurement than instantaneous radiation.
+ *
+ * @param enabled - Whether this trigger is enabled at all, see `IAutomationOptions.sunProtectionCloudCoverTriggerEnabled`; disabled (`false`, the default) means this always returns `false`, leaving `evaluateSunProtection()`'s radiation-based decision as the sole trigger.
+ * @param cloudCoverPercent - Current cloud cover in % (0 = clear sky, 100 = fully overcast), or undefined if not measured/configured.
+ * @param clearSkyMaxPercent - `IAutomationOptions.sunProtectionClearSkyCloudCoverMaxPercent`: the cloud-cover percentage at/below which the sky counts as "clear or mostly clear".
+ * @returns Whether sun protection should be forced active by this trigger, independent of solar radiation.
+ */
+export function isSunProtectionTriggeredByCloudCover(
+    enabled: boolean,
+    cloudCoverPercent: number | undefined,
+    clearSkyMaxPercent: number,
+): boolean {
+    return enabled && cloudCoverPercent !== undefined && cloudCoverPercent <= clearSkyMaxPercent;
+}
+
+/**
  * Orientation-based alternative to `isWithinTimeWindow()` (plan section 6.2): the sun is
  * "in front of" a facade facing `orientationDeg` (compass degrees, 0=N/90=E/180=S/270=W)
  * whenever its current azimuth lies within `[orientationDeg + toleranceMinusDeg, orientationDeg +

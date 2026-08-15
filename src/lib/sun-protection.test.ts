@@ -3,6 +3,7 @@ import {
     evaluateSunProtection,
     isHeatProtectionMinTempSatisfied,
     isSunProtectionEligible,
+    isSunProtectionTriggeredByCloudCover,
     isWithinOrientationWindow,
     isWithinTimeWindow,
 } from './sun-protection';
@@ -89,6 +90,25 @@ describe('sun-protection', () => {
 
         it('is not satisfied when a threshold is configured but the temperature is unavailable', () => {
             expect(isHeatProtectionMinTempSatisfied(undefined, 20)).to.equal(false);
+        });
+    });
+
+    describe('isSunProtectionTriggeredByCloudCover (plan section 6.3)', () => {
+        it('never triggers when disabled, regardless of how clear the sky is', () => {
+            expect(isSunProtectionTriggeredByCloudCover(false, 0, 40)).to.equal(false);
+        });
+
+        it('triggers once enabled and cloud cover is at/below the clear-sky threshold', () => {
+            expect(isSunProtectionTriggeredByCloudCover(true, 40, 40)).to.equal(true);
+            expect(isSunProtectionTriggeredByCloudCover(true, 0, 40)).to.equal(true);
+        });
+
+        it('does not trigger once cloud cover rises above the clear-sky threshold', () => {
+            expect(isSunProtectionTriggeredByCloudCover(true, 40.1, 40)).to.equal(false);
+        });
+
+        it('does not trigger when enabled but cloud cover is unavailable', () => {
+            expect(isSunProtectionTriggeredByCloudCover(true, undefined, 40)).to.equal(false);
         });
     });
 

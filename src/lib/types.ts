@@ -153,6 +153,12 @@ export interface IWeatherConfig {
     /** Foreign state, relative humidity in %, used together with `outdoorTempStateId` by frost protection (7b). */
     humidityStateId?: string;
     isSummerStateId?: string;
+    /**
+     * Foreign state, cloud cover in % (0 = clear sky, 100 = fully overcast), used by the optional
+     * cloud-cover-only sun-protection trigger (plan section 6.3, see
+     * `IAutomationOptions.sunProtectionCloudCoverTriggerEnabled`).
+     */
+    cloudCoverStateId?: string;
 }
 
 /** One covering/target-position pair used by a group or scene action. */

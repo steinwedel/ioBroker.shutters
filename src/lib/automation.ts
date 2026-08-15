@@ -9,6 +9,7 @@ import {
     evaluateSunProtection,
     isHeatProtectionMinTempSatisfied,
     isSunProtectionEligible,
+    isSunProtectionTriggeredByCloudCover,
     isWithinOrientationWindow,
     isWithinTimeWindow,
 } from './sun-protection';
@@ -53,6 +54,17 @@ export interface IAutomationOptions {
     sunOpenThreshold: number;
     /** How long solar radiation must stay below `sunOpenThreshold` before opening again. */
     sunOpenMinDurationMs: number;
+    /**
+     * Whether the cloud-cover-only sun-protection trigger (plan section 6.3) is enabled at all;
+     * default `false`, since it requires `IWeatherConfig.cloudCoverStateId` to be configured to have
+     * any effect and is an opt-in addition to, not a replacement for, the radiation-based trigger.
+     */
+    sunProtectionCloudCoverTriggerEnabled: boolean;
+    /**
+     * Cloud cover (%) at/below which the sky counts as "clear or mostly clear" for the trigger above -
+     * only relevant while `sunProtectionCloudCoverTriggerEnabled` is `true`.
+     */
+    sunProtectionClearSkyCloudCoverMaxPercent: number;
     /** Wind speed (km/h) at/above which wind protection activates. */
     windOpenThreshold: number;
     /** Wind speed (km/h) below which wind protection may deactivate again, after `windCalmMinDurationMs`. */
@@ -403,13 +415,21 @@ export class AutomationEngine {
                 this.options.sunOpenThreshold,
                 this.options.sunOpenMinDurationMs,
             );
-            state.sunActive = evaluateSunProtection({
+            const radiationActive = evaluateSunProtection({
                 inWindow: true,
                 solarRadiation: this.weather.getSolarRadiation(),
                 closeThreshold: this.options.sunCloseThreshold,
                 openAllowed,
                 wasActive: state.sunActive,
             });
+            // Cloud-cover trigger (6.3): a clear/mostly clear sky forces sun protection active
+            // regardless of the radiation reading/hysteresis above - see `isSunProtectionTriggeredByCloudCover()`.
+            const cloudCoverActive = isSunProtectionTriggeredByCloudCover(
+                this.options.sunProtectionCloudCoverTriggerEnabled,
+                this.weather.getCloudCover(),
+                this.options.sunProtectionClearSkyCloudCoverMaxPercent,
+            );
+            state.sunActive = radiationActive || cloudCoverActive;
         }
         if (state.sunActive) {
             state.frostActive = false;

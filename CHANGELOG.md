@@ -1,6 +1,7 @@
 # Changelog
-## **WORK IN PROGRESS**
+## 0.0.20 (2026-08-15)
 
+* (steinwedel) **NEW**: Add an optional cloud-cover-only sun-protection trigger (plan section 6.3): configure a cloud-cover weather state, then optionally enable a global switch so sun protection activates whenever the sky is clear/mostly clear, independent of the solar-radiation threshold
 * (steinwedel) **NEW**: Add drivers for Homematic IP Cloud, Tuya, Somfy, Velux, EnOcean, Velbus, Loxone, Homey and generic MQTT covers, completing the plan's full driver list (auto-discovery for these still needs manual state IDs for now)
 * (steinwedel) **FIXED**: Tuya/Loxone drivers now clear their best-effort position estimate on `stop()` instead of leaving it wrongly pinned at 0/100 after a mid-movement stop, matching the existing generic-relay driver's behavior
 * (steinwedel) **ENHANCED**: Deduplicate the foreign-state read-back subscription and best-effort position-estimate logic shared across drivers into two reusable helpers

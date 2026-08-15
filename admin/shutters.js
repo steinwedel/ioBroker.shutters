@@ -193,6 +193,9 @@ function shuttersEnsureDefaults(settings) {
     settings.sunCloseThreshold = settings.sunCloseThreshold != null ? settings.sunCloseThreshold : 200;
     if (settings.sunProtectionGlobalEnabled === undefined) settings.sunProtectionGlobalEnabled = true;
     settings.sunOpenThreshold = settings.sunOpenThreshold != null ? settings.sunOpenThreshold : 150;
+    if (settings.sunProtectionCloudCoverTriggerEnabled === undefined) settings.sunProtectionCloudCoverTriggerEnabled = false;
+    settings.sunProtectionClearSkyCloudCoverMaxPercent =
+        settings.sunProtectionClearSkyCloudCoverMaxPercent != null ? settings.sunProtectionClearSkyCloudCoverMaxPercent : 40;
     settings.windOpenThreshold = settings.windOpenThreshold != null ? settings.windOpenThreshold : 40;
     settings.windCloseAllowedThreshold =
         settings.windCloseAllowedThreshold != null ? settings.windCloseAllowedThreshold : 25;
@@ -1811,6 +1814,7 @@ function renderWeather() {
         ['outdoorTempStateId', 'weatherOutdoorTemp'],
         ['humidityStateId', 'weatherHumidity'],
         ['isSummerStateId', 'weatherIsSummer'],
+        ['cloudCoverStateId', 'weatherCloudCover'],
     ];
     var row = document.createElement('div');
     row.className = 'shutters-row row';
@@ -1834,6 +1838,7 @@ function renderThresholds() {
     var fields = [
         ['sunCloseThreshold', 'sunCloseThreshold'],
         ['sunOpenThreshold', 'sunOpenThreshold'],
+        ['sunProtectionClearSkyCloudCoverMaxPercent', 'sunProtectionClearSkyCloudCoverMaxPercent'],
         ['windOpenThreshold', 'windOpenThreshold'],
         ['windCloseAllowedThreshold', 'windCloseAllowedThreshold'],
         ['frostThreshold', 'frostThreshold'],
@@ -1862,6 +1867,17 @@ function renderThresholds() {
             shuttersConfig.sunProtectionGlobalEnabled = v;
             onChangeFired();
         }),
+    );
+    row.appendChild(
+        makeCheckbox(
+            'threshold-sunProtectionCloudCoverTriggerEnabled',
+            'sunProtectionCloudCoverTriggerEnabled',
+            shuttersConfig.sunProtectionCloudCoverTriggerEnabled,
+            function (v) {
+                shuttersConfig.sunProtectionCloudCoverTriggerEnabled = v;
+                onChangeFired();
+            },
+        ),
     );
     container.appendChild(row);
     if (typeof translateAll === 'function') translateAll();
