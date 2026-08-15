@@ -73,6 +73,11 @@ export class WeatherSource {
         return val === undefined ? undefined : Boolean(val);
     }
 
+    /** @returns Current wind direction in degrees (0-359, compass, clockwise from North), or undefined if not configured/not yet received. */
+    public getWindDirection(): number | undefined {
+        return this.getNumber('windDirectionStateId');
+    }
+
     /** @returns Current outdoor temperature in °C, or undefined if not configured/not yet received. */
     public getOutdoorTemperature(): number | undefined {
         return this.getNumber('outdoorTempStateId');

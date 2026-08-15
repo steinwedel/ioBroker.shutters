@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.22 (2026-08-15)
+
+* (steinwedel) **NEW**: Add an optional per-covering wind-direction filter for rain protection (plan section 7): configure a wind-direction weather state, then optionally set a per-covering tolerance so rain protection only reacts to rain actually being blown toward that covering's window, based on its orientation - left unset, behavior is unchanged (protects on any rain)
+
 ## 0.0.21 (2026-08-15)
 
 * (steinwedel) **FIXED**: `automation.ts` now also re-applies an unchanged target/reason if the covering has settled (no move in flight) but its actual reported position has since drifted away from that target - previously only a target/reason change triggered a fresh command, so a drift caused by e.g. an external system/script writing the same foreign state went unnoticed until something else changed or the adapter restarted

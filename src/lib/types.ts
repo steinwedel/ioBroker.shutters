@@ -96,6 +96,16 @@ export interface IShutterConfig {
     rainProtectionEnabled?: boolean;
     /** Target covering position while rain protection is active, 0-100. Default: 100. */
     rainTargetPercent?: number;
+    /**
+     * Optional wind-direction filter for rain protection (plan section 7): tolerance (±°) around
+     * `orientation` counting as "wind is blowing rain toward this window". Requires both `orientation`
+     * and `IWeatherConfig.windDirectionStateId` to be set to have any effect; undefined (default)
+     * disables the filter entirely, i.e. rain protection reacts to rain regardless of wind direction -
+     * the previous, still backwards-compatible default behavior. A missing wind-direction reading at
+     * evaluation time also falls back to protecting unconditionally (fails open towards protection,
+     * not away from it).
+     */
+    rainProtectionWindDirectionToleranceDeg?: number;
 
     /**
      * Whether wind/storm protection (plan section 7a) is enabled for this
@@ -159,6 +169,13 @@ export interface IWeatherConfig {
     windSpeedStateId?: string;
     /** Foreign state, boolean rain indicator, used by rain protection (7). */
     rainStateId?: string;
+    /**
+     * Foreign state, wind direction in degrees (0-359, compass, clockwise from North), used by the
+     * optional per-covering wind-direction filter for rain protection (plan section 7, see
+     * `IShutterConfig.rainProtectionWindDirectionToleranceDeg`). Undefined disables that filter for
+     * every covering, regardless of their own tolerance setting.
+     */
+    windDirectionStateId?: string;
     /** Foreign state, outdoor temperature in °C, used by frost protection (7b). */
     outdoorTempStateId?: string;
     /** Foreign state, relative humidity in %, used together with `outdoorTempStateId` by frost protection (7b). */

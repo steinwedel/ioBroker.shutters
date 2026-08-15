@@ -63,6 +63,7 @@ describe('WeatherSource', () => {
             expect(weather.getOutdoorTemperature()).to.be.undefined;
             expect(weather.getHumidity()).to.be.undefined;
             expect(weather.getCloudCover()).to.be.undefined;
+            expect(weather.getWindDirection()).to.be.undefined;
             expect(weather.getIsSummer()).to.equal(true); // no isSummerStateId configured => always summer
         });
     });
@@ -77,6 +78,7 @@ describe('WeatherSource', () => {
                 humidityStateId: 'foreign.humidity',
                 isSummerStateId: 'foreign.isSummer',
                 cloudCoverStateId: 'foreign.cloudCover',
+                windDirectionStateId: 'foreign.windDirection',
             };
             const { adapter, subscribedIds } = createFakeAdapter({
                 'foreign.solar': 250,
@@ -86,6 +88,7 @@ describe('WeatherSource', () => {
                 'foreign.humidity': 65,
                 'foreign.isSummer': true,
                 'foreign.cloudCover': 20,
+                'foreign.windDirection': 270,
             });
             const weather = new WeatherSource(adapter, config);
 
@@ -99,6 +102,7 @@ describe('WeatherSource', () => {
             expect(weather.getHumidity()).to.equal(65);
             expect(weather.getIsSummer()).to.equal(true);
             expect(weather.getCloudCover()).to.equal(20);
+            expect(weather.getWindDirection()).to.equal(270);
         });
 
         it('does not subscribe to metrics without a configured state ID', async () => {

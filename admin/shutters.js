@@ -1285,6 +1285,7 @@ function renderCoveringCard(covering, index) {
     protectionRow1.appendChild(
         makeCheckbox('cov-' + index + '-rainProtectionEnabled', 'rainProtectionEnabled', covering.rainProtectionEnabled, function (v) {
             covering.rainProtectionEnabled = v;
+            renderCoverings(); // re-render: the wind-direction tolerance field only shows while enabled
             onChangeFired();
         }),
     );
@@ -1308,6 +1309,28 @@ function renderCoveringCard(covering, index) {
         }),
     );
     card.appendChild(protectionRow1);
+
+    // Only show the wind-direction tolerance field when rain protection is enabled and an orientation
+    // is configured (plan section 7) - without an orientation there is no window-facing reference to
+    // compare the wind direction against, so the field would have no effect.
+    if (covering.rainProtectionEnabled && covering.orientation !== undefined && covering.orientation !== '') {
+        var rainWindDirectionRow = document.createElement('div');
+        rainWindDirectionRow.className = 'shutters-row row';
+        rainWindDirectionRow.appendChild(
+            makeText(
+                'cov-' + index + '-rainProtectionWindDirectionToleranceDeg',
+                'rainProtectionWindDirectionToleranceDeg',
+                covering.rainProtectionWindDirectionToleranceDeg,
+                3,
+                function (v) {
+                    covering.rainProtectionWindDirectionToleranceDeg = v;
+                    onChangeFired();
+                },
+                'number',
+            ),
+        );
+        card.appendChild(rainWindDirectionRow);
+    }
 
     // Only show the indoor-temperature field when night cooling is actually enabled for this covering
     // (plan section 7c) - it stays fully inactive without both this being enabled and a sensor configured.
@@ -1821,6 +1844,7 @@ function renderWeather() {
         ['humidityStateId', 'weatherHumidity'],
         ['isSummerStateId', 'weatherIsSummer'],
         ['cloudCoverStateId', 'weatherCloudCover'],
+        ['windDirectionStateId', 'weatherWindDirection'],
     ];
     var row = document.createElement('div');
     row.className = 'shutters-row row';

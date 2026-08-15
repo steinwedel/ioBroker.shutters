@@ -368,7 +368,14 @@ export class AutomationEngine {
         }
 
         const rainEnabled = config.rainProtectionEnabled ?? true;
-        const rainActive = rainEnabled && evaluateRainProtection(this.weather.getRain());
+        const rainActive =
+            rainEnabled &&
+            evaluateRainProtection({
+                rain: this.weather.getRain(),
+                windDirectionDeg: this.weather.getWindDirection(),
+                orientationDeg: config.orientation,
+                windDirectionToleranceDeg: config.rainProtectionWindDirectionToleranceDeg,
+            });
         if (rainActive) {
             state.frostActive = false;
             state.nightCoolingActive = false;

@@ -1,13 +1,14 @@
 # Context
 
 ## Current Task
-- Fixed a real gap exposed by the `script.js.Shutters` conflict (now resolved - user disabled the legacy script, confirmed): `applyTarget()` in `automation.ts` only re-applied a target on an actual target/reason change, never noticing if the covering had settled but then drifted away from that target for any other reason. Added a drift check against `ShutterController.getCurrentCoveringPercent()`, gated by a new `hasPendingMove()` so it does not fire during normal in-flight travel (that stays the watchdog's job).
+- Implemented the optional wind-direction filter for rain protection (plan section 7): `IWeatherConfig.windDirectionStateId`, `IShutterConfig.rainProtectionWindDirectionToleranceDeg`, `rain-protection.ts` rewritten to accept an inputs object, admin UI (weather panel + per-covering field), full test coverage. Cleaned up plan docs: removed the iCal open question (not needed, per user) and the wind-direction open question (now implemented, not just answered) from section 11, which is now fully closed.
 
 ## Key Decisions
-- Drift check only applies once `hasPendingMove()` is `false` (settled) - deliberately not compared while a move is still in flight, to avoid duplicating/conflicting with the watchdog (9a.1).
-- Reused `WATCHDOG_TOLERANCE_PERCENT` (now exported from `shutter-controller.ts`) as the "close enough to be considered arrived" tolerance, for consistency with the watchdog's own notion of "reached".
-- `invertPosition` (previous change) turned out not to be the actual root cause of the original incident - the legacy script conflict was - but it remains as a legitimate, independently useful feature.
+- Wind-direction filter is opt-in per covering (`rainProtectionWindDirectionToleranceDeg` undefined = old unconditional behavior unchanged) and "fails open" toward protection if orientation/tolerance/reading are missing.
+- Reused `isWithinOrientationWindow()` from `sun-protection.ts` for the ±° window check instead of duplicating wraparound-safe angle math.
+- Confirmed on haus20a: `davis.0.sensors.tx1.windDirAvg10Min` is the real wind-direction sensor state (10-min average, matches the already-configured `windSpeedHi10Min`).
+- Section 11 ("Offene Fragen") is now empty/closed - both remaining bullets (iCal, Windrichtung) were resolved this session.
 
 ## Next Steps
-- None outstanding. Both the immediate live incident (legacy script) and the adapter-side gap it exposed are resolved.
+- Not yet deployed to haus20a (code complete, tests/lint green). No `windDirectionStateId`/`rainProtectionWindDirectionToleranceDeg` configured on any live covering yet - purely additive until the user opts in.
 

@@ -15,6 +15,7 @@ interface IFakeWeatherHandle {
     outdoorTemp: number | undefined;
     humidity: number | undefined;
     cloudCover: number | undefined;
+    windDirection: number | undefined;
 }
 
 function createFakeWeather(): IFakeWeatherHandle {
@@ -27,6 +28,7 @@ function createFakeWeather(): IFakeWeatherHandle {
         outdoorTemp: undefined,
         humidity: undefined,
         cloudCover: undefined,
+        windDirection: undefined,
     };
     handle.weather = {
         getWindSpeed: () => handle.windSpeed,
@@ -36,6 +38,7 @@ function createFakeWeather(): IFakeWeatherHandle {
         getOutdoorTemperature: () => handle.outdoorTemp,
         getHumidity: () => handle.humidity,
         getCloudCover: () => handle.cloudCover,
+        getWindDirection: () => handle.windDirection,
     } as unknown as WeatherSource;
     return handle;
 }
@@ -713,6 +716,85 @@ describe('AutomationEngine', () => {
             expect(controllerHandle.appliedCalls).to.deep.equal([
                 { percent: 40, reason: 'Rain protection', bypass: false },
             ]);
+        });
+
+        it('protects on any rain when no wind-direction filter is configured, even with orientation set', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(
+                makeConfig({ orientation: 180, sunProtectionEnabled: false }),
+            );
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            weather.windSpeed = 0;
+            weather.rain = true;
+            weather.windDirection = 0; // blowing away from this South-facing window
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 100, reason: 'Rain protection', bypass: false },
+            ]);
+        });
+
+        it('protects when the wind-direction filter is configured and the wind blows toward the window', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(
+                makeConfig({
+                    orientation: 180,
+                    rainProtectionWindDirectionToleranceDeg: 45,
+                    sunProtectionEnabled: false,
+                }),
+            );
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            weather.windSpeed = 0;
+            weather.rain = true;
+            weather.windDirection = 190; // within ±45° of 180°
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 100, reason: 'Rain protection', bypass: false },
+            ]);
+        });
+
+        it('does not protect when the wind-direction filter is configured and the wind blows away from the window', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(
+                makeConfig({
+                    orientation: 180,
+                    rainProtectionWindDirectionToleranceDeg: 45,
+                    sunProtectionEnabled: false,
+                }),
+            );
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            weather.windSpeed = 0;
+            weather.rain = true;
+            weather.windDirection = 0; // outside ±45° of 180°
+            engine.setScheduleTarget(controllerHandle.config.id, 0);
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([{ percent: 0, reason: 'Schedule', bypass: false }]);
         });
     });
 

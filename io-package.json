@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.21",
+    "version": "0.0.22",
     "news": {
+      "0.0.22": {
+        "en": "**NEW**: Add an optional per-covering wind-direction filter for rain protection (plan section 7): configure a wind-direction weather state, then optionally set a per-covering tolerance so rain protection only reacts to rain actually being blown toward that covering's window, based on its orientation - left unset, behavior is unchanged (protects on any rain)",
+        "de": "**NEU**: Optionaler Windrichtungsfilter für den Regenschutz pro Abdeckung (Planabschnitt 7): Konfigurieren Sie einen Wetterzustand für die Windrichtung und legen Sie optional eine Toleranz pro Abdeckung fest, sodass der Regenschutz nur auf Regen reagiert, der tatsächlich auf das Fenster der jeweiligen Abdeckung gerichtet ist, basierend auf deren Ausrichtung. Wenn diese Option nicht festgelegt ist, bleibt das Verhalten unverändert (Schutz bei jedem Regen).",
+        "ru": "**НОВИНКА**: Добавьте дополнительный фильтр направления ветра для каждой шторы для защиты от дождя (раздел плана 7): настройте погодные условия, связанные с направлением ветра, а затем, при необходимости, установите допуск для каждой шторы, чтобы защита от дождя реагировала только на дождь, фактически дующий в сторону окна этой шторы, в зависимости от ее ориентации — если этот параметр не задан, поведение остается неизменным (защита от любого дождя).",
+        "pt": "**NOVO**: Adicione um filtro opcional de direção do vento por cobertura para proteção contra chuva (seção 7 do plano): configure um estado climático de direção do vento e, opcionalmente, defina uma tolerância por cobertura para que a proteção contra chuva reaja apenas à chuva que realmente está sendo soprada em direção à janela daquela cobertura, com base em sua orientação - se não estiver definida, o comportamento permanece inalterado (protege contra qualquer chuva).",
+        "nl": "**NIEUW**: Voeg een optioneel filter voor windrichting per overkapping toe voor regenbescherming (planonderdeel 7): configureer een weersomstandigheid voor de windrichting en stel vervolgens optioneel een tolerantie per overkapping in, zodat de regenbescherming alleen reageert op regen die daadwerkelijk richting het raam van die overkapping waait, op basis van de oriëntatie ervan. Indien niet ingesteld, blijft het gedrag ongewijzigd (bescherming bij alle regen).",
+        "fr": "**NOUVEAU** : Ajout d’un filtre optionnel de direction du vent par couverture pour la protection contre la pluie (section 7 du plan) : configurez un état météorologique de direction du vent, puis définissez éventuellement une tolérance par couverture afin que la protection contre la pluie ne réagisse qu’à la pluie soufflée vers la fenêtre de cette couverture, en fonction de son orientation ; si cette option n’est pas définie, le comportement reste inchangé (protection contre toute pluie).",
+        "it": "**NOVITÀ**: Aggiungi un filtro opzionale per la direzione del vento per ogni copertura per la protezione dalla pioggia (sezione 7 del progetto): configura uno stato meteorologico per la direzione del vento, quindi imposta facoltativamente una tolleranza per ogni copertura in modo che la protezione dalla pioggia reagisca solo alla pioggia effettivamente soffiata verso la finestra di quella copertura, in base al suo orientamento - se non impostato, il comportamento rimane invariato (protegge con qualsiasi pioggia)",
+        "es": "**NUEVO**: Añada un filtro opcional de dirección del viento por cubierta para la protección contra la lluvia (sección 7 del plano): configure un estado meteorológico de dirección del viento y, opcionalmente, establezca una tolerancia por cubierta para que la protección contra la lluvia solo reaccione cuando la lluvia se dirija realmente hacia la ventana de esa cubierta, según su orientación; si no se configura, el comportamiento no cambia (protege con cualquier lluvia).",
+        "pl": "**NOWOŚĆ**: Dodaj opcjonalny filtr kierunku wiatru dla każdego pokrycia w celu ochrony przed deszczem (sekcja planu 7): skonfiguruj stan pogody dla kierunku wiatru, a następnie opcjonalnie ustaw tolerancję dla każdego pokrycia, tak aby ochrona przed deszczem reagowała tylko na deszcz faktycznie wiejący w kierunku okna danego pokrycia, w oparciu o jego orientację — jeśli nie zostanie ustawiony, zachowanie pozostaje niezmienione (chroni przed każdym deszczem)",
+        "uk": "**НОВЕ**: Додайте додатковий фільтр напрямку вітру для кожного покриття для захисту від дощу (розділ плану 7): налаштуйте погодний стан напрямку вітру, а потім за потреби встановіть допуск для кожного покриття, щоб захист від дощу реагував лише на дощ, який фактично падає на вікно цього покриття, залежно від його орієнтації – якщо не налаштовано, поведінка не змінюється (захищає від будь-якого дощу)",
+        "zh-cn": "**新增**：为防雨罩添加可选的风向过滤器（方案第 7 部分）：配置风向天气状态，然后可选择设置每个遮盖物的容差，以便防雨罩仅在雨水实际吹向该遮盖物窗户时才做出反应，具体取决于其朝向 - 如果未设置，则行为不变（在任何雨天都提供保护）。"
+      },
       "0.0.21": {
         "en": "**FIXED**: `automation.ts` now also re-applies an unchanged target/reason if the covering has settled (no move in flight) but its actual reported position has since drifted away from that target - previously only a target/reason change triggered a fresh command, so a drift caused by e.g. an external system/script writing the same foreign state went unnoticed until something else changed or the adapter restarted\n**NEW**: Add a per-covering `invertPosition` option (plan section 2a.6) to compensate for an individual actuator wired/configured with the opposite direction from its siblings on the same system (observed on a Homematic blind channel that closed fully instead of stopping at the configured 85%)",
         "de": "**BEHOBEN**: `automation.ts` wendet nun auch dann ein unverändertes Ziel/einen unveränderten Grund erneut an, wenn sich die Abdeckung stabilisiert hat (keine Bewegung im Flug), ihre tatsächlich gemeldete Position aber inzwischen von diesem Ziel abgedriftet ist. Zuvor löste nur eine Änderung des Ziels/Grundes einen neuen Befehl aus, sodass eine Abweichung, die z. B. durch ein externes System/Skript verursacht wurde, das denselben fremden Zustand schrieb, unbemerkt blieb, bis sich etwas anderes änderte oder der Adapter neu gestartet wurde.\n**NEU**: Es wurde eine Option `invertPosition` pro Abdeckung hinzugefügt (Planabschnitt 2a.6), um einen einzelnen Aktor zu kompensieren, der in die entgegengesetzte Richtung zu seinen Geschwistern im selben System verdrahtet/konfiguriert ist (beobachtet an einem Homematic-Rollladenkanal, der sich vollständig schloss, anstatt bei den konfigurierten 85 % anzuhalten).",
@@ -80,19 +93,6 @@
         "pl": "**ULEPSZONE**: Wyznaczanie aktywnego okna ochrony przeciwsłonecznej na podstawie orientacji okna (± tolerancja) i azymutu słońca zamiast stałego okna czasowego",
         "uk": "**ПОКРАЩЕНО**: Визначення активного вікна сонцезахисту здійснюється на основі орієнтації вікна (± допуск) та азимуту сонця замість фіксованого вікна за годинником.",
         "zh-cn": "**增强功能**：根据窗户朝向（±公差）和太阳方位角而非固定的时钟时间窗口来确定防晒有效窗口。"
-      },
-      "0.0.15": {
-        "en": "**ENHANCED**: Restrict sun protection to the scheduled-open period and optional summer mode",
-        "de": "**VERBESSERT**: Sonnenschutz auf die planmäßige Öffnungszeit und den optionalen Sommermodus beschränken.",
-        "ru": "**УЛУЧШЕНО**: Ограничьте использование средств защиты от солнца периодом работы заведения и включите дополнительный летний режим.",
-        "pt": "**APRIMORADO**: Restrinja a proteção solar ao período de funcionamento programado e ative o modo verão opcional.",
-        "nl": "**VERBETERD**: Beperk zonbescherming tot de geplande openingstijden en de optionele zomermodus.",
-        "fr": "**AMÉLIORÉ** : Protection solaire limitée aux heures d’ouverture programmées et au mode été optionnel",
-        "it": "**MIGLIORATO**: Limita la protezione solare al periodo di apertura programmato e alla modalità estiva opzionale.",
-        "es": "**MEJORADO**: Restringe la protección solar al período de apertura programado y al modo de verano opcional.",
-        "pl": "**ULEPSZONE**: Ogranicz ochronę przeciwsłoneczną do okresu zaplanowanego otwarcia i opcjonalnego trybu letniego",
-        "uk": "**ПОКРАЩЕНО**: Обмеження захисту від сонця запланованим періодом роботи та додатковим літнім режимом",
-        "zh-cn": "**增强功能**：将防晒功能限制在预定的开放时间段内，并可选择开启夏季模式。"
       }
     },
     "titleLang": {
