@@ -1,14 +1,13 @@
 # Context
 
 ## Current Task
-- Added a cloud-cover weather metric plus a global opt-in switch that triggers sun protection purely by cloud cover (clear/mostly clear sky), independent of the solar-radiation threshold (plan section 6.3).
+- Fixed a real gap exposed by the `script.js.Shutters` conflict (now resolved - user disabled the legacy script, confirmed): `applyTarget()` in `automation.ts` only re-applied a target on an actual target/reason change, never noticing if the covering had settled but then drifted away from that target for any other reason. Added a drift check against `ShutterController.getCurrentCoveringPercent()`, gated by a new `hasPendingMove()` so it does not fire during normal in-flight travel (that stays the watchdog's job).
 
 ## Key Decisions
-- New `IWeatherConfig.cloudCoverStateId` + `WeatherSource.getCloudCover()` follow the exact same pattern as `humidityStateId`/`outdoorTempStateId` (optional, undefined disables the feature).
-- New global options `sunProtectionCloudCoverTriggerEnabled` (default `false`) and `sunProtectionClearSkyCloudCoverMaxPercent` (default 40) - opt-in, no behavior change unless explicitly enabled.
-- Wired as a plain OR with the existing 6.1 radiation/hysteresis result in `automation.ts` (`sunActive = radiationActive || cloudCoverActive`); the cloud-cover path itself has no hysteresis of its own, unlike 6.1/7a.
-- Also fixed two stale ❌ statuses in the plan's 5a.1 table (humidity/dew-point) that were already implemented (`humidityStateId` was added in an earlier, undocumented change) - only the plan text was wrong, not the code.
+- Drift check only applies once `hasPendingMove()` is `false` (settled) - deliberately not compared while a move is still in flight, to avoid duplicating/conflicting with the watchdog (9a.1).
+- Reused `WATCHDOG_TOLERANCE_PERCENT` (now exported from `shutter-controller.ts`) as the "close enough to be considered arrived" tolerance, for consistency with the watchdog's own notion of "reached".
+- `invertPosition` (previous change) turned out not to be the actual root cause of the original incident - the legacy script conflict was - but it remains as a legitimate, independently useful feature.
 
 ## Next Steps
-- None outstanding for this change. Remaining open item from 5a.1/section 11: wind direction for rain protection is still not implemented.
+- None outstanding. Both the immediate live incident (legacy script) and the adapter-side gap it exposed are resolved.
 

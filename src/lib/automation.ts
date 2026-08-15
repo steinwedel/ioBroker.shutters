@@ -5,6 +5,7 @@ import { BelowThresholdHysteresis } from './generic-hysteresis';
 import { evaluateNightCooling } from './night-cooling';
 import { evaluateRainProtection } from './rain-protection';
 import type { ShutterController } from './shutter-controller';
+import { WATCHDOG_TOLERANCE_PERCENT } from './shutter-controller';
 import {
     evaluateSunProtection,
     isHeatProtectionMinTempSatisfied,
@@ -533,9 +534,27 @@ export class AutomationEngine {
         const target = clampForDoorProtection(desiredPercent, currentPercent, doorOpen);
 
         const previous = this.lastApplied.get(id);
-        // Wind protection always re-asserts (plan section 7a); everything
-        // else only re-applies when the resolved target/reason actually changed.
-        if (reason !== 'Wind protection' && previous && previous.percent === target && previous.reason === reason) {
+        // A covering that is not currently mid-move (per `hasPendingMove()`) but whose actual reported
+        // position no longer matches what we last applied has drifted away independent of this engine
+        // - e.g. an external system/script writing to the same foreign state (see plan section 2a.6/11).
+        // Re-asserting the target here is the only way this engine would ever notice/correct that,
+        // since it otherwise only re-applies on an actual target/reason change. Deliberately not
+        // checked while a move is still in flight - that is expected to differ from the target for a
+        // while and is already the watchdog's (9a.1) responsibility, not this one's.
+        const hasDrifted =
+            !controller.hasPendingMove() &&
+            currentPercent !== undefined &&
+            Math.abs(currentPercent - target) > WATCHDOG_TOLERANCE_PERCENT;
+
+        // Wind protection always re-asserts (plan section 7a); everything else only re-applies when
+        // the resolved target/reason actually changed, or the covering has drifted away (see above).
+        if (
+            reason !== 'Wind protection' &&
+            !hasDrifted &&
+            previous &&
+            previous.percent === target &&
+            previous.reason === reason
+        ) {
             return;
         }
 

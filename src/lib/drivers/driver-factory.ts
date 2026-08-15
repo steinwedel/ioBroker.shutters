@@ -28,6 +28,7 @@ const POSITION_STOP_DRIVERS: Partial<
             stop: string | undefined,
             tilt?: string,
             tiltActual?: string,
+            invertPosition?: boolean,
         ) => PositionStopDriverBase
     >
 > = {
@@ -70,6 +71,7 @@ export function createDriver(adapter: ioBroker.Adapter, config: IShutterConfig):
             config.states.stop,
             config.states.tilt,
             config.states.tiltActual,
+            config.invertPosition,
         );
     }
 

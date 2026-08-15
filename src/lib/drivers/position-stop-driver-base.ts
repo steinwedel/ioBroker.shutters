@@ -23,6 +23,7 @@ export abstract class PositionStopDriverBase implements IShutterDriver {
      * @param stopStateId - Foreign state pulsed to stop movement, if the system supports a dedicated stop command.
      * @param tiltStateId - Foreign state written with the target slat-tilt angle 0-100/0-180° (plan section 2a.5), or undefined if this covering has no tilt control (`coveringType` other than `raffstore`/`lamellen`, or the system/device does not support it).
      * @param tiltActualStateId - Foreign state read for the current slat-tilt angle; defaults to `tiltStateId` if the system reports both on the same state. Ignored if `tiltStateId` is undefined.
+     * @param invertPosition - See `IShutterConfig.invertPosition`: flips the covering-height percentage (`100 - x`) on top of this driver's own `toExternalPosition()`/`fromExternalPosition()`, to compensate for an individual actuator wired/configured with the opposite direction from its siblings. Default `false`.
      */
     public constructor(
         protected readonly adapter: ioBroker.Adapter,
@@ -31,17 +32,26 @@ export abstract class PositionStopDriverBase implements IShutterDriver {
         private readonly stopStateId: string | undefined,
         private readonly tiltStateId?: string,
         tiltActualStateId?: string,
+        private readonly invertPosition: boolean = false,
     ) {
-        this.positionTracker = new ForeignNumberTracker(adapter, positionActualStateId, this.constructor.name, value =>
-            this.fromExternalPosition(value),
+        this.positionTracker = new ForeignNumberTracker(
+            adapter,
+            positionActualStateId,
+            this.constructor.name,
+            value => {
+                const decoded = this.fromExternalPosition(value);
+                return this.invertPosition ? 100 - decoded : decoded;
+            },
         );
         this.tiltTracker = tiltStateId
             ? new ForeignNumberTracker(adapter, tiltActualStateId ?? tiltStateId, this.constructor.name)
             : undefined;
     }
 
+    /** Writes `targetPercent` (0-100, adapter convention) to the driver's position state, after applying `invertPosition` and this driver's own external-position convention. */
     public async setPosition(targetPercent: number): Promise<void> {
-        await this.adapter.setForeignStateAsync(this.positionStateId, this.toExternalPosition(targetPercent), false);
+        const effectiveTarget = this.invertPosition ? 100 - targetPercent : targetPercent;
+        await this.adapter.setForeignStateAsync(this.positionStateId, this.toExternalPosition(effectiveTarget), false);
     }
 
     protected toExternalPosition(targetPercent: number): number {

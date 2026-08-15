@@ -52,6 +52,17 @@ export interface IShutterConfig {
     calibrationCurve?: ICalibrationPoint[];
     /** Foreign state IDs used by the driver. Which keys are relevant depends on `driverType`. */
     states: Record<string, string | undefined>;
+    /**
+     * Compensates for a position/stop driver (`driverType` in `POSITION_STOP_DRIVERS`, e.g.
+     * `homematic`) whose foreign position state runs the opposite direction from its siblings on the
+     * same system - a real-world wiring/CCU-channel-configuration quirk seen on individual actuators,
+     * not a per-`driverType` property (two devices of the same `driverType` can disagree). When `true`,
+     * `PositionStopDriverBase` flips the covering-height percentage (`100 - x`) before/after applying
+     * the driver's own external-position convention, so this covering keeps the adapter's normal 0
+     * (open)/100 (closed) meaning without the driver-specific formula needing to know about it.
+     * Ignored by drivers outside `POSITION_STOP_DRIVERS`. Default: `false`.
+     */
+    invertPosition?: boolean;
 
     /** Whether sun protection (plan section 6) is enabled for this covering. Default: true. */
     sunProtectionEnabled?: boolean;

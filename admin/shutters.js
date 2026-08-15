@@ -1211,6 +1211,12 @@ function renderCoveringCard(covering, index) {
             onChangeFired();
         }),
     );
+    row2.appendChild(
+        makeCheckbox('cov-' + index + '-invertPosition', 'invertPosition', covering.invertPosition, function (v) {
+            covering.invertPosition = v;
+            onChangeFired();
+        }),
+    );
     card.appendChild(row2);
 
     var statesTitle = document.createElement('div');

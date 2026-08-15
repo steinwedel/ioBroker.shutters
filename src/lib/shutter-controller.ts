@@ -3,8 +3,8 @@ import type { IShutterDriver } from './drivers/types';
 import { coveringToRuntime, type ICalibrationPoint, normalizeCurve, runtimeToCovering } from './position-mapping';
 import type { IShutterConfig } from './types';
 
-/** Tolerance (percentage points) used to decide whether a covering has "reached" its target runtime, see the watchdog in `refreshPosition()`. */
-const WATCHDOG_TOLERANCE_PERCENT = 3;
+/** Tolerance (percentage points) used to decide whether a covering has "reached" its target runtime, see the watchdog in `refreshPosition()`; also reused by `automation.ts` to detect a covering that has drifted away from its last-applied target while settled (e.g. an external system writing to the same foreign state). */
+export const WATCHDOG_TOLERANCE_PERCENT = 3;
 /** Extra time allowed on top of `maxRuntimeSecs` before the watchdog reports a stuck covering. */
 const WATCHDOG_GRACE_MS = 30_000;
 /** Default for `IShutterConfig.minCommandIntervalMs` (motor protection, plan section 7d) if unset. */
@@ -350,6 +350,18 @@ export class ShutterController {
     public getCurrentCoveringPercent(): number | undefined {
         const runtimePercent = this.driver.getCurrentPosition();
         return runtimePercent === undefined ? undefined : runtimeToCovering(runtimePercent, this.curve);
+    }
+
+    /**
+     * @returns Whether a move is currently believed to still be in flight (issued, not yet within
+     *   `WATCHDOG_TOLERANCE_PERCENT` of its target, see `refreshPosition()`). Used by `automation.ts`
+     *   to tell "still normally travelling towards the last-applied target" apart from "already
+     *   settled, but has since drifted away from it" (e.g. an external system/script writing to the
+     *   same foreign state) - only the latter should trigger a fresh command despite an unchanged
+     *   target/reason.
+     */
+    public hasPendingMove(): boolean {
+        return this.pendingMove !== undefined;
     }
 
     /**

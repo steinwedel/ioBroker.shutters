@@ -1,4 +1,9 @@
 # Changelog
+## 0.0.21 (2026-08-15)
+
+* (steinwedel) **FIXED**: `automation.ts` now also re-applies an unchanged target/reason if the covering has settled (no move in flight) but its actual reported position has since drifted away from that target - previously only a target/reason change triggered a fresh command, so a drift caused by e.g. an external system/script writing the same foreign state went unnoticed until something else changed or the adapter restarted
+* (steinwedel) **NEW**: Add a per-covering `invertPosition` option (plan section 2a.6) to compensate for an individual actuator wired/configured with the opposite direction from its siblings on the same system (observed on a Homematic blind channel that closed fully instead of stopping at the configured 85%)
+
 ## 0.0.20 (2026-08-15)
 
 * (steinwedel) **NEW**: Add an optional cloud-cover-only sun-protection trigger (plan section 6.3): configure a cloud-cover weather state, then optionally enable a global switch so sun protection activates whenever the sky is clear/mostly clear, independent of the solar-radiation threshold

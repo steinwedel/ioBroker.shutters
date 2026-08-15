@@ -40,7 +40,7 @@
 | 11 | Motorschutz (Mindestpause zwischen Fahrten) | `shutter-controller.ts` | ✅ (siehe 7d) |
 | 12 | Szenen/Vorgabepositionen | `scenes.ts` | ✅ (als `scene-manager.ts`) |
 
-## 2a. Treiber-Abstraktion für Fremdsysteme (Punkt 1 vertieft) ✅ (alle 16 Driver fertig, siehe 2a.1-2a.5 für Details/Einschränkungen)
+## 2a. Treiber-Abstraktion für Fremdsysteme (Punkt 1 vertieft) ✅ (alle 16 Driver fertig, siehe 2a.1-2a.6 für Details/Einschränkungen)
 
 Kernanforderung: der Adapter selbst spricht **nicht** direkt Homematic/KNX/Shelly/Zigbee etc., sondern nur eine einheitliche interne Schnittstelle. Jedes unterstützte Fremdsystem bekommt einen eigenen, austauschbaren "Driver", der ausschließlich über verlinkte ioBroker-States (fremder Adapter-Instanzen) kommuniziert — es gibt **keine** direkte Abhängigkeit zu Homematic-, KNX- oder Zigbee-Bibliotheken im Adapter.
 
@@ -131,6 +131,16 @@ Der Adapter unterscheidet pro Einheit einen konfigurierbaren **Behangtyp** (`cov
 - Admin-UI: `coveringType`-Dropdown pro Einheit (Rolladen/Raffstore/Markise/Lamellenvorhang/…), das abhängig vom gewählten Typ passende Begriffe/Zusatzfelder ein-/ausblendet. ✅ Kippwinkel-State-ID-Feld (`stateTilt`/`stateTiltActual`) für Raffstore/Lamellenvorhang implementiert. ⚠️ Weiterhin offen: niedrigere Default-Windschwellwerte bei Markise, Wind-/Regenschutz-Panel standardmäßig ausgeblendet/deaktiviert bei Lamellenvorhang.
 - Aus dem Objektbaum (Abschnitt 3) wird der Container künftig als "Behang"/"covering" statt ausschließlich "Rolladen" verstanden — die technischen State-IDs (`shutters.*`) bleiben aus Kompatibilitätsgründen wie geplant benannt, aber `common.name`/i18n-Labels sind je `coveringType` entsprechend zu beschriften ("Rolladen Wohnzimmer", "Markise Terrasse", "Lamellenvorhang Wintergarten").
 - Vorhänge im klassischen Sinn (reine Faltenstoff-Gardinen ohne Lamellen) sind **explizit nicht Teil dieses Konzepts** und bleiben außerhalb des Scopes — die Tabelle deckt nur motorisierte Sonnenschutz-/Verdunklungssysteme mit definierter Prozent-Position (Höhe oder Fahrweg) ab, nicht reine Stoffbahnen ohne klar messbare Endposition.
+
+### 2a.6 Einzelner Aktor mit umgekehrter Laufrichtung (`invertPosition`) ✅
+
+Vorsorglich ergänzte Option für ein Szenario, das grundsätzlich möglich ist, auch wenn es sich beim konkreten Anlass (siehe unten) letztlich als andere Ursache herausstellte: zwei Geräte **desselben** Systems/`driverType` können sich in ihrer Laufrichtung unterscheiden, wenn ein CCU-Kanal (oder eine vergleichbare Konfiguration bei anderen Systemen) mit vertauschter Richtung eingerichtet ist — eine reine Verkabelungs-/Konfigurationsfrage auf Fremdsystem-Seite, keine `driverType`-Eigenschaft.
+
+- `IShutterConfig.invertPosition` (Default `false`): pro Einheit, nicht pro `driverType`.
+- `PositionStopDriverBase` verrechnet bei `true` die Behang-Prozentzahl zusätzlich mit `100 - x`, bevor bzw. nachdem die treiberspezifische externe Konvention (z. B. Homematics eigenes `100 - x`) angewendet wird — dadurch bleibt die normale Adapter-Konvention (0 = auf/100 = zu) für diese Einheit erhalten, ohne dass der treiberspezifische Code etwas davon wissen muss.
+- Admin-UI: Checkbox "Position invertieren" direkt neben "Automatik aktiviert" in jeder Rolladen-Karte.
+- Betrifft nur Driver aus `POSITION_STOP_DRIVERS` (die Mehrheit); von anderen Drivern (generic-relay, generic-position, tuya, mqtt, loxone) wird das Feld ignoriert, da deren Konvertierung ohnehin nicht über `toExternalPosition()`/`fromExternalPosition()` läuft.
+- **Konkreter Anlass, letztlich anders diagnostiziert**: Auslöser war ein Vorfall in haus20a, bei dem Kind1/Kind2/Kind3-Rolläden trotz Sonnenschutz-Ziel 85 % vollständig zufuhren. Die ursprüngliche Vermutung (ein einzelner Aktor mit vertauschter Laufrichtung) erwies sich als falsch — die tatsächliche Ursache war ein weiterhin aktives, unabhängiges Legacy-Skript (`script.js.Shutters`, siehe Abschnitt 11a), das über dieselben `hm-rpc`-States mit eigener, abweichender Logik dieselben Rolläden steuerte. `invertPosition` bleibt trotzdem als eigenständiges, unabhängig sinnvolles Feature bestehen, ist aber für dieses konkrete Haus (Stand jetzt) auf keiner Einheit aktiviert.
 
 ## 2b. Autoscan / Auto-Discovery der Rolläden ✅ (Erkennung siehe 2b.2; UI-Integration mit Fortschritt + Vorschau/Bestätigung, siehe 2b.3)
 
@@ -452,7 +462,7 @@ Löst die bisher nur im Vorbild-Skript enthaltene, dort auf einen Spezialfall (`
 - Neuer State je Rolladen: `doorProtectionActive` (boolean, ack=true) sowie in `statusText`/`activityLog` (10a.1/10a.8) sichtbar als eigener Grund, z. B. "Zufahren ausgesetzt: Terrassentür offen".
 - `door-protection.ts`: einfache, zustandslose Bewertungsfunktion (kein Hysterese-Bedarf — Türkontakte liefern ein eindeutiges, nicht flackerndes Signal), liefert `blocked: boolean` für "würde diese Aktion den Rolladen weiter schließen".
 
-## 8. Prioritäts-/Konfliktlogik ⚠️ (Reihenfolge im Kern korrekt umgesetzt, inkl. Nachtauskühlung als eigene Stufe vor dem Zeitplan-Fallback; manuelles Kommando läuft direkt im Controller statt als Tick-Schritt, Türkontaktschutz ist ein Clamp statt eigener Prioritätsstufe)
+## 8. Prioritäts-/Konfliktlogik ⚠️ (Reihenfolge im Kern korrekt umgesetzt, inkl. Nachtauskühlung als eigene Stufe vor dem Zeitplan-Fallback und Ist-Wert-Abweichungserkennung bei unverändertem Ziel; manuelles Kommando läuft direkt im Controller statt als Tick-Schritt, Türkontaktschutz ist ein Clamp statt eigener Prioritätsstufe)
 
 Zentrale `automation.ts` (analog `AutomationEngine` in irrigation), die pro Rolladen-Tick in fester Reihenfolge auswertet:
 
@@ -464,7 +474,7 @@ Zentrale `automation.ts` (analog `AutomationEngine` in irrigation), die pro Roll
 6. Zeitplan (inkl. Dämmerung/Feiertag/iCal) → Zielposition Zeitplan, **sofern nicht Frostschutz (7b) aktiv** (dann wird der Fahrbefehl ausgesetzt, aktuelle Position bleibt erhalten) und unterliegt bei einem Schließ-Zielwert ebenfalls Schritt 3.
 7. Keine Regel aktiv → keine Aktion.
 
-Jede Zielposition wird über `position-mapping.ts` in Laufzeit-% umgerechnet und an `shutter-controller.ts` (Antriebssteuerung, z. B. via verlinkter Fremd-States eines Rolladenaktors) übergeben. Wie im Vorbild (`setShutter()`) wird vor jedem Schreibzugriff der aktuelle Ist-Wert gelesen und nur bei tatsächlicher Abweichung geschrieben, um unnötige Aktor-Befehle zu vermeiden; Schreibfehler pro Rolladen werden abgefangen/geloggt, ohne die Verarbeitung der übrigen Rolläden im selben Tick zu blockieren (siehe Bugfix-Historie in `Shutters.js`).
+Jede Zielposition wird über `position-mapping.ts` in Laufzeit-% umgerechnet und an `shutter-controller.ts` (Antriebssteuerung, z. B. via verlinkter Fremd-States eines Rolladenaktors) übergeben. Wie im Vorbild (`setShutter()`) wird nur bei tatsächlicher Abweichung geschrieben, um unnötige Aktor-Befehle zu vermeiden; Schreibfehler pro Rolladen werden abgefangen/geloggt, ohne die Verarbeitung der übrigen Rolläden im selben Tick zu blockieren (siehe Bugfix-Historie in `Shutters.js`). "Abweichung" wird dabei zweistufig geprüft (`applyTarget()` in `automation.ts`): primär gegen das zuletzt selbst angewandte Ziel/Grund-Paar (`lastApplied`, reines In-Memory-Gedächtnis dieser Engine); zusätzlich — sofern die Einheit laut `hasPendingMove()` aktuell **nicht** mitten in einer Fahrt steckt — auch gegen den tatsächlichen Ist-Wert vom Treiber (`getCurrentCoveringPercent()`, Toleranz wie beim Watchdog, `WATCHDOG_TOLERANCE_PERCENT`). Letzteres deckt einen konkret aufgetretenen Fall ab (haus20a, 2026-08-15): ein zusätzliches, unabhängiges Legacy-Skript (`script.js.Shutters`, siehe 2a.6/11) schrieb auf dieselben Fremd-States und ließ Rolläden abweichend von der zuletzt von dieser Engine gesetzten Zielposition stehen, ohne dass sich Ziel oder Grund aus Sicht dieser Engine geändert hätten — das reine `lastApplied`-Gedächtnis merkte die Abweichung dadurch nie, ein Adapter-Neustart war nötig, um sie zu korrigieren. Während einer noch laufenden Fahrt (`hasPendingMove() === true`) wird bewusst **nicht** so verglichen, da eine normale Fahrzeit-bedingte Abweichung vom Ziel dort erwartet und bereits Aufgabe des Watchdogs (9a.1) ist, nicht dieser Prüfung.
 
 ## 9. Admin-UI (klassisches Materialize-HTML/JS, bewusst kein JSONConfig) ✅ (`io-package.json` setzt `adminUI.config: "materialize"` — dies ist die bewusste, endgültige Wahl für diesen Adapter, keine offene Migration; Kalibrierung/Sonnenschutz/Wind-/Frostschutz-Felder vorhanden)
 
@@ -586,4 +596,5 @@ Der gesamte bisherige Plan ist bewusst technisch/vollständig gehalten (viele Dr
 ## 11. Offene Fragen für Nutzer (vor Umsetzung klären) ❌ (nie schriftlich beantwortet/dokumentiert, z. B. in `CONTEXT.md` oder Commit-Historie)
 
 - iCal-Kalenderquelle (Google, Nextcloud, lokale .ics-Datei?).
-- Windrichtung (°), Taupunkt bzw. Luftfeuchte (%): sind entsprechende Sensor-States vorhanden (z. B. über `ioBroker.davis`/`ioBroker.multiweather`), die als Fremd-State-ID für Regenschutz (7, Windrichtung) bzw. Frostschutz-Kombikriterium (7b, Taupunkt/Luftfeuchte) konfiguriert werden könnten? Beide Messwerte sind laut Tabelle 5a.1 aktuell noch nicht in `IWeatherConfig` abgebildet.
+- Windrichtung (°): ist ein entsprechender Sensor-State vorhanden (z. B. über `ioBroker.davis`/`ioBroker.multiweather`), der als Fremd-State-ID für den optionalen Windrichtungs-Faktor bei Regenschutz (7) konfiguriert werden könnte? Laut Tabelle 5a.1 aktuell noch nicht in `IWeatherConfig` abgebildet (Taupunkt/Luftfeuchte für das Frostschutz-Kombikriterium, 7b, ist inzwischen umgesetzt).
+- **Legacy-Skript `script.js.Shutters`** (haus20a, `javascript.0`, weiterhin `enabled: true`): steuert dieselben `hm-rpc.2.*.LEVEL`-States wie der neue Adapter mit eigener, abweichender Zeitplan-/Sonnenschutzlogik — führte am 2026-08-15 zu widersprüchlichen Endpositionen bei Kind1/Kind2/Kind3 (siehe 2a.6). Muss deaktiviert werden, sobald der neue Adapter produktiv die Kontrolle übernimmt; Nutzer deaktiviert dies selbst, Zeitpunkt noch offen.

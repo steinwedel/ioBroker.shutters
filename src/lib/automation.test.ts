@@ -48,6 +48,8 @@ interface IFakeControllerHandle {
     overrideSetCalls: number[];
     currentPercent: number | undefined;
     persistedOverrideUntil: number;
+    /** Defaults to `false` (settled/not moving) - see `hasDrifted` in `automation.ts`'s `applyTarget()`. */
+    hasPendingMove: boolean;
 }
 
 function createFakeController(config: IShutterConfig, persistedOverrideUntil = 0): IFakeControllerHandle {
@@ -58,12 +60,14 @@ function createFakeController(config: IShutterConfig, persistedOverrideUntil = 0
         overrideSetCalls: [],
         currentPercent: undefined,
         persistedOverrideUntil,
+        hasPendingMove: false,
     };
     handle.controller = {
         onManualCommand: undefined as (() => void) | undefined,
         getConfig: () => config,
         isAutomationEnabled: () => config.automationEnabled,
         getCurrentCoveringPercent: () => handle.currentPercent,
+        hasPendingMove: () => handle.hasPendingMove,
         // eslint-disable-next-line @typescript-eslint/require-await -- intentionally synchronous test double for an async controller method
         applyAutomatedPosition: async (percent: number, reason: string, bypass = false) => {
             handle.appliedCalls.push({ percent, reason, bypass });
@@ -489,6 +493,71 @@ describe('AutomationEngine', () => {
                 { percent: 100, reason: 'Schedule', bypass: false },
                 { percent: 0, reason: 'Schedule', bypass: false },
             ]);
+        });
+
+        it('re-applies an unchanged target once the covering has settled but drifted away from it (e.g. an external system writing the same foreign state)', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(makeConfig({ sunProtectionEnabled: false }));
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            engine.setScheduleTarget(controllerHandle.config.id, 85);
+            controllerHandle.currentPercent = 85; // arrived, matches target
+            engine.evaluateNow();
+            expect(controllerHandle.appliedCalls).to.have.length(1);
+
+            // Something else (not this engine) moved the covering away from the still-unchanged target.
+            controllerHandle.currentPercent = 100;
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 85, reason: 'Schedule', bypass: false },
+                { percent: 85, reason: 'Schedule', bypass: false },
+            ]);
+        });
+
+        it('does not treat normal in-flight travel towards an unchanged target as drift', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(makeConfig({ sunProtectionEnabled: false }));
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            engine.setScheduleTarget(controllerHandle.config.id, 85);
+            controllerHandle.currentPercent = 20; // nowhere near the target yet
+            controllerHandle.hasPendingMove = true; // ...but a move is still in flight - the watchdog's job, not this check's
+            engine.evaluateNow();
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.have.length(1);
+        });
+
+        it('tolerates a small difference from the target as "arrived", matching the watchdog tolerance', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(makeConfig({ sunProtectionEnabled: false }));
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            engine.setScheduleTarget(controllerHandle.config.id, 85);
+            controllerHandle.currentPercent = 83; // within WATCHDOG_TOLERANCE_PERCENT (3) of 85
+            engine.evaluateNow();
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.have.length(1);
         });
 
         it('always re-asserts wind protection, even with an unchanged target', () => {

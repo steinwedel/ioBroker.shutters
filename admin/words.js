@@ -42,6 +42,10 @@ systemDictionary = {
     area: { en: 'Plan', de: 'Plan' },
     orientation: { en: 'Orientation (°, compass, 0=N/90=E/180=S/270=W)', de: 'Ausrichtung (°, Kompass, 0=N/90=O/180=S/270=W)' },
     automationEnabled: { en: 'Automation enabled', de: 'Automatik aktiviert' },
+    invertPosition: {
+        en: 'Invert position (this actuator runs the opposite direction)',
+        de: 'Position invertieren (dieser Aktor läuft in entgegengesetzter Richtung)',
+    },
     statePosition: { en: 'Position state ID', de: 'Positions-State-ID' },
     statePositionActual: { en: 'Actual position state ID', de: 'Ist-Positions-State-ID' },
     stateOpen: { en: 'Open state ID', de: 'Auf-State-ID' },

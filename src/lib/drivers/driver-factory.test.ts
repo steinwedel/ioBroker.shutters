@@ -118,6 +118,37 @@ describe('driver-factory', () => {
             expect(driver.getCurrentTilt?.()).to.equal(70);
         });
 
+        it('wires invertPosition through to every position+stop driver (a single actuator wired opposite from its siblings)', async () => {
+            const { adapter, setForeignStateCalls, emitStateChange } = createTrackingFakeAdapter();
+            const driver = createDriver(
+                adapter,
+                makeConfig({ driverType: 'homematic', invertPosition: true }, { position: 'foreign.position' }),
+            );
+
+            // Homematic's own external convention is `100 - x`; invertPosition flips the covering
+            // percentage once more on top of that, so a target of 85 (85% closed) becomes 100-(100-85)=85
+            // externally instead of homematic's usual 100-85=15 - i.e. the two inversions cancel out.
+            await driver.setPosition(85);
+            expect(setForeignStateCalls).to.deep.equal([{ id: 'foreign.position', val: 85 }]);
+
+            // Round-trip: the device reporting back the same external value it was just commanded to
+            // (85) must decode to the same covering percentage (85) that was requested.
+            emitStateChange('foreign.position', 85);
+            expect(driver.getCurrentPosition()).to.equal(85);
+        });
+
+        it('does not invert when invertPosition is left unset (default false)', async () => {
+            const { adapter, setForeignStateCalls } = createTrackingFakeAdapter();
+            const driver = createDriver(
+                adapter,
+                makeConfig({ driverType: 'homematic' }, { position: 'foreign.position' }),
+            );
+
+            await driver.setPosition(85);
+
+            expect(setForeignStateCalls).to.deep.equal([{ id: 'foreign.position', val: 15 }]);
+        });
+
         it('leaves setTilt()/getCurrentTilt() as no-ops when states.tilt is not configured', async () => {
             const { adapter, setForeignStateCalls } = createTrackingFakeAdapter();
             const driver = createDriver(adapter, makeConfig({ driverType: 'knx' }, { position: 'foreign.position' }));

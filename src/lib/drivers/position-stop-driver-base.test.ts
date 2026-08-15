@@ -221,6 +221,74 @@ describe('PositionStopDriverBase (via HomematicDriver)', () => {
     });
 });
 
+describe('invertPosition (IShutterConfig.invertPosition - a single actuator wired opposite from its siblings)', () => {
+    it('flips the covering percentage on top of a driver with its own external convention (Homematic)', async () => {
+        const { adapter, setForeignStateCalls } = createFakeAdapter();
+        const driver = new HomematicDriver(
+            adapter,
+            'hm-rpc.0.ABC.1.LEVEL',
+            'hm-rpc.0.ABC.1.LEVEL',
+            undefined,
+            undefined,
+            undefined,
+            true,
+        );
+
+        // Without invertPosition, HomematicDriver.setPosition(85) would write 100-85=15 (see the plain
+        // "converts normalized positions to Homematic LEVEL values" test above). With invertPosition,
+        // the covering percentage is flipped once more before that, so it writes 100-(100-85)=85 -
+        // i.e. this specific actuator's LEVEL runs the opposite way from every other Homematic covering.
+        await driver.setPosition(85);
+
+        expect(setForeignStateCalls).to.deep.equal([{ id: 'hm-rpc.0.ABC.1.LEVEL', val: 85 }]);
+    });
+
+    it('flips the read-back position the same way, so a round trip returns the originally requested percentage', () => {
+        const { adapter, emitStateChange } = createFakeAdapter();
+        const driver = new HomematicDriver(
+            adapter,
+            'hm-rpc.0.ABC.1.LEVEL',
+            'hm-rpc.0.ABC.1.LEVEL',
+            undefined,
+            undefined,
+            undefined,
+            true,
+        );
+
+        emitStateChange('hm-rpc.0.ABC.1.LEVEL', 85);
+
+        expect(driver.getCurrentPosition()).to.equal(85);
+    });
+
+    it('also flips the identity mapping on drivers with no external convention of their own', async () => {
+        const { adapter, setForeignStateCalls, emitStateChange } = createFakeAdapter();
+        const driver = new IdentityDriver(
+            adapter,
+            'foreign.position',
+            'foreign.position',
+            undefined,
+            undefined,
+            undefined,
+            true,
+        );
+
+        await driver.setPosition(30);
+        emitStateChange('foreign.position', 30);
+
+        expect(setForeignStateCalls).to.deep.equal([{ id: 'foreign.position', val: 70 }]);
+        expect(driver.getCurrentPosition()).to.equal(70);
+    });
+
+    it('leaves the mapping unchanged when invertPosition is omitted (default false)', async () => {
+        const { adapter, setForeignStateCalls } = createFakeAdapter();
+        const driver = new HomematicDriver(adapter, 'hm-rpc.0.ABC.1.LEVEL', 'hm-rpc.0.ABC.1.LEVEL', undefined);
+
+        await driver.setPosition(85);
+
+        expect(setForeignStateCalls).to.deep.equal([{ id: 'hm-rpc.0.ABC.1.LEVEL', val: 15 }]);
+    });
+});
+
 describe('HmipDriver (0-1 scale, inverted like classic Homematic)', () => {
     it('converts covering percent to the inverted 0-1 shutterLevel scale', async () => {
         const { adapter, setForeignStateCalls } = createFakeAdapter();
