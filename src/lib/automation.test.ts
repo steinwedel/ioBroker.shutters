@@ -628,6 +628,80 @@ describe('AutomationEngine', () => {
                 { percent: 0, reason: 'Wind protection', bypass: true },
             ]);
         });
+
+        it('does not activate rain protection for a lamellen covering by default (typically indoor, no weather exposure)', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(
+                makeConfig({ coveringType: 'lamellen', sunProtectionEnabled: false }),
+            );
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            weather.windSpeed = 0;
+            weather.rain = true; // would activate rain protection for a rolladen
+            engine.setScheduleTarget(controllerHandle.config.id, 100);
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([{ percent: 100, reason: 'Schedule', bypass: false }]);
+        });
+
+        it('activates rain protection for a lamellen covering when explicitly enabled', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(
+                makeConfig({ coveringType: 'lamellen', rainProtectionEnabled: true, sunProtectionEnabled: false }),
+            );
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            weather.windSpeed = 0;
+            weather.rain = true;
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 100, reason: 'Rain protection', bypass: false },
+            ]);
+        });
+
+        it('uses a per-covering windOpenThreshold/windCloseAllowedThreshold override instead of the global thresholds (plan section 2a.5, e.g. a wind-sensitive markise)', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(
+                makeConfig({
+                    coveringType: 'markise',
+                    windOpenThreshold: 20,
+                    windCloseAllowedThreshold: 10,
+                    sunProtectionEnabled: false,
+                }),
+            );
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS, // global windOpenThreshold: 40, windCloseAllowedThreshold: 25
+            );
+
+            // Below the global threshold (40) but at/above this covering's own, lower override (20).
+            weather.windSpeed = 25;
+            engine.setScheduleTarget(controllerHandle.config.id, 0);
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 0, reason: 'Wind protection', bypass: true },
+            ]);
+        });
     });
 
     describe('covering-type-dependent target positions (plan section 2a.5/7/7a)', () => {

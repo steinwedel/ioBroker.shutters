@@ -1,4 +1,9 @@
 # Changelog
+## 0.0.23 (2026-08-15)
+
+* (steinwedel) **NEW**: Add a per-covering `windOpenThreshold`/`windCloseAllowedThreshold` override (plan section 2a.5) for a covering more wind-sensitive than the rest - the admin UI shows and pre-fills a lower suggestion (20/10 km/h) for a markise, since its fabric/arms are far more vulnerable to wind than a closed rolladen panzer
+* (steinwedel) **FIXED**: `rainProtectionEnabled` now defaults to disabled for a `lamellen` covering (typically indoor, no real weather exposure), matching the existing default for `windProtectionEnabled`/`frostProtectionEnabled` - previously rain protection defaulted to enabled regardless of covering type
+
 ## 0.0.22 (2026-08-15)
 
 * (steinwedel) **NEW**: Add an optional per-covering wind-direction filter for rain protection (plan section 7): configure a wind-direction weather state, then optionally set a per-covering tolerance so rain protection only reacts to rain actually being blown toward that covering's window, based on its orientation - left unset, behavior is unchanged (protects on any rain)

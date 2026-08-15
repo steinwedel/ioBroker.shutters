@@ -92,7 +92,11 @@ export interface IShutterConfig {
      */
     sunProtectionMinTemp?: number;
 
-    /** Whether rain protection (plan section 7) is enabled for this covering. Default: true. */
+    /**
+     * Whether rain protection (plan section 7) is enabled for this covering. Default depends on
+     * `coveringType`: enabled for rolladen/raffstore/markise, disabled for lamellen (typically indoor,
+     * no weather exposure) - same default rule as `windProtectionEnabled`/`frostProtectionEnabled`.
+     */
     rainProtectionEnabled?: boolean;
     /** Target covering position while rain protection is active, 0-100. Default: 100. */
     rainTargetPercent?: number;
@@ -113,6 +117,20 @@ export interface IShutterConfig {
      * rolladen/raffstore/markise, disabled for lamellen (typically indoor).
      */
     windProtectionEnabled?: boolean;
+
+    /**
+     * Per-covering override of the global `windOpenThreshold`/`windCloseAllowedThreshold` (km/h,
+     * plan section 7a/2a.5), for a covering whose material is more wind-sensitive than the rest -
+     * markise fabric/arms in particular are far more vulnerable to wind than a closed rolladen panzer,
+     * so the same global threshold that is fine for rolläden is often too high for a markise. Either
+     * both must be set together or neither - undefined (default) falls back to the corresponding
+     * global `IAutomationOptions` value for this covering. The admin UI pre-fills a lower suggestion
+     * for both fields the moment `coveringType` is switched to `markise`, but the user may still
+     * change or clear it.
+     */
+    windOpenThreshold?: number;
+    /** See `windOpenThreshold`; per-covering override of the global `windCloseAllowedThreshold`. */
+    windCloseAllowedThreshold?: number;
 
     /**
      * Whether frost protection (plan section 7b) is enabled for this

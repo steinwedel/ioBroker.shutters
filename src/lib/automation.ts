@@ -20,7 +20,10 @@ import { evaluateWindProtection } from './wind-protection';
 import type { WeatherSource } from './weather-source';
 
 /**
- * Default wind/frost protection availability per covering type; explicit `windProtectionEnabled`/`frostProtectionEnabled` always take precedence (plan section 2a.5/7a/7b).
+ * Default wind/rain/frost protection availability per covering type; explicit
+ * `windProtectionEnabled`/`rainProtectionEnabled`/`frostProtectionEnabled` always take precedence
+ * (plan section 2a.5/7/7a/7b). `lamellen` is typically an indoor covering with no real weather
+ * exposure, so all three default to disabled for it; every other covering type defaults to enabled.
  *
  * @param coveringType - Covering type to look up the default for.
  */
@@ -339,16 +342,20 @@ export class AutomationEngine {
         }
 
         const windEnabled = config.windProtectionEnabled ?? defaultOutdoorProtectionEnabled(config.coveringType);
+        // Per-covering override (plan section 2a.5) for a covering whose material is more
+        // wind-sensitive than the rest, e.g. a markise - falls back to the global thresholds.
+        const windOpenThreshold = config.windOpenThreshold ?? this.options.windOpenThreshold;
+        const windCloseAllowedThreshold = config.windCloseAllowedThreshold ?? this.options.windCloseAllowedThreshold;
         const calmAllowed = state.windHysteresis.update(
             this.weather.getWindSpeed(),
-            this.options.windCloseAllowedThreshold,
+            windCloseAllowedThreshold,
             this.options.windCalmMinDurationMs,
         );
         state.windActive =
             windEnabled &&
             evaluateWindProtection({
                 windSpeed: this.weather.getWindSpeed(),
-                openThreshold: this.options.windOpenThreshold,
+                openThreshold: windOpenThreshold,
                 calmAllowed,
                 wasActive: state.windActive,
             });
@@ -367,7 +374,7 @@ export class AutomationEngine {
             return;
         }
 
-        const rainEnabled = config.rainProtectionEnabled ?? true;
+        const rainEnabled = config.rainProtectionEnabled ?? defaultOutdoorProtectionEnabled(config.coveringType);
         const rainActive =
             rainEnabled &&
             evaluateRainProtection({

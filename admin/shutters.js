@@ -1310,6 +1310,55 @@ function renderCoveringCard(covering, index) {
     );
     card.appendChild(protectionRow1);
 
+    // Wind-threshold override (plan section 2a.5): shown for a markise (auto-filled with a lower
+    // suggestion below, since markise fabric/arms are far more wind-sensitive than a closed rolladen)
+    // or whenever an override was already explicitly set for this covering, so switching away from
+    // markise later does not silently hide a still-active override.
+    if (
+        covering.coveringType === 'markise' ||
+        covering.windOpenThreshold !== undefined ||
+        covering.windCloseAllowedThreshold !== undefined
+    ) {
+        if (covering.coveringType === 'markise') {
+            if (covering.windOpenThreshold === undefined) {
+                covering.windOpenThreshold = 20;
+            }
+            if (covering.windCloseAllowedThreshold === undefined) {
+                covering.windCloseAllowedThreshold = 10;
+            }
+        }
+
+        var windThresholdRow = document.createElement('div');
+        windThresholdRow.className = 'shutters-row row';
+        windThresholdRow.appendChild(
+            makeText(
+                'cov-' + index + '-windOpenThreshold',
+                'windOpenThreshold',
+                covering.windOpenThreshold,
+                3,
+                function (v) {
+                    covering.windOpenThreshold = v;
+                    onChangeFired();
+                },
+                'number',
+            ),
+        );
+        windThresholdRow.appendChild(
+            makeText(
+                'cov-' + index + '-windCloseAllowedThreshold',
+                'windCloseAllowedThreshold',
+                covering.windCloseAllowedThreshold,
+                3,
+                function (v) {
+                    covering.windCloseAllowedThreshold = v;
+                    onChangeFired();
+                },
+                'number',
+            ),
+        );
+        card.appendChild(windThresholdRow);
+    }
+
     // Only show the wind-direction tolerance field when rain protection is enabled and an orientation
     // is configured (plan section 7) - without an orientation there is no window-facing reference to
     // compare the wind direction against, so the field would have no effect.
