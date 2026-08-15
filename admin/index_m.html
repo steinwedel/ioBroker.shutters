@@ -219,6 +219,7 @@
             <span id="shutters-scan-status" style="margin-left: 10px;"></span>
         </p>
         <p class="shutters-hint translate">scanHintText</p>
+        <div id="shutters-scan-preview-container"></div>
         <div id="shutters-coverings-container"></div>
         <button class="btn waves-effect shutters-add-btn" id="shutters-add-covering-btn" type="button">
             <span class="translate">addCoveringButton</span>
@@ -239,6 +240,17 @@
             </div>
         </div>
         <p class="shutters-hint translate">holidayHintText</p>
+        <div class="row">
+            <div class="input-field col s4">
+                <input id="shutters-ical-adapter-instance" type="text" placeholder="ical.0" />
+                <label class="translate" for="shutters-ical-adapter-instance">icalAdapterInstance</label>
+            </div>
+            <div class="input-field col s4">
+                <input id="shutters-ical-title-prefix" type="text" />
+                <label class="translate" for="shutters-ical-title-prefix">icalTitlePrefix</label>
+            </div>
+        </div>
+        <p class="shutters-hint translate">icalHintText</p>
         <div id="shutters-areas-container"></div>
         <button class="btn waves-effect shutters-add-btn" id="shutters-add-area-btn" type="button">
             <span class="translate">addAreaButton</span>
@@ -251,7 +263,10 @@
     </div>
 
     <div id="tab-thresholds" class="col s12">
+        <p class="shutters-hint translate">thresholdsHintText</p>
         <div id="shutters-thresholds-container"></div>
+        <p class="shutters-hint translate">notifyHintText</p>
+        <div id="shutters-notify-container"></div>
     </div>
 
     <div id="tab-groups" class="col s12">

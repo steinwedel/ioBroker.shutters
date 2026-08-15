@@ -73,6 +73,13 @@ export interface IShutterConfig {
     sunWindowStart?: string;
     /** End of the daily time window sun protection may apply in, "HH:MM". Fallback used only when `orientation` is not set. */
     sunWindowEnd?: string;
+    /**
+     * Optional outdoor-temperature filter against unnecessary shading on bright but cool days (plan
+     * section 6.5): sun protection additionally requires the outdoor temperature to be at/above this
+     * value, on top of the radiation/window condition. Undefined disables this filter entirely
+     * (default; not every user has a reliable outdoor temperature source).
+     */
+    sunProtectionMinTemp?: number;
 
     /** Whether rain protection (plan section 7) is enabled for this covering. Default: true. */
     rainProtectionEnabled?: boolean;
@@ -98,6 +105,22 @@ export interface IShutterConfig {
      * covering (plan section 7e). Undefined disables door protection.
      */
     doorContactStateId?: string;
+
+    /**
+     * Whether summer night cooling (plan section 7c) is enabled for this covering. Unlike
+     * `windProtectionEnabled`/`frostProtectionEnabled`, this is a comfort feature with no
+     * safety aspect and additionally requires `nightCoolingIndoorTempStateId` to be configured, so it
+     * defaults to `false` for every `coveringType` - the user opts in per covering/zone where nightly
+     * opening is actually wanted (e.g. not a bedroom with a blackout preference) and an indoor
+     * temperature sensor is available.
+     */
+    nightCoolingEnabled?: boolean;
+    /**
+     * Foreign state, indoor temperature (°C) of the room/zone this covering is in, used by night
+     * cooling (7c) together with the outdoor temperature already configured in `IWeatherConfig`.
+     * Undefined disables night cooling for this covering, even if `nightCoolingEnabled` is `true`.
+     */
+    nightCoolingIndoorTempStateId?: string;
 
     /**
      * Expected time (seconds) for a full 0-100 traversal, used by the
@@ -175,6 +198,27 @@ export interface IShuttersNativeConfig {
      * value; it does not compute holidays itself.
      */
     holidayStateId?: string;
+    /**
+     * Adapter instance ID of an `ioBroker.ical` instance (e.g. "ical.0") whose `data.table` state
+     * is polled for day-level schedule overrides (plan section 5.1). The actual calendar URL/file is
+     * configured on that instance, not here. Empty/undefined disables iCal overrides entirely.
+     */
+    icalAdapterInstance?: string;
+    /**
+     * Event-title prefix `resolveIcalOverridesForDay`/`parseIcalOverrideTitle` (ical.ts) match
+     * against, e.g. `"Rolläden"` for a title like `"Rolläden auf 07:00"` (plan section 5.1). Only
+     * relevant when `icalAdapterInstance` is set. Default: `"Rolläden"`.
+     */
+    icalTitlePrefix?: string;
+    /**
+     * Adapter instance ID of a `pushover` instance (e.g. "pushover.0") notifications are sent to (plan
+     * section 9a.3): watchdog issues (9a.1) and every covering's wind/frost protection activating or
+     * deactivating (aggregated across all coverings, not per covering, to avoid notification fatigue).
+     * Empty/undefined disables this channel; both channels can be configured independently/simultaneously.
+     */
+    pushoverInstance?: string;
+    /** Adapter instance ID of a `telegram` instance (e.g. "telegram.0") notifications are sent to, see `pushoverInstance`. */
+    telegramInstance?: string;
     /** Location used for dusk-based closing times (plan section 5); read from `system.config` if not set here. */
     latitude?: number;
     /** See `latitude`. */
@@ -200,6 +244,11 @@ export interface IShuttersNativeConfig {
 
     /** Outdoor temperature (°C) at/below which frost protection may activate (combined with humidity/rain, plan section 7b). Default: 2. */
     frostThreshold?: number;
+
+    /** Indoor temperature (°C) at/above which night cooling (7c) may activate for a covering with `nightCoolingEnabled: true`. Default: 24. */
+    nightCoolingIndoorMinTemp?: number;
+    /** Minimum indoor-minus-outdoor temperature difference (°C) required for night cooling (7c) to activate, on top of `nightCoolingIndoorMinTemp`. Default: 3. */
+    nightCoolingMinDelta?: number;
 
     /** How often the automation engine re-evaluates sun/rain/wind/frost/door protection, in ms. Default: 30000. */
     automationTickMs?: number;

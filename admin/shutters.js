@@ -5,6 +5,13 @@
 
 var shuttersConfig = null; // working copy of native config, mutated in place
 var shuttersOnChange = null;
+// Preview state for the auto-discovery scan (plan section 2b.3): [{ candidate, selected, name }], one
+// entry per candidate returned by the last `scanForShutters` call, until the user applies/discards it.
+var scanPreviewState = [];
+// State ID/listener currently subscribed to for live scan-progress updates (`info.scanProgress`), if
+// any - see `subscribeScanProgress()`/`unsubscribeScanProgress()`.
+var scanProgressStateId = null;
+var scanProgressListener = null;
 
 // Collapse state for the accordion-style cards (coverings/areas/groups/scenes), keyed by list name and
 // index. Missing entries default to collapsed (closed), as required: every card can be expanded/collapsed
@@ -100,22 +107,35 @@ var COVERING_TYPES = [
 
 var DRIVER_TYPES = [
     ['homematic', 'driverTypeHomematic'],
+    ['hmip', 'driverTypeHmip'],
     ['knx', 'driverTypeKnx'],
     ['shelly', 'driverTypeShelly'],
     ['zigbee', 'driverTypeZigbee'],
     ['zigbee2mqtt', 'driverTypeZigbee2Mqtt'],
+    ['tuya', 'driverTypeTuya'],
+    ['somfy', 'driverTypeSomfy'],
+    ['velux', 'driverTypeVelux'],
+    ['enocean', 'driverTypeEnocean'],
+    ['velbus', 'driverTypeVelbus'],
+    ['loxone', 'driverTypeLoxone'],
+    ['homey', 'driverTypeHomey'],
+    ['mqtt', 'driverTypeMqtt'],
     ['generic-position', 'driverTypeGenericPosition'],
     ['generic-relay', 'driverTypeGenericRelay'],
 ];
 
-// Which `states.*` keys are relevant per driverType. Kern-set drivers (homematic/knx/shelly/zigbee/zigbee2mqtt)
-// and generic-position all use a position state plus an optional stop state and actual-position feedback.
-// generic-relay uses separate open/close/stop relays instead.
 // Which `states.*` keys (matching IShutterConfig.states/driver-factory.ts - "position", "positionActual",
-// "stop", "open", "close", NOT prefixed with "state") are relevant per driverType, paired with their
-// admin label translation key. Kern-set drivers (homematic/knx/shelly/zigbee/zigbee2mqtt) and
-// generic-position all use a position state plus an optional stop state and actual-position feedback.
-// generic-relay uses separate open/close relays instead.
+// "stop", "open", "close", "control", "up", "down", NOT prefixed with "state") are relevant per
+// driverType, paired with their admin label translation key.
+// - generic-relay: separate open/close/stop relays, no position feedback.
+// - tuya: percent_control/percent_state position DPs plus an open/close/stop "control" DP; either may
+//   be omitted if the device only supports the other.
+// - mqtt: a single command topic (shared for position writes and OPEN/CLOSE/STOP) plus an optional
+//   separate status topic.
+// - loxone: up/down impulses (and stop, which pulses both together - no separate stop field needed),
+//   plus optional direct position control for configurations that support it.
+// - everything else (homematic, hmip, knx, shelly, zigbee, zigbee2mqtt, somfy, velux, enocean, velbus,
+//   homey, generic-position): a position state plus an optional stop state and actual-position feedback.
 function getRelevantStateFields(driverType) {
     if (driverType === 'generic-relay') {
         return [
@@ -124,7 +144,27 @@ function getRelevantStateFields(driverType) {
             ['stop', 'stateStop'],
         ];
     }
-    // homematic, knx, shelly, zigbee, zigbee2mqtt, generic-position
+    if (driverType === 'tuya') {
+        return [
+            ['position', 'statePosition'],
+            ['positionActual', 'statePositionActual'],
+            ['control', 'stateControl'],
+        ];
+    }
+    if (driverType === 'mqtt') {
+        return [
+            ['position', 'statePosition'],
+            ['positionActual', 'statePositionActual'],
+        ];
+    }
+    if (driverType === 'loxone') {
+        return [
+            ['up', 'stateUp'],
+            ['down', 'stateDown'],
+            ['position', 'statePosition'],
+            ['positionActual', 'statePositionActual'],
+        ];
+    }
     return [
         ['position', 'statePosition'],
         ['positionActual', 'statePositionActual'],
@@ -146,6 +186,10 @@ function shuttersEnsureDefaults(settings) {
     settings.scenes = settings.scenes || [];
     settings.weather = settings.weather || {};
     settings.holidayStateId = settings.holidayStateId || '';
+    settings.icalAdapterInstance = settings.icalAdapterInstance || '';
+    settings.icalTitlePrefix = settings.icalTitlePrefix || 'Rolläden';
+    settings.pushoverInstance = settings.pushoverInstance || '';
+    settings.telegramInstance = settings.telegramInstance || '';
     settings.sunCloseThreshold = settings.sunCloseThreshold != null ? settings.sunCloseThreshold : 200;
     if (settings.sunProtectionGlobalEnabled === undefined) settings.sunProtectionGlobalEnabled = true;
     settings.sunOpenThreshold = settings.sunOpenThreshold != null ? settings.sunOpenThreshold : 150;
@@ -196,6 +240,7 @@ function shuttersInitAdmin(settings, onChange) {
     renderScenes();
 
     initHolidayStateIdField();
+    initIcalFields();
 
     document.getElementById('shutters-add-covering-btn').onclick = function () {
         shuttersConfig.shutters.push({
@@ -288,6 +333,27 @@ function initHolidayStateIdField() {
             },
             true,
         );
+    };
+}
+
+// Wires the two global iCal-integration fields (plan section 5.1): `icalAdapterInstance` (e.g.
+// "ical.0") is the `ioBroker.ical` instance whose `data.table` state is polled for day-level
+// schedule overrides, and `icalTitlePrefix` is the event-title prefix that identifies a relevant
+// event (see `ical.ts`). The actual calendar URL/file is configured on that `ical` instance itself,
+// not here. Leaving `icalAdapterInstance` empty disables iCal overrides entirely.
+function initIcalFields() {
+    var instanceInput = document.getElementById('shutters-ical-adapter-instance');
+    instanceInput.value = shuttersConfig.icalAdapterInstance || '';
+    instanceInput.oninput = function () {
+        shuttersConfig.icalAdapterInstance = instanceInput.value || undefined;
+        onChangeFired();
+    };
+
+    var prefixInput = document.getElementById('shutters-ical-title-prefix');
+    prefixInput.value = shuttersConfig.icalTitlePrefix || '';
+    prefixInput.oninput = function () {
+        shuttersConfig.icalTitlePrefix = prefixInput.value || undefined;
+        onChangeFired();
     };
 }
 
@@ -1100,6 +1166,7 @@ function renderCoveringCard(covering, index) {
     row1.appendChild(
         makeSelect('cov-' + index + '-coveringType', 'coveringType', covering.coveringType, COVERING_TYPES, function (v) {
             covering.coveringType = v;
+            renderCoverings(); // re-render: the tilt state field is only shown for raffstore/lamellen
             onChangeFired();
         }),
     );
@@ -1160,6 +1227,31 @@ function renderCoveringCard(covering, index) {
             }),
         );
     });
+    // Slat tilt (plan section 2a.5): only relevant for raffstore/lamellen, and entirely optional even
+    // then (many raffstore/lamellen installations have no separate tilt control at all).
+    if (covering.coveringType === 'raffstore' || covering.coveringType === 'lamellen') {
+        statesRow.appendChild(
+            makeStateIdField('cov-' + index + '-state-tilt', 'stateTilt', covering.states.tilt, 4, function (v) {
+                covering.states.tilt = v;
+                renderCoverings(); // re-render: tiltActual is only relevant once a tilt state is configured
+                onChangeFired();
+            }),
+        );
+        if (covering.states.tilt) {
+            statesRow.appendChild(
+                makeStateIdField(
+                    'cov-' + index + '-state-tiltActual',
+                    'stateTiltActual',
+                    covering.states.tiltActual,
+                    4,
+                    function (v) {
+                        covering.states.tiltActual = v;
+                        onChangeFired();
+                    },
+                ),
+            );
+        }
+    }
     card.appendChild(statesRow);
 
     var protectionTitle = document.createElement('div');
@@ -1199,7 +1291,34 @@ function renderCoveringCard(covering, index) {
             onChangeFired();
         }),
     );
+    protectionRow1.appendChild(
+        makeCheckbox('cov-' + index + '-nightCoolingEnabled', 'nightCoolingEnabled', covering.nightCoolingEnabled, function (v) {
+            covering.nightCoolingEnabled = v;
+            renderCoverings(); // re-render: indoor-temperature field only relevant when enabled
+            onChangeFired();
+        }),
+    );
     card.appendChild(protectionRow1);
+
+    // Only show the indoor-temperature field when night cooling is actually enabled for this covering
+    // (plan section 7c) - it stays fully inactive without both this being enabled and a sensor configured.
+    if (covering.nightCoolingEnabled) {
+        var nightCoolingRow = document.createElement('div');
+        nightCoolingRow.className = 'shutters-row row';
+        nightCoolingRow.appendChild(
+            makeStateIdField(
+                'cov-' + index + '-nightCoolingIndoorTempStateId',
+                'nightCoolingIndoorTempStateId',
+                covering.nightCoolingIndoorTempStateId,
+                6,
+                function (v) {
+                    covering.nightCoolingIndoorTempStateId = v;
+                    onChangeFired();
+                },
+            ),
+        );
+        card.appendChild(nightCoolingRow);
+    }
 
     // Only show sun-window fields when sun protection is actually enabled for this covering.
     if (covering.sunProtectionEnabled) {
@@ -1223,6 +1342,19 @@ function renderCoveringCard(covering, index) {
                 3,
                 function (v) {
                     covering.sunTargetPercent = v;
+                    onChangeFired();
+                },
+                'number',
+            ),
+        );
+        sunRow.appendChild(
+            makeText(
+                'cov-' + index + '-sunProtectionMinTemp',
+                'sunProtectionMinTemp',
+                covering.sunProtectionMinTemp,
+                3,
+                function (v) {
+                    covering.sunProtectionMinTemp = v;
                     onChangeFired();
                 },
                 'number',
@@ -1297,15 +1429,212 @@ function renderCoveringCard(covering, index) {
     return built.card;
 }
 
+// Subscribes to this instance's `info.scanProgress` state via the admin page's socket.io connection
+// (plan section 2b.3), so `onScanClicked()` can show live progress while the scan is running - a
+// single `sendTo` round trip has no built-in mechanism for intermediate updates, but a regular state
+// change pushed over the same already-open socket does. Best-effort: if the classic admin socket API
+// ever differs from what is used elsewhere in this file (see `ensureStateObjectsCache()`), this simply
+// has no visible effect rather than breaking the scan itself.
+function subscribeScanProgress(instanceId, statusEl) {
+    scanProgressStateId = instanceId + '.info.scanProgress';
+    scanProgressListener = function (id, state) {
+        if (id === scanProgressStateId && state && state.val) {
+            statusEl.innerText = state.val;
+        }
+    };
+    try {
+        socket.on('stateChange', scanProgressListener);
+        socket.emit('subscribe', scanProgressStateId);
+    } catch (e) {
+        // Live progress is a nice-to-have; see function doc.
+    }
+}
+
+function unsubscribeScanProgress() {
+    if (!scanProgressStateId) {
+        return;
+    }
+    try {
+        socket.emit('unsubscribe', scanProgressStateId);
+        socket.off('stateChange', scanProgressListener);
+    } catch (e) {
+        // see subscribeScanProgress()
+    }
+    scanProgressStateId = null;
+    scanProgressListener = null;
+}
+
 function onScanClicked() {
     var statusEl = document.getElementById('shutters-scan-status');
     statusEl.innerText = '...';
     var instanceId = getInstanceId();
+    subscribeScanProgress(instanceId, statusEl);
     sendTo(instanceId, 'scanForShutters', {}, function (result) {
-        if (result && result.added && result.added > 0) {
+        unsubscribeScanProgress();
+        if (result && result.error) {
+            statusEl.innerText = result.error;
+            return;
+        }
+        var candidates = (result && result.candidates) || [];
+        var errors = (result && result.errors) || [];
+        statusEl.innerText = candidates.length > 0 ? candidates.length + ' candidate(s) found - review below.' : 'No new coverings found.';
+        renderScanPreview(candidates, errors);
+    });
+}
+
+// @param driverType - `IShutterConfig.driverType` value, e.g. "generic-position".
+function driverTypeLabel(driverType) {
+    var found = DRIVER_TYPES.filter(function (pair) {
+        return pair[0] === driverType;
+    })[0];
+    return found ? _(found[1]) : driverType;
+}
+
+// Renders the result of the last `scanForShutters` call as a checkbox+editable-name list the user
+// must explicitly confirm (plan section 2b.3) - nothing here is written to the configuration until
+// `onApplyScannedClicked()` runs; every candidate is preselected (checked) since that is the common
+// case (review/deselect the exceptions), but nothing is ever added silently.
+//
+// @param candidates - Candidates returned by the backend's `scanForShutters` message handler.
+// @param errors - Non-fatal scan errors to display alongside the preview, if any.
+function renderScanPreview(candidates, errors) {
+    scanPreviewState = candidates.map(function (candidate) {
+        return { candidate: candidate, selected: true, name: candidate.name };
+    });
+
+    var container = document.getElementById('shutters-scan-preview-container');
+    container.innerHTML = '';
+
+    (errors || []).forEach(function (err) {
+        var p = document.createElement('p');
+        p.className = 'shutters-hint';
+        p.style.color = '#c62828';
+        p.innerText = err;
+        container.appendChild(p);
+    });
+
+    if (scanPreviewState.length === 0) {
+        return;
+    }
+
+    var card = document.createElement('div');
+    card.className = 'card-panel';
+
+    scanPreviewState.forEach(function (entry, index) {
+        var row = document.createElement('div');
+        row.className = 'shutters-row row';
+
+        var checkboxWrap = document.createElement('div');
+        checkboxWrap.className = 'col s1';
+        checkboxWrap.style.marginTop = '18px';
+        var checkboxLabel = document.createElement('label');
+        var checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = 'scan-preview-selected-' + index;
+        checkbox.checked = true;
+        checkbox.onchange = function () {
+            entry.selected = checkbox.checked;
+        };
+        checkboxLabel.appendChild(checkbox);
+        checkboxLabel.appendChild(document.createElement('span'));
+        checkboxWrap.appendChild(checkboxLabel);
+        row.appendChild(checkboxWrap);
+
+        var nameWrap = document.createElement('div');
+        nameWrap.className = 'input-field col s4';
+        var nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.id = 'scan-preview-name-' + index;
+        nameInput.value = entry.name;
+        nameInput.oninput = function () {
+            entry.name = nameInput.value;
+        };
+        var nameLabel = document.createElement('label');
+        nameLabel.setAttribute('for', nameInput.id);
+        nameLabel.className = 'active';
+        nameLabel.innerText = _('name');
+        nameWrap.appendChild(nameInput);
+        nameWrap.appendChild(nameLabel);
+        row.appendChild(nameWrap);
+
+        var driverWrap = document.createElement('div');
+        driverWrap.className = 'col s3';
+        driverWrap.style.marginTop = '18px';
+        driverWrap.innerText = driverTypeLabel(entry.candidate.driverType);
+        row.appendChild(driverWrap);
+
+        var statesWrap = document.createElement('div');
+        statesWrap.className = 'col s4';
+        statesWrap.style.marginTop = '18px';
+        statesWrap.style.fontSize = '12px';
+        statesWrap.style.wordBreak = 'break-all';
+        statesWrap.innerText = Object.keys(entry.candidate.states)
+            .map(function (key) {
+                return entry.candidate.states[key];
+            })
+            .join(', ');
+        row.appendChild(statesWrap);
+
+        card.appendChild(row);
+    });
+
+    container.appendChild(card);
+
+    var actionsRow = document.createElement('p');
+    var applyBtn = document.createElement('button');
+    applyBtn.className = 'btn waves-effect';
+    applyBtn.type = 'button';
+    applyBtn.innerText = _('applyScannedButton');
+    applyBtn.onclick = onApplyScannedClicked;
+    var discardBtn = document.createElement('button');
+    discardBtn.className = 'btn-flat waves-effect';
+    discardBtn.type = 'button';
+    discardBtn.style.marginLeft = '10px';
+    discardBtn.innerText = _('discardScanButton');
+    discardBtn.onclick = function () {
+        scanPreviewState = [];
+        container.innerHTML = '';
+    };
+    actionsRow.appendChild(applyBtn);
+    actionsRow.appendChild(discardBtn);
+    container.appendChild(actionsRow);
+
+    if (typeof translateAll === 'function') translateAll();
+}
+
+// Sends exactly the checked (and possibly renamed) candidates to the backend's `applyScannedShutters`
+// message handler (plan section 2b.3) - the only point at which a scan result actually changes
+// `native.shutters[]`, which then restarts the adapter instance like any other config change.
+function onApplyScannedClicked() {
+    var statusEl = document.getElementById('shutters-scan-status');
+    var selected = scanPreviewState
+        .filter(function (entry) {
+            return entry.selected;
+        })
+        .map(function (entry) {
+            var candidate = {};
+            Object.keys(entry.candidate).forEach(function (key) {
+                candidate[key] = entry.candidate[key];
+            });
+            candidate.name = entry.name;
+            return candidate;
+        });
+
+    if (selected.length === 0) {
+        statusEl.innerText = 'Nothing selected.';
+        return;
+    }
+
+    statusEl.innerText = '...';
+    sendTo(getInstanceId(), 'applyScannedShutters', { candidates: selected }, function (result) {
+        if (result && result.added > 0) {
             statusEl.innerText = result.added + ' added, adapter restarting - reload this page afterwards.';
+            document.getElementById('shutters-scan-preview-container').innerHTML = '';
+            scanPreviewState = [];
+        } else if (result && result.error) {
+            statusEl.innerText = result.error;
         } else {
-            statusEl.innerText = result && result.error ? result.error : 'No new coverings found.';
+            statusEl.innerText = 'Nothing added.';
         }
     });
 }
@@ -1508,6 +1837,8 @@ function renderThresholds() {
         ['windOpenThreshold', 'windOpenThreshold'],
         ['windCloseAllowedThreshold', 'windCloseAllowedThreshold'],
         ['frostThreshold', 'frostThreshold'],
+        ['nightCoolingIndoorMinTemp', 'nightCoolingIndoorMinTemp'],
+        ['nightCoolingMinDelta', 'nightCoolingMinDelta'],
     ];
     var row = document.createElement('div');
     row.className = 'shutters-row row';
@@ -1533,6 +1864,25 @@ function renderThresholds() {
         }),
     );
     container.appendChild(row);
+    if (typeof translateAll === 'function') translateAll();
+
+    var notifyContainer = document.getElementById('shutters-notify-container');
+    notifyContainer.innerHTML = '';
+    var notifyRow = document.createElement('div');
+    notifyRow.className = 'shutters-row row';
+    notifyRow.appendChild(
+        makeText('notify-pushoverInstance', 'pushoverInstance', shuttersConfig.pushoverInstance, 3, function (v) {
+            shuttersConfig.pushoverInstance = v || undefined;
+            onChangeFired();
+        }),
+    );
+    notifyRow.appendChild(
+        makeText('notify-telegramInstance', 'telegramInstance', shuttersConfig.telegramInstance, 3, function (v) {
+            shuttersConfig.telegramInstance = v || undefined;
+            onChangeFired();
+        }),
+    );
+    notifyContainer.appendChild(notifyRow);
     if (typeof translateAll === 'function') translateAll();
 }
 

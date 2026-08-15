@@ -1,3 +1,4 @@
+import { BestEffortPositionEstimate } from './best-effort-position';
 import type { IShutterDriver } from './types';
 
 /**
@@ -5,17 +6,18 @@ import type { IShutterDriver } from './types';
  * no position feedback at all (e.g. a basic Somfy/EnOcean relay actuator).
  *
  * Position is only tracked as a best-effort in-memory estimate (0 or 100
- * after a full open/close command); precise intermediate positions require
- * runtime-based tracking, which is added together with the calibration
- * curve (position-mapping.ts, plan section 4) and is not yet implemented
- * here.
+ * after a full open/close command, invalidated by `stop()` since the actual
+ * resting position after stopping mid-movement is genuinely unknown);
+ * precise intermediate positions require runtime-based tracking, which is
+ * added together with the calibration curve (position-mapping.ts, plan
+ * section 4) and is not yet implemented here.
  *
  * Required `config.states` keys: `open`, `close`, `stop` (all boolean, ack=false).
  */
 export class GenericRelayDriver implements IShutterDriver {
     public readonly type = 'generic-relay';
 
-    private currentPosition: number | undefined;
+    private readonly positionEstimate = new BestEffortPositionEstimate();
 
     /**
      * @param adapter - Adapter instance, used for foreign state access.
@@ -48,25 +50,26 @@ export class GenericRelayDriver implements IShutterDriver {
     /** Pulses the open/retract relay. */
     public async open(): Promise<void> {
         await this.adapter.setForeignStateAsync(this.openStateId, true, false);
-        this.currentPosition = 0;
+        this.positionEstimate.markOpened();
     }
 
     /** Pulses the close/extend relay. */
     public async close(): Promise<void> {
         await this.adapter.setForeignStateAsync(this.closeStateId, true, false);
-        this.currentPosition = 100;
+        this.positionEstimate.markClosed();
     }
 
-    /** Pulses the stop relay, if configured. */
+    /** Pulses the stop relay, if configured, and invalidates the position estimate (see class doc). */
     public async stop(): Promise<void> {
         if (this.stopStateId) {
             await this.adapter.setForeignStateAsync(this.stopStateId, true, false);
         }
+        this.positionEstimate.invalidate();
     }
 
-    /** @returns The last commanded position (0 or 100), or undefined if none was commanded yet. */
+    /** @returns The best-effort position estimate, see class doc. */
     public getCurrentPosition(): number | undefined {
-        return this.currentPosition;
+        return this.positionEstimate.getValue();
     }
 
     /** @returns Always undefined; this driver has no movement feedback. */

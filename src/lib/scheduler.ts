@@ -1,4 +1,5 @@
 import type { IAreaScheduleConfig, IDaySchedule, WeekdayName } from './types';
+import { applyIcalOverrides, type IIcalOverride } from './ical';
 import { computeSunEventTime } from './twilight';
 
 const TIME_RE = /^([01]?\d|2[0-3]):([0-5]\d)$/;
@@ -179,7 +180,8 @@ export type ScheduleAction = 'open' | 'close';
  * configuration fields are needed for this; the format of the string itself is what distinguishes the
  * variants.
  *
- * iCal calendar overrides are not implemented yet, see plan section 5 (M4).
+ * iCal calendar overrides (plan section 5.1) are applied on top of the resolved day schedule via
+ * `getIcalOverridesForToday`, if provided.
  */
 export class Scheduler {
     private timers: ioBroker.Timeout[] = [];
@@ -193,6 +195,7 @@ export class Scheduler {
      *   boolean value, not how it was computed.
      * @param location - Latitude/longitude used for sunrise/sunset-relative entries; undefined disables them (they are then skipped with a warning).
      * @param onTrigger - Called when an area's open/close time is reached.
+     * @param getIcalOverridesForToday - Returns today's iCal-derived schedule overrides (plan section 5.1), see `ical.ts`; undefined/omitted disables iCal overrides entirely (matching the resolved day schedule as-is).
      */
     public constructor(
         private readonly adapter: ioBroker.Adapter,
@@ -200,6 +203,7 @@ export class Scheduler {
         private readonly isPublicHoliday: () => boolean,
         private readonly location: { latitude: number; longitude: number } | undefined,
         private readonly onTrigger: (area: IAreaScheduleConfig, action: ScheduleAction) => void,
+        private readonly getIcalOverridesForToday?: () => IIcalOverride[],
     ) {}
 
     /** (Re-)schedules all areas for the remainder of today, and arranges the next midnight recompute. */
@@ -262,13 +266,19 @@ export class Scheduler {
     }
 
     /**
-     * Picks the applicable day schedule for `area` on `now`'s calendar day, see `resolveDaySchedule`.
+     * Picks the applicable day schedule for `area` on `now`'s calendar day, see `resolveDaySchedule`,
+     * with any matching iCal override (plan section 5.1, see `ical.ts`) applied on top.
      *
      * @param area - Area whose day schedule to resolve.
      * @param now - Reference date to determine weekday/weekend/holiday.
      */
     private resolveTodaySchedule(area: IAreaScheduleConfig, now: Date): IDaySchedule {
-        return resolveDaySchedule(area, now, this.isPublicHoliday());
+        const daySchedule = resolveDaySchedule(area, now, this.isPublicHoliday());
+        const overrides = this.getIcalOverridesForToday?.();
+        if (!overrides || overrides.length === 0) {
+            return daySchedule;
+        }
+        return applyIcalOverrides(daySchedule, area, overrides);
     }
 
     private scheduleAction(

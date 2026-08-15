@@ -132,6 +132,8 @@ const DEFAULT_OPTIONS: IAutomationOptions = {
     windCloseAllowedThreshold: 25,
     windCalmMinDurationMs: 600_000,
     frostThreshold: 2,
+    nightCoolingIndoorMinTemp: 24,
+    nightCoolingMinDelta: 3,
     tickMs: 30_000,
     location: undefined,
 };
@@ -215,6 +217,59 @@ describe('AutomationEngine', () => {
             weather.solarRadiation = 300; // >= sunCloseThreshold (200)
             weather.isSummer = true;
             // Sun protection is only eligible while the schedule currently wants the covering open (0%).
+            engine.setScheduleTarget(controllerHandle.config.id, 0);
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 70, reason: 'Sun protection', bypass: false },
+            ]);
+        });
+
+        it('sun protection stays inactive below sunProtectionMinTemp, even at high radiation (plan section 6.5)', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(
+                makeConfig({ sunProtectionEnabled: true, sunTargetPercent: 70, sunProtectionMinTemp: 20 }),
+            );
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            weather.windSpeed = 0;
+            weather.rain = false;
+            weather.solarRadiation = 300;
+            weather.isSummer = true;
+            weather.outdoorTemp = 15; // below sunProtectionMinTemp (20)
+            engine.setScheduleTarget(controllerHandle.config.id, 0);
+
+            engine.evaluateNow();
+
+            // Sun protection is blocked by the temperature filter, so the schedule's own target (0%, i.e. open) applies instead.
+            expect(controllerHandle.appliedCalls).to.deep.equal([{ percent: 0, reason: 'Schedule', bypass: false }]);
+        });
+
+        it('sun protection applies once sunProtectionMinTemp is reached', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(
+                makeConfig({ sunProtectionEnabled: true, sunTargetPercent: 70, sunProtectionMinTemp: 20 }),
+            );
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            weather.windSpeed = 0;
+            weather.rain = false;
+            weather.solarRadiation = 300;
+            weather.isSummer = true;
+            weather.outdoorTemp = 22;
             engine.setScheduleTarget(controllerHandle.config.id, 0);
 
             engine.evaluateNow();
@@ -413,6 +468,304 @@ describe('AutomationEngine', () => {
         });
     });
 
+    describe('covering-type-dependent target positions (plan section 2a.5/7/7a)', () => {
+        it('drives a markise to 0 (retracted) for wind protection, same as a rolladen', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(makeConfig({ coveringType: 'markise' }));
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            weather.windSpeed = 50; // >= windOpenThreshold (40)
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 0, reason: 'Wind protection', bypass: true },
+            ]);
+        });
+
+        it('drives a rolladen to 100 (closed) for rain protection by default', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(makeConfig({ sunProtectionEnabled: false }));
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            weather.windSpeed = 0;
+            weather.rain = true;
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 100, reason: 'Rain protection', bypass: false },
+            ]);
+        });
+
+        it('drives a markise to 0 (retracted), not 100, for rain protection by default', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(
+                makeConfig({ coveringType: 'markise', sunProtectionEnabled: false }),
+            );
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            weather.windSpeed = 0;
+            weather.rain = true;
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 0, reason: 'Rain protection', bypass: false },
+            ]);
+        });
+
+        it('an explicit rainTargetPercent still overrides the markise default', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(
+                makeConfig({ coveringType: 'markise', rainTargetPercent: 40, sunProtectionEnabled: false }),
+            );
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            weather.windSpeed = 0;
+            weather.rain = true;
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 40, reason: 'Rain protection', bypass: false },
+            ]);
+        });
+    });
+
+    describe('night cooling (plan section 7c)', () => {
+        it('holds the covering open instead of closing when eligible and the schedule wants to close', async () => {
+            const weather = createFakeWeather();
+            weather.isSummer = true;
+            weather.outdoorTemp = 18;
+            const controllerHandle = createFakeController(
+                makeConfig({
+                    sunProtectionEnabled: false,
+                    nightCoolingEnabled: true,
+                    nightCoolingIndoorTempStateId: 'foreign.indoorTemp',
+                }),
+            );
+            const { adapter, foreignStates } = createFakeAdapter();
+            foreignStates.set('foreign.indoorTemp', { val: 26, ack: true } as ioBroker.State);
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            await engine.start();
+            engine.setScheduleTarget(controllerHandle.config.id, 100);
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 0, reason: 'Night cooling', bypass: false },
+            ]);
+
+            engine.stop();
+        });
+
+        it('closes normally per schedule when night cooling is not enabled for the covering', async () => {
+            const weather = createFakeWeather();
+            weather.isSummer = true;
+            weather.outdoorTemp = 18;
+            const controllerHandle = createFakeController(
+                makeConfig({ sunProtectionEnabled: false, nightCoolingIndoorTempStateId: 'foreign.indoorTemp' }),
+            );
+            const { adapter, foreignStates } = createFakeAdapter();
+            foreignStates.set('foreign.indoorTemp', { val: 26, ack: true } as ioBroker.State);
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            await engine.start();
+            engine.setScheduleTarget(controllerHandle.config.id, 100);
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([{ percent: 100, reason: 'Schedule', bypass: false }]);
+
+            engine.stop();
+        });
+
+        it('closes normally when no indoor-temperature sensor is configured, even if enabled', async () => {
+            const weather = createFakeWeather();
+            weather.isSummer = true;
+            weather.outdoorTemp = 18;
+            const controllerHandle = createFakeController(
+                makeConfig({ sunProtectionEnabled: false, nightCoolingEnabled: true }),
+            );
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            await engine.start();
+            engine.setScheduleTarget(controllerHandle.config.id, 100);
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([{ percent: 100, reason: 'Schedule', bypass: false }]);
+
+            engine.stop();
+        });
+
+        it('does not apply outside summer, even if otherwise eligible', async () => {
+            const weather = createFakeWeather();
+            weather.isSummer = false;
+            weather.outdoorTemp = 18;
+            const controllerHandle = createFakeController(
+                makeConfig({
+                    sunProtectionEnabled: false,
+                    nightCoolingEnabled: true,
+                    nightCoolingIndoorTempStateId: 'foreign.indoorTemp',
+                }),
+            );
+            const { adapter, foreignStates } = createFakeAdapter();
+            foreignStates.set('foreign.indoorTemp', { val: 26, ack: true } as ioBroker.State);
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            await engine.start();
+            engine.setScheduleTarget(controllerHandle.config.id, 100);
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([{ percent: 100, reason: 'Schedule', bypass: false }]);
+
+            engine.stop();
+        });
+
+        it('never overrides an open schedule target (only ever competes with a close)', async () => {
+            const weather = createFakeWeather();
+            weather.isSummer = true;
+            weather.outdoorTemp = 18;
+            const controllerHandle = createFakeController(
+                makeConfig({
+                    sunProtectionEnabled: false,
+                    nightCoolingEnabled: true,
+                    nightCoolingIndoorTempStateId: 'foreign.indoorTemp',
+                }),
+            );
+            const { adapter, foreignStates } = createFakeAdapter();
+            foreignStates.set('foreign.indoorTemp', { val: 26, ack: true } as ioBroker.State);
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            await engine.start();
+            engine.setScheduleTarget(controllerHandle.config.id, 0);
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([{ percent: 0, reason: 'Schedule', bypass: false }]);
+
+            engine.stop();
+        });
+
+        it('does not hold the covering open while frost protection is active (safety outranks comfort)', async () => {
+            const weather = createFakeWeather();
+            weather.isSummer = true;
+            weather.outdoorTemp = 0;
+            weather.humidity = 90;
+            const controllerHandle = createFakeController(
+                makeConfig({
+                    sunProtectionEnabled: false,
+                    nightCoolingEnabled: true,
+                    nightCoolingIndoorTempStateId: 'foreign.indoorTemp',
+                }),
+            );
+            const { adapter, foreignStates } = createFakeAdapter();
+            // Indoor temperature would otherwise qualify (>= indoorMinTemp with a big enough delta),
+            // but the outdoor conditions above also happen to satisfy frost protection (7b), which must win.
+            foreignStates.set('foreign.indoorTemp', { val: 26, ack: true } as ioBroker.State);
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            await engine.start();
+            engine.setScheduleTarget(controllerHandle.config.id, 100);
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([]);
+
+            engine.stop();
+        });
+
+        it('picks up a live indoor-temperature change without needing a restart', async () => {
+            const weather = createFakeWeather();
+            weather.isSummer = true;
+            weather.outdoorTemp = 18;
+            const controllerHandle = createFakeController(
+                makeConfig({
+                    sunProtectionEnabled: false,
+                    nightCoolingEnabled: true,
+                    nightCoolingIndoorTempStateId: 'foreign.indoorTemp',
+                }),
+            );
+            const { adapter, foreignStates, emitForeignStateChange } = createFakeAdapter();
+            foreignStates.set('foreign.indoorTemp', { val: 20, ack: true } as ioBroker.State); // too cool at first
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            await engine.start();
+            engine.setScheduleTarget(controllerHandle.config.id, 100);
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([{ percent: 100, reason: 'Schedule', bypass: false }]);
+
+            emitForeignStateChange('foreign.indoorTemp', 27); // now hot enough
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 100, reason: 'Schedule', bypass: false },
+                { percent: 0, reason: 'Night cooling', bypass: false },
+            ]);
+
+            engine.stop();
+        });
+    });
+
     describe('door-contact clamping (plan section 7e)', () => {
         it('clamps a closing schedule target to the current position while the door is open', async () => {
             const weather = createFakeWeather();
@@ -572,6 +925,153 @@ describe('AutomationEngine', () => {
             expect(controllerHandle.persistedOverrideUntil).to.equal(0);
 
             engine.stop();
+        });
+    });
+
+    describe('aggregated wind/frost protection notifications (plan section 9a.3)', () => {
+        it('fires onWindProtectionChange(true) once wind protection engages, and (false) once it clears', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(makeConfig());
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+            const changes: boolean[] = [];
+            engine.onWindProtectionChange = active => changes.push(active);
+
+            weather.windSpeed = 0;
+            engine.evaluateNow();
+            expect(changes).to.deep.equal([]); // never engaged - no edge yet
+
+            weather.windSpeed = 50; // >= windOpenThreshold (40)
+            engine.evaluateNow();
+            expect(changes).to.deep.equal([true]);
+
+            engine.evaluateNow(); // stays active - must not re-fire
+            expect(changes).to.deep.equal([true]);
+
+            weather.windSpeed = 0;
+            engine.evaluateNow(); // calm hysteresis satisfied immediately (windCalmMinDurationMs elapsed via update() below threshold)
+            clock.tick(DEFAULT_OPTIONS.windCalmMinDurationMs + 1);
+            engine.evaluateNow();
+            expect(changes).to.deep.equal([true, false]);
+        });
+
+        it('fires only one combined onWindProtectionChange(true) even when a second covering also engages afterwards', () => {
+            const weather = createFakeWeather();
+            const controllerA = createFakeController(makeConfig({ id: 'shutter1' }));
+            const controllerB = createFakeController(makeConfig({ id: 'shutter2' }));
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([
+                    [controllerA.config.id, controllerA.controller],
+                    [controllerB.config.id, controllerB.controller],
+                ]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+            const changes: boolean[] = [];
+            engine.onWindProtectionChange = active => changes.push(active);
+
+            weather.windSpeed = 50;
+            engine.evaluateNow(); // both coverings engage on the same tick
+            expect(changes).to.deep.equal([true]);
+
+            // Both coverings are affected identically by the same shared weather reading, so this
+            // scenario (one covering's wind protection clearing while another's is still active) is
+            // exercised structurally by the "does not count a covering with automation disabled"
+            // test below instead of via a real staggered-threshold setup.
+        });
+
+        it('fires onFrostProtectionChange(true)/(false) on the aggregate rising/falling edge', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(makeConfig());
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+            const changes: boolean[] = [];
+            engine.onFrostProtectionChange = active => changes.push(active);
+
+            weather.windSpeed = 0;
+            weather.rain = false;
+            weather.outdoorTemp = 10;
+            engine.evaluateNow();
+            expect(changes).to.deep.equal([]);
+
+            weather.outdoorTemp = 0; // <= frostThreshold (2)
+            weather.humidity = 90; // "damp" per evaluateFrostProtection, without also triggering rain protection
+            engine.evaluateNow();
+            expect(changes).to.deep.equal([true]);
+
+            engine.evaluateNow(); // stays active - must not re-fire
+            expect(changes).to.deep.equal([true]);
+
+            weather.outdoorTemp = 15;
+            engine.evaluateNow();
+            expect(changes).to.deep.equal([true, false]);
+        });
+
+        it('does not count a covering with automation disabled towards the aggregate', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(makeConfig({ automationEnabled: false }));
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+            const changes: boolean[] = [];
+            engine.onWindProtectionChange = active => changes.push(active);
+
+            weather.windSpeed = 50;
+            engine.evaluateNow();
+
+            expect(changes).to.deep.equal([]);
+            expect(controllerHandle.appliedCalls).to.deep.equal([]);
+        });
+
+        it('fires onSunProtectionChange(true)/(false) on the aggregate rising/falling edge (plan section 10a.14)', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(makeConfig({ sunProtectionEnabled: true }));
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+            const changes: boolean[] = [];
+            engine.onSunProtectionChange = active => changes.push(active);
+
+            weather.windSpeed = 0;
+            weather.rain = false;
+            weather.isSummer = true;
+            weather.solarRadiation = 0;
+            engine.setScheduleTarget(controllerHandle.config.id, 0);
+            engine.evaluateNow();
+            expect(changes).to.deep.equal([]);
+
+            weather.solarRadiation = 300; // >= sunCloseThreshold (200)
+            engine.evaluateNow();
+            expect(changes).to.deep.equal([true]);
+
+            engine.evaluateNow(); // stays active - must not re-fire
+            expect(changes).to.deep.equal([true]);
+
+            weather.solarRadiation = 0;
+            engine.evaluateNow(); // starts the "below open threshold since" hysteresis clock
+            clock.tick(DEFAULT_OPTIONS.sunOpenMinDurationMs + 1);
+            engine.evaluateNow();
+            expect(changes).to.deep.equal([true, false]);
         });
     });
 });

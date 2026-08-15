@@ -9,6 +9,10 @@ declare global {
             shutters: IShutterConfig[];
             areas: IAreaScheduleConfig[];
             holidayStateId?: string;
+            icalAdapterInstance?: string;
+            icalTitlePrefix?: string;
+            pushoverInstance?: string;
+            telegramInstance?: string;
             latitude?: number;
             longitude?: number;
             weather?: IWeatherConfig;
@@ -20,6 +24,8 @@ declare global {
             windCloseAllowedThreshold?: number;
             windCalmMinDurationMs?: number;
             frostThreshold?: number;
+            nightCoolingIndoorMinTemp?: number;
+            nightCoolingMinDelta?: number;
             automationTickMs?: number;
             groups?: IGroupConfig[];
             scenes?: ISceneConfig[];

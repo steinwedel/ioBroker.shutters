@@ -15,21 +15,25 @@ Unified control and automation for roller shutters, external venetian blinds, aw
 
 ### Features
 
-- **One control interface for several systems** — Homematic (CCU), KNX, Shelly, Zigbee (`ioBroker.zigbee` and `ioBroker.zigbee2mqtt`) and generic relay/position outputs are all controlled through the same set of states — mix and match systems freely, even within the same group. Homematic IP Cloud, Tuya, Somfy, Velux, EnOcean, Velbus, Loxone, Homey and generic MQTT covers are planned but not implemented yet (see "Planned" below).
-- **Auto-discovery** — scans the object tree of connected adapter instances to find existing shutters/blinds/awnings automatically and suggests them for import instead of requiring every state ID to be entered by hand.
+- **One control interface for many systems** — Homematic (CCU and Homematic IP Cloud), KNX, Shelly, Zigbee (`ioBroker.zigbee` and `ioBroker.zigbee2mqtt`), Tuya, Somfy (TaHoma/Connexoon), Velux (KLF200), EnOcean, Velbus, Loxone, Homey, generic MQTT covers and generic relay/position outputs are all controlled through the same set of states — mix and match systems freely, even within the same group.
+- **Auto-discovery** — scans the object tree of connected adapter instances to find existing shutters/blinds/awnings automatically and shows them as a preview list (with a live progress indicator while the scan runs) - review, rename or uncheck any of them, then confirm to add exactly the ones you want, instead of entering every state ID by hand.
 - **Multiple covering types** — Roller shutter, external venetian blind (with slat tilt), awning and vertical lamella blind are each handled with the correct movement/safety logic for that type (e.g. an awning must retract in wind, not extend, unlike a roller shutter).
 - **Height-to-runtime calibration** — a configurable calibration curve compensates for coverings where covering height is not proportional to motor runtime; the guided calibration run itself is planned but not implemented yet.
-- **Daily schedule** — automatic opening/closing per plan, in one of three schedule modes ("all days the same", "weekday / weekend / public holiday", or "individual weekday + public holiday"), only showing the fields relevant to the selected mode; sunrise/sunset/dawn/dusk-relative timing: each open/close field accepts a plain "HH:MM" clock time, an offset from sunrise/sunset (or civil dawn/dusk, with a trailing `d`) prefixed with `+`/`-` in plain minutes (e.g. `-30`, `-30d`) or an "HH:MM" duration (e.g. `+01:30`), or that offset combined with a "!HH:MM" cap (e.g. `+30!19:00` = 30 minutes after sunset, but never later than 19:00; analogous for opening/sunrise). A calendar (iCal) override for individual days is planned but not implemented yet.
-- **Sun protection** — automatically lowers coverings to a configurable intermediate position on hot, sunny days within a configurable time window, with flicker-free behavior when clouds pass by. An optional geometry-based mode (window orientation and sun position) is available for coverings without a fixed sun-facing time window.
+- **Daily schedule** — automatic opening/closing per plan, in one of three schedule modes ("all days the same", "weekday / weekend / public holiday", or "individual weekday + public holiday"), only showing the fields relevant to the selected mode; sunrise/sunset/dawn/dusk-relative timing: each open/close field accepts a plain "HH:MM" clock time, an offset from sunrise/sunset (or civil dawn/dusk, with a trailing `d`) prefixed with `+`/`-` in plain minutes (e.g. `-30`, `-30d`) or an "HH:MM" duration (e.g. `+01:30`), or that offset combined with a "!HH:MM" cap (e.g. `+30!19:00` = 30 minutes after sunset, but never later than 19:00; analogous for opening/sunrise). An optional calendar (iCal) integration can override a single day's opening/closing time via an `ioBroker.ical` instance.
+- **Sun protection** — automatically lowers coverings to a configurable intermediate position on hot, sunny days within a configurable time window, with flicker-free behavior when clouds pass by. An optional geometry-based mode (window orientation and sun position) is available for coverings without a fixed sun-facing time window. An optional minimum-temperature filter avoids shading on bright but cool days when there is no actual overheating risk. Once per calendar year, a notification reminds you that sun protection is active again for the season, in case last year's settings need a second look.
 - **Rain protection** — closes coverings automatically when rain is detected.
 - **Storm/wind protection** — immediately moves coverings to their safe position when wind speed exceeds a configurable limit, overriding every other rule; can be enabled/disabled per covering since wind relevance depends heavily on the covering type.
 - **Frost protection** — pauses automated movement during freezing, damp conditions to avoid ice damage, can be enabled/disabled per covering.
+- **Night cooling** — on a hot summer night, keeps a covering open (or opens it) instead of closing it on schedule, when it is warm enough inside and meaningfully cooler outside; disabled by default and only for coverings with an indoor-temperature sensor configured, since it is a comfort feature (not a safety one) that needs one to work.
 - **Door contact protection** — prevents a shutter above a terrace/balcony door from closing automatically while the door is open; manual commands are never blocked.
 - **Motor protection** — enforces a minimum pause between movement commands regardless of what triggered them (schedule, protection, or a manual command); storm protection always bypasses it so a safety reaction is never delayed.
 - **Manual override awareness** — a manual command issued while sun protection is active suspends sun protection for that covering until midnight, so it does not immediately re-close after you open it; this suspension survives an adapter restart.
-- **Weather data** — uses your own weather station states (solar radiation, wind, rain, temperature, humidity); an optional fallback to a free external weather service for values you have not configured is planned but not implemented yet.
+- **Watchdog & restart recovery** — detects a covering that does not reach its target position in time; a move still in progress when the adapter restarts is not forgotten, so a genuinely stuck covering is still reported instead of silently looking idle.
+- **Notifications** — optionally send a Pushover/Telegram message when a covering's watchdog reports it is not responding, or when storm/frost protection engages or clears (one combined message across all affected coverings, not one per covering).
+- **Weather data** — uses your own weather station states (solar radiation, wind, rain, temperature, humidity); there is no built-in fallback to an external weather service, but any adapter that exposes weather values as regular states (e.g. `ioBroker.multiweather`) can be configured the same way as a physical weather station.
 - **Groups** — combine any number of coverings, even from different systems, into a group with combined open/close/position control.
-- **Human-readable status per covering** — always shows in plain language why a covering is in its current position (schedule, sun protection, wind protection, etc.).
+- **Quick actions** — global "open all"/"close all" buttons (`quickActions.allOpen`/`allClose`) affect every configured covering at once, regardless of group membership.
+- **Human-readable status per covering** — always shows in plain language why a covering is in its current position (schedule, sun protection, wind protection, etc.), plus a short rolling history of its last 10 automated actions (`activityLog`) for "what did it do today and why".
 
 ### Covering types
 
@@ -40,11 +44,13 @@ Unified control and automation for roller shutters, external venetian blinds, aw
 | Awning | Extension length instead of height; safe direction is retracted, not extended |
 | Vertical lamella blind | Horizontal travel + slat rotation, usually indoor, wind/rain protection typically not applicable |
 
+External venetian blinds and vertical lamella blinds can optionally have a separate slat-tilt state ID configured (in addition to the main height/travel state), if the underlying system exposes one - entirely optional, and independent of which driver/system is used.
+
 ---
 
 ## Quick Start
 
-1. **Add your coverings** — open the covering configuration and click **Scan** to auto-discover connected shutters/blinds/awnings, or add one manually by entering its covering type and the relevant state IDs.
+1. **Add your coverings** — open the covering configuration and click **Scan** to auto-discover connected shutters/blinds/awnings; review the preview list, then confirm to add the ones you want - or add one manually by entering its covering type and the relevant state IDs.
 2. **Set a schedule** — configure opening and closing times per plan (or accept the defaults).
 3. Save. The adapter immediately opens/closes coverings on schedule; sun, rain, wind and frost protection use sensible default thresholds and can be fine-tuned later.
 
@@ -74,9 +80,11 @@ Each plan has a schedule mode, selected from a dropdown, which determines which 
 - **Weekday / weekend / public holiday** — the classic three-field schedule: separate weekday and weekend open/close pairs, plus an optional public holiday override (falling back to the weekend pair if left empty).
 - **Individual weekday + public holiday** — a separate open/close pair for each of the seven weekdays, plus an optional public holiday override (falling back to the current weekday's own pair if left empty).
 
-Every open/close field is either a plain "HH:MM" clock time, an offset from sunrise/sunset - or, with a trailing `d`, civil dawn/dusk - written with a leading `+` (after) or `-` (before) sign as plain minutes (e.g. `-30`, `-30d`) or an "HH:MM" duration (e.g. `+01:30`), or that offset combined with a "!HH:MM" cap, e.g. `+30!19:00` (30 minutes after sunset, but never later than 19:00; analogous for opening). An optional calendar (iCal) integration is also planned. Each covering is assigned to a plan via a dropdown on the Coverings tab.
+Every open/close field is either a plain "HH:MM" clock time, an offset from sunrise/sunset - or, with a trailing `d`, civil dawn/dusk - written with a leading `+` (after) or `-` (before) sign as plain minutes (e.g. `-30`, `-30d`) or an "HH:MM" duration (e.g. `+01:30`), or that offset combined with a "!HH:MM" cap, e.g. `+30!19:00` (30 minutes after sunset, but never later than 19:00; analogous for opening). Each covering is assigned to a plan via a dropdown on the Coverings tab.
 
 Public holiday detection is not built in. Instead, configure the ID of an existing boolean state (own or foreign, e.g. from a calendar/iCal adapter such as one that computes public holidays) whose current value decides whether "today" counts as a public holiday for every plan above: `true` = public holiday, `false`/empty = not a public holiday. Leave the field empty to disable holiday-specific schedules entirely.
+
+Optionally, an `ioBroker.ical` instance can override a single day's opening/closing time for one or every plan: configure the instance (e.g. `ical.0`) and an event title prefix (default `"Rolläden"`), then add a calendar event whose title starts with that prefix, e.g. `"Rolläden auf 07:00"` (overrides today's opening time for every plan) or `"Rolläden: Kinderzimmer auf 07:00"` (only for the plan named "Kinderzimmer"); use `"zu"` instead of `"auf"` to override the closing time. The actual calendar URL/file (Google, Nextcloud, a local `.ics` file, ...) is configured on the `ical` instance itself, not here.
 
 ### Sun / Rain / Wind / Frost Protection
 
@@ -88,22 +96,35 @@ Group multiple coverings — even from different connected systems — for combi
 
 ### Weather Data
 
-Configure your own weather station states (solar radiation, wind, rain, temperature, humidity) where available. A fallback to a free external weather service for values you have not configured is planned but not implemented yet - without it, protection functions that need a value you have not configured simply stay inactive.
+Configure your own weather station states (solar radiation, wind, rain, temperature, humidity) where available; protection functions that need a value you have not configured simply stay inactive. There is no built-in fallback to an external weather service - if you do not have your own weather station, an adapter such as `ioBroker.multiweather` can provide the same values as regular states, configured the same way as a physical sensor.
+
+### Notifications
+
+Optionally configure an existing `pushover`/`telegram` adapter instance (e.g. "pushover.0"/"telegram.0") to receive a message when a covering's watchdog reports it is not responding, or when storm/wind or frost protection engages or clears for at least one covering (one combined message, not one per covering). Configure the recipient/chat directly on that instance, not here. Either, both, or neither can be set; leaving both empty disables notifications entirely.
+
+---
+
+## Dashboard widgets
+
+For a vis/vis-2 dashboard, these states are the most useful to show:
+
+- `shutters.<id>.positionActual` — current covering position (0-100), e.g. as a slider widget.
+- `shutters.<id>.statusText` — human-readable reason for the covering's current behavior.
+- `shutters.<id>.watchdogLastIssue` — last "not responding" message, useful for a fault-overview widget across all coverings.
+- `groups.<id>.openAll` / `groups.<id>.closeAll` and `quickActions.allOpen` / `quickActions.allClose` — one-tap buttons for whole rooms or the entire home.
+
+`sunProtectionActive`/`windProtectionActive`/`rainProtectionActive`/`frostProtectionActive` are internal automation state, not separate ioBroker states - `statusText` already reflects whichever of them is currently in effect.
 
 ---
 
 ## Known limitations
 
-- Auto-discovery is best-effort and depends on the connected adapter using standard object roles; unusual third-party device setups may need to be added manually.
+- Auto-discovery is best-effort and depends on the connected adapter using standard object roles (or, for Tuya/Loxone/Homey, a recognized state-naming convention); unusual third-party device setups, or a system that does not follow the assumed convention, may need to be added manually.
 - Systems without a position feedback (e.g. simple open/close/stop relays) estimate the current position from runtime rather than a real sensor value.
 
 ## Planned, not yet implemented
 
-- Additional driver systems: Homematic IP Cloud, Tuya, Somfy, Velux, EnOcean, Velbus, Loxone, Homey, generic MQTT covers.
-- Summer night cooling (keeping coverings open overnight when it is warm inside and cooler outside).
-- Calendar (iCal) schedule overrides for individual days.
-- Fallback to a free external weather service for weather values you have not configured yourself.
-- Notifications (e.g. via Pushover/Telegram) for a covering that stops responding or when storm protection activates.
+- Auto-discovery for generic MQTT covers - not applicable by design, since their command/status topics have no fixed naming convention to detect; these always need to be added manually with the matching state IDs.
 - Guided calibration run (the `calibrate` button currently only logs a reminder to configure the calibration curve manually).
 
 ## Changelog

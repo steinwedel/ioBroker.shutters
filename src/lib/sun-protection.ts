@@ -31,6 +31,7 @@ export function isWithinTimeWindow(now: Date, windowStart: string | undefined, w
  * @param scheduleOpen - Whether the daily schedule currently wants this covering open (0%).
  * @param inWindow - Whether the sun is currently within this covering's active window, see `isWithinTimeWindow()`/`isWithinOrientationWindow()`.
  * @param overridden - Whether a manual command has suspended sun protection until local midnight, see `AutomationEngine.handleManualCommand()`.
+ * @param minTempSatisfied - Whether the optional heat-protection temperature filter (plan section 6.5, see `isHeatProtectionMinTempSatisfied()`) is satisfied; always `true` when `IShutterConfig.sunProtectionMinTemp` is unset.
  * @returns Whether sun protection may currently apply to this covering, before evaluating the radiation threshold/hysteresis itself.
  */
 export function isSunProtectionEligible(
@@ -40,8 +41,30 @@ export function isSunProtectionEligible(
     scheduleOpen: boolean,
     inWindow: boolean,
     overridden: boolean,
+    minTempSatisfied: boolean,
 ): boolean {
-    return globalEnabled && coveringEnabled && isSummer && scheduleOpen && inWindow && !overridden;
+    return globalEnabled && coveringEnabled && isSummer && scheduleOpen && inWindow && !overridden && minTempSatisfied;
+}
+
+/**
+ * Optional filter against unnecessary shading on bright but cool days (plan section 6.5): sun
+ * protection may additionally require the outdoor temperature to reach a configurable threshold
+ * (`IShutterConfig.sunProtectionMinTemp`) on top of the radiation/window condition - a clear but cool
+ * day (e.g. in spring) has no overheating risk, so shading purely by radiation would otherwise feel
+ * like a malfunction to the user ("why did the shutter come down, it's pleasant outside?").
+ *
+ * @param outdoorTemp - Current outdoor temperature, °C, or undefined if not measured.
+ * @param minTemp - `IShutterConfig.sunProtectionMinTemp`, or undefined to disable this filter entirely (returns `true` unconditionally, matching the pre-6.5 behavior).
+ * @returns Whether the temperature filter is satisfied (or disabled). If a threshold is configured but the temperature is unavailable, this returns `false` rather than assuming the filter passed - the whole point of this filter is to avoid unconfirmed shading, so an unknown temperature must not silently be treated as "warm enough".
+ */
+export function isHeatProtectionMinTempSatisfied(
+    outdoorTemp: number | undefined,
+    minTemp: number | undefined,
+): boolean {
+    if (minTemp === undefined) {
+        return true;
+    }
+    return outdoorTemp !== undefined && outdoorTemp >= minTemp;
 }
 
 /**

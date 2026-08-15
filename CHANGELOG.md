@@ -1,4 +1,11 @@
 # Changelog
+## **WORK IN PROGRESS**
+
+* (steinwedel) **NEW**: Add drivers for Homematic IP Cloud, Tuya, Somfy, Velux, EnOcean, Velbus, Loxone, Homey and generic MQTT covers, completing the plan's full driver list (auto-discovery for these still needs manual state IDs for now)
+* (steinwedel) **FIXED**: Tuya/Loxone drivers now clear their best-effort position estimate on `stop()` instead of leaving it wrongly pinned at 0/100 after a mid-movement stop, matching the existing generic-relay driver's behavior
+* (steinwedel) **ENHANCED**: Deduplicate the foreign-state read-back subscription and best-effort position-estimate logic shared across drivers into two reusable helpers
+* (steinwedel) **NEW**: Extend auto-discovery to Homematic IP Cloud, EnOcean, Velbus, Velux/KLF200 and Somfy (role-based, same mechanism as the existing systems), plus dedicated detection for Tuya, Loxone and Homey (name-based, since they don't use the standard role convention); generic MQTT covers remain manual-only by design
+
 ## 0.0.19 (2026-08-14)
 
 * (steinwedel) **ENHANCED**: Change the default sun-protection orientation tolerance from -70°/+70° to -60°/+60°

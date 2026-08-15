@@ -7,7 +7,9 @@ import * as utils from '@iobroker/adapter-core';
 import { normalizeAreaAssignments } from './lib/area-assignment';
 import { AutomationEngine } from './lib/automation';
 import { GroupController } from './lib/group-controller';
+import { type IIcalTableEvent, resolveIcalOverridesForDay } from './lib/ical';
 import { nextAvailableCoveringId } from './lib/id-generator';
+import { sendNotification } from './lib/notify';
 import { Scheduler } from './lib/scheduler';
 import { SceneController } from './lib/scene-manager';
 import { scanForShutters, type IScannedShutter } from './lib/shutter-scanner';
@@ -19,6 +21,9 @@ import { WeatherSource } from './lib/weather-source';
 interface IStateChangeHandler {
     handleStateChange(id: string, state: ioBroker.State): Promise<boolean>;
 }
+
+/** Default `native.icalTitlePrefix` when unset, see `initIcalIntegration()`. */
+const DEFAULT_ICAL_TITLE_PREFIX = 'Rolläden';
 
 class Shutters extends utils.Adapter {
     private readonly controllers = new Map<string, ShutterController>();
@@ -37,6 +42,15 @@ class Shutters extends utils.Adapter {
      * `Scheduler` to decide whether "today" counts as a public holiday. False if unconfigured/unset.
      */
     private isPublicHoliday = false;
+    /**
+     * Full state ID of the configured `ioBroker.ical` instance's `data.table` state (plan section
+     * 5.1), derived from `native.icalAdapterInstance`, or undefined if iCal overrides are disabled.
+     */
+    private icalTableStateId: string | undefined;
+    /** Effective `native.icalTitlePrefix`, falling back to `DEFAULT_ICAL_TITLE_PREFIX`. Only meaningful while `icalTableStateId` is set. */
+    private icalTitlePrefix = DEFAULT_ICAL_TITLE_PREFIX;
+    /** Most recently parsed contents of `icalTableStateId`, kept up to date via `subscribeForeignStates` and consulted by the `Scheduler` for day-level open/close overrides (plan section 5.1). */
+    private icalEvents: IIcalTableEvent[] = [];
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -79,6 +93,32 @@ class Shutters extends utils.Adapter {
             native: {},
         });
 
+        await this.setObjectNotExistsAsync('info.scanProgress', {
+            type: 'state',
+            common: {
+                name: 'Progress message of a covering auto-discovery scan currently running, empty when idle (plan section 2b.3)',
+                type: 'string',
+                role: 'text',
+                read: true,
+                write: false,
+                expert: true,
+            },
+            native: {},
+        });
+
+        await this.setObjectNotExistsAsync('info.lastSeasonalReminderYear', {
+            type: 'state',
+            common: {
+                name: 'Calendar year the seasonal sun-protection reminder was last sent in (plan section 10a.14)',
+                type: 'number',
+                role: 'value',
+                read: true,
+                write: false,
+                expert: true,
+            },
+            native: {},
+        });
+
         if (await this.migrateLegacyCoveringIds()) {
             return;
         }
@@ -92,6 +132,7 @@ class Shutters extends utils.Adapter {
         await this.createShutterControllers();
         await this.createGroupControllers();
         await this.createSceneControllers();
+        await this.createQuickActions();
 
         for (const stateId of this.stateIdToHandler.keys()) {
             this.subscribeStates(stateId.slice(this.namespace.length + 1));
@@ -112,6 +153,7 @@ class Shutters extends utils.Adapter {
 
         const location = await this.resolveLocation();
         await this.initHolidayState();
+        await this.initIcalIntegration();
 
         this.scheduler = new Scheduler(
             this,
@@ -121,6 +163,9 @@ class Shutters extends utils.Adapter {
             (area, action) => {
                 this.onScheduleTrigger(area.id!, area.name, action);
             },
+            this.icalTableStateId
+                ? () => resolveIcalOverridesForDay(this.icalEvents, this.icalTitlePrefix, new Date())
+                : undefined,
         );
 
         this.automationEngine = new AutomationEngine(this, this.controllers, this.weatherSource, {
@@ -132,9 +177,38 @@ class Shutters extends utils.Adapter {
             windCloseAllowedThreshold: this.config.windCloseAllowedThreshold ?? 25,
             windCalmMinDurationMs: this.config.windCalmMinDurationMs ?? 600_000,
             frostThreshold: this.config.frostThreshold ?? 2,
+            nightCoolingIndoorMinTemp: this.config.nightCoolingIndoorMinTemp ?? 24,
+            nightCoolingMinDelta: this.config.nightCoolingMinDelta ?? 3,
             tickMs: this.config.automationTickMs ?? 30_000,
             location,
         });
+        // Storm/frost notifications (plan section 9a.3) are aggregated across every covering rather
+        // than sent per covering - see `AutomationEngine`'s field docs.
+        this.automationEngine.onWindProtectionChange = active => {
+            this.sendNotification(
+                'Rolläden Sturmwarnung',
+                active
+                    ? 'Windschutz ist für mindestens einen Rolladen aktiv - betroffene Rolläden wurden in die Sicherheitsposition gefahren.'
+                    : 'Windschutz ist für keinen Rolladen mehr aktiv.',
+            );
+        };
+        this.automationEngine.onFrostProtectionChange = active => {
+            this.sendNotification(
+                'Rolläden Frostschutz',
+                active
+                    ? 'Frostschutz ist für mindestens einen Rolladen aktiv - automatische Fahrbefehle werden dort ausgesetzt.'
+                    : 'Frostschutz ist für keinen Rolladen mehr aktiv.',
+            );
+        };
+        // Seasonal reminder (plan section 10a.14): unlike wind/frost, sun protection engaging is
+        // routine, expected behavior - only notify once per calendar year, the first time it happens.
+        this.automationEngine.onSunProtectionChange = active => {
+            if (active) {
+                this.sendSeasonalReminderIfNewYear().catch(err => {
+                    this.log.error(`Seasonal reminder failed: ${(err as Error).message}`);
+                });
+            }
+        };
 
         this.reconcileScheduleTargetsOnStartup();
 
@@ -186,11 +260,56 @@ class Shutters extends utils.Adapter {
         this.subscribeForeignStates(stateId);
     }
 
+    /**
+     * Reads the current contents of the configured `ioBroker.ical` instance's `data.table` state
+     * (if `native.icalAdapterInstance` is set) into `this.icalEvents`, and subscribes to it so later
+     * changes keep it up to date (plan section 5.1) - see `IShuttersNativeConfig.icalAdapterInstance`.
+     * The actual `.ics` parsing/fetching is entirely the `ioBroker.ical` instance's responsibility;
+     * this adapter only ever reads that one foreign state.
+     */
+    private async initIcalIntegration(): Promise<void> {
+        const instance = this.config.icalAdapterInstance?.trim();
+        if (!instance) {
+            return;
+        }
+
+        this.icalTitlePrefix = this.config.icalTitlePrefix?.trim() || DEFAULT_ICAL_TITLE_PREFIX;
+        this.icalTableStateId = `${instance}.data.table`;
+
+        const state = await this.getForeignStateAsync(this.icalTableStateId);
+        this.icalEvents = this.parseIcalTable(state?.val);
+        this.subscribeForeignStates(this.icalTableStateId);
+    }
+
+    /**
+     * Parses the raw value of an `ioBroker.ical` instance's `data.table` state into
+     * `IIcalTableEvent[]`. Tolerates both a JSON-encoded string (the normal case for a foreign
+     * state read through `getForeignStateAsync`/`onStateChange`) and an already-parsed array
+     * (defensive, in case a differently configured instance ever sets it as a native array/object
+     * value instead); any other shape or a parse failure is logged and treated as "no events",
+     * rather than letting a malformed calendar break the whole schedule.
+     *
+     * @param val - Raw `ioBroker.State.val` of the `data.table` state.
+     */
+    private parseIcalTable(val: ioBroker.StateValue | undefined): IIcalTableEvent[] {
+        if (val === undefined || val === null || val === '') {
+            return [];
+        }
+        try {
+            const parsed: unknown = typeof val === 'string' ? JSON.parse(val) : val;
+            return Array.isArray(parsed) ? (parsed as IIcalTableEvent[]) : [];
+        } catch (err) {
+            this.log.warn(`Failed to parse iCal data from "${this.icalTableStateId}": ${(err as Error).message}`);
+            return [];
+        }
+    }
+
     /** Creates a `ShutterController` for every configured covering and indexes its own state IDs for dispatch. */
     private async createShutterControllers(): Promise<void> {
         for (const shutterConfig of this.config.shutters ?? []) {
             try {
                 const controller = new ShutterController(this, shutterConfig);
+                controller.onWatchdogIssue = message => this.sendNotification('Rolladen-Watchdog', message);
                 await controller.createObjects();
                 this.controllers.set(shutterConfig.id, controller);
                 this.indexHandler(controller, controller.getOwnStateIds());
@@ -200,6 +319,40 @@ class Shutters extends utils.Adapter {
                 this.log.error(`Skipping covering "${shutterConfig.id}": ${(err as Error).message}`);
             }
         }
+    }
+
+    /**
+     * Sends a notification via the configured Pushover/Telegram instances (plan section 9a.3), if
+     * any; a thin wrapper around `notify.ts`'s `sendNotification()` so callers do not need to
+     * import/pass `this.config` themselves. Never throws - see `sendNotification()`.
+     *
+     * @param title - Short notification title/subject.
+     * @param message - Notification body.
+     */
+    private sendNotification(title: string, message: string): void {
+        sendNotification(this, this.config, title, message).catch(err => {
+            this.log.warn(`Sending notification "${title}" failed unexpectedly: ${(err as Error).message}`);
+        });
+    }
+
+    /**
+     * Sends the once-per-year seasonal reminder (plan section 10a.14) the first time sun protection
+     * actually engages for at least one covering, comparing the current calendar year against
+     * `info.lastSeasonalReminderYear` (persisted, so a restart within the same year does not re-send
+     * it) rather than tracking it purely in memory.
+     */
+    private async sendSeasonalReminderIfNewYear(): Promise<void> {
+        const currentYear = new Date().getFullYear();
+        const state = await this.getStateAsync('info.lastSeasonalReminderYear');
+        if (typeof state?.val === 'number' && state.val === currentYear) {
+            return;
+        }
+
+        await this.setStateAsync('info.lastSeasonalReminderYear', { val: currentYear, ack: true });
+        this.sendNotification(
+            'Rolläden Sonnenschutz',
+            'Der Sonnenschutz ist jetzt wieder aktiv - Zeitfenster und Zielposition weiterhin passend?',
+        );
     }
 
     /** Creates a `GroupController` for every configured group, resolving its member coverings. */
@@ -248,6 +401,64 @@ class Shutters extends utils.Adapter {
             this.sceneControllers.push(scene);
             this.indexHandler(scene, scene.getOwnStateIds());
         }
+    }
+
+    /**
+     * Creates the two global quick-action buttons (plan section 10a.4): unlike a group's
+     * `openAll`/`closeAll` (which only affect that group's members), these affect **every**
+     * configured covering at once, regardless of group membership - the single most common
+     * "I'm leaving/coming home" action for a whole home, without needing a group that happens to
+     * contain everything.
+     */
+    private async createQuickActions(): Promise<void> {
+        await this.setObjectNotExistsAsync('quickActions', {
+            type: 'channel',
+            common: { name: 'Quick actions' },
+            native: {},
+        });
+
+        await this.setObjectNotExistsAsync('quickActions.allOpen', {
+            type: 'state',
+            common: {
+                name: 'Open every covering',
+                type: 'boolean',
+                role: 'button.open.blind',
+                read: true,
+                write: true,
+            },
+            native: {},
+        });
+        await this.setObjectNotExistsAsync('quickActions.allClose', {
+            type: 'state',
+            common: {
+                name: 'Close every covering',
+                type: 'boolean',
+                role: 'button.close.blind',
+                read: true,
+                write: true,
+            },
+            native: {},
+        });
+
+        const handler: IStateChangeHandler = {
+            handleStateChange: async (relativeId, state) => {
+                if (state.ack) {
+                    return false;
+                }
+                if (relativeId === 'quickActions.allOpen') {
+                    await Promise.all([...this.controllers.values()].map(c => c.commandOpen()));
+                    await this.setStateAsync('quickActions.allOpen', { val: false, ack: true });
+                    return true;
+                }
+                if (relativeId === 'quickActions.allClose') {
+                    await Promise.all([...this.controllers.values()].map(c => c.commandClose()));
+                    await this.setStateAsync('quickActions.allClose', { val: false, ack: true });
+                    return true;
+                }
+                return false;
+            },
+        };
+        this.indexHandler(handler, ['quickActions.allOpen', 'quickActions.allClose']);
     }
 
     /**
@@ -309,34 +520,56 @@ class Shutters extends utils.Adapter {
 
     /**
      * Handles `sendTo` messages from the admin UI:
-     * - `scanForShutters` (plan section 2b): runs the auto-discovery scan, automatically adds every
-     *   found candidate to `native.shutters[]` (which restarts the adapter instance, like any other
-     *   config change made in the admin UI), and replies with a short summary the admin UI can display.
+     * - `scanForShutters` (plan section 2b): runs the auto-discovery scan and replies with every
+     *   found candidate for the admin UI to present as a preview list (plan section 2b.3) - it does
+     *   **not** add anything to the configuration by itself. Progress messages (`ScanProgressCallback`)
+     *   are written to `info.scanProgress` as the scan runs, for a live status display; see
+     *   `admin/shutters.js`'s `onScanClicked()`.
+     * - `applyScannedShutters` (plan section 2b.3): adds exactly the (possibly user-edited/deselected)
+     *   candidates sent in `obj.message.candidates` to `native.shutters[]`, which restarts the adapter
+     *   instance like any other config change made in the admin UI.
      *
      * @param obj - Message object as delivered by `js-controller`.
      */
     private onMessage(obj: ioBroker.Message): void {
-        if (obj.command !== 'scanForShutters') {
+        if (obj.command === 'scanForShutters') {
+            void this.runShutterScan()
+                .then(result => {
+                    if (obj.callback) {
+                        this.sendTo(
+                            obj.from,
+                            obj.command,
+                            { candidates: result.shutters, errors: result.errors },
+                            obj.callback,
+                        );
+                    }
+                })
+                .catch(err => {
+                    this.log.error(`Covering scan failed: ${(err as Error).message}`);
+                    if (obj.callback) {
+                        this.sendTo(obj.from, obj.command, { error: (err as Error).message }, obj.callback);
+                    }
+                });
             return;
         }
 
-        void this.runShutterScan()
-            .then(async result => {
-                const addedCount = await this.addScannedShuttersToConfig(result.shutters);
-                if (obj.callback) {
-                    const summary =
-                        addedCount > 0
-                            ? `Added ${addedCount} covering(s) to the configuration. The adapter instance will restart to apply the change.`
-                            : 'No new coverings found.';
-                    this.sendTo(obj.from, obj.command, { result: summary, errors: result.errors }, obj.callback);
-                }
-            })
-            .catch(err => {
-                this.log.error(`Covering scan failed: ${(err as Error).message}`);
-                if (obj.callback) {
-                    this.sendTo(obj.from, obj.command, { error: (err as Error).message }, obj.callback);
-                }
-            });
+        if (obj.command === 'applyScannedShutters') {
+            const candidates = Array.isArray((obj.message as { candidates?: unknown })?.candidates)
+                ? ((obj.message as { candidates: IScannedShutter[] }).candidates ?? [])
+                : [];
+            void this.addScannedShuttersToConfig(candidates)
+                .then(addedCount => {
+                    if (obj.callback) {
+                        this.sendTo(obj.from, obj.command, { added: addedCount }, obj.callback);
+                    }
+                })
+                .catch(err => {
+                    this.log.error(`Applying scanned coverings failed: ${(err as Error).message}`);
+                    if (obj.callback) {
+                        this.sendTo(obj.from, obj.command, { error: (err as Error).message }, obj.callback);
+                    }
+                });
+        }
     }
 
     /** Runs the auto-discovery scan and persists/logs its result; see `onMessage()`. */
@@ -350,8 +583,13 @@ class Shutters extends utils.Adapter {
             }
         }
 
-        const result = await scanForShutters(this, alreadyConfigured);
+        const result = await scanForShutters(this, alreadyConfigured, message => {
+            this.setState('info.scanProgress', message, true).catch(err => {
+                this.log.debug(`Failed to update scan progress: ${(err as Error).message}`);
+            });
+        });
         await this.setStateAsync('info.lastScanResult', JSON.stringify(result), true);
+        await this.setStateAsync('info.scanProgress', '', true);
 
         this.log.info(`Covering scan found ${result.shutters.length} candidate(s).`);
         for (const shutter of result.shutters) {
@@ -555,6 +793,11 @@ class Shutters extends utils.Adapter {
 
         if (id === this.config.holidayStateId) {
             this.isPublicHoliday = !!state.val;
+            return;
+        }
+
+        if (id === this.icalTableStateId) {
+            this.icalEvents = this.parseIcalTable(state.val);
             return;
         }
 

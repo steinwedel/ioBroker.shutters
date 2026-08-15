@@ -25,11 +25,16 @@ interface IFakeAdapterHandle {
     pendingTimerCount: () => number;
     /** Fires every currently pending timer once (like real timers, each only fires once). */
     runTimers: () => void;
+    /** The underlying state store, exposed so a test can simulate an adapter restart by handing it to a second `createFakeAdapter()` call - persisted (`ack: true`) states then survive, exactly like real ioBroker states across a restart. */
+    states: Map<string, IFakeState>;
 }
 
-/** Minimal fake adapter exposing only what `ShutterController` and its `PositionStopDriverBase`-derived driver need. */
-function createFakeAdapter(): IFakeAdapterHandle {
-    const states = new Map<string, IFakeState>();
+/**
+ * Minimal fake adapter exposing only what `ShutterController` and its `PositionStopDriverBase`-derived driver need.
+ *
+ * @param states - Existing state store to reuse (see `IFakeAdapterHandle.states`); defaults to a fresh, empty one.
+ */
+function createFakeAdapter(states: Map<string, IFakeState> = new Map()): IFakeAdapterHandle {
     const setForeignStateCalls: { id: string; val: ioBroker.StateValue }[] = [];
     const listeners: ((id: string, state: ioBroker.State | null | undefined) => void)[] = [];
     const timers: IFakeTimer[] = [];
@@ -66,6 +71,8 @@ function createFakeAdapter(): IFakeAdapterHandle {
         getStateAsync: async (id: string) => states.get(id) as ioBroker.State | undefined,
 
         subscribeForeignStatesAsync: async () => {},
+        // eslint-disable-next-line @typescript-eslint/require-await -- intentionally synchronous test double for an async adapter method
+        getForeignStateAsync: async () => undefined,
         // eslint-disable-next-line @typescript-eslint/require-await -- intentionally synchronous test double for an async adapter method
         setForeignStateAsync: async (id: string, val: ioBroker.StateValue) => {
             setForeignStateCalls.push({ id, val });
@@ -104,6 +111,7 @@ function createFakeAdapter(): IFakeAdapterHandle {
                 timer.callback();
             }
         },
+        states,
     };
 }
 
@@ -200,7 +208,12 @@ describe('ShutterController', () => {
 
             clock.tick(8_000);
             runTimers();
-            await Promise.resolve(); // let the buffered command's async execution settle
+            // Let the buffered command's async execution settle - it now awaits several
+            // microtask-hops worth of state persistence (pendingMove tracking, plan section 9a.2)
+            // before actually reaching the driver call being asserted on below.
+            for (let i = 0; i < 10; i++) {
+                await Promise.resolve();
+            }
 
             expect(setForeignStateCalls).to.deep.equal([
                 { id: 'foreign.position', val: 50 },
@@ -356,6 +369,275 @@ describe('ShutterController', () => {
             await controller.refreshPosition();
 
             expect(getOwnState('shutters.shutter1.watchdogIssueCount')?.val).to.equal(1);
+        });
+
+        it('invokes onWatchdogIssue with the same message written to watchdogLastIssue', async () => {
+            const { adapter, emitPositionActual, getOwnState } = createFakeAdapter();
+            const controller = new ShutterController(adapter, makeConfig({ maxRuntimeSecs: 10 }));
+            const issues: string[] = [];
+            controller.onWatchdogIssue = message => issues.push(message);
+
+            await controller.commandPosition(100);
+            emitPositionActual('foreign.positionActual', 0);
+
+            clock.tick(10_000 + 30_000 + 1);
+            await controller.refreshPosition();
+
+            expect(issues).to.have.length(1);
+            expect(issues[0]).to.equal(getOwnState('shutters.shutter1.watchdogLastIssue')?.val);
+        });
+
+        it('does not invoke onWatchdogIssue when no issue occurs', async () => {
+            const { adapter, emitPositionActual } = createFakeAdapter();
+            const controller = new ShutterController(adapter, makeConfig({ maxRuntimeSecs: 10 }));
+            const issues: string[] = [];
+            controller.onWatchdogIssue = message => issues.push(message);
+
+            await controller.commandPosition(100);
+            emitPositionActual('foreign.positionActual', 100);
+
+            clock.tick(10_000 + 30_000 + 1);
+            await controller.refreshPosition();
+
+            expect(issues).to.deep.equal([]);
+        });
+    });
+
+    describe('pending-move recovery across an adapter restart (plan section 9a.2)', () => {
+        it('does nothing when no move was pending at restart', async () => {
+            const { adapter, states } = createFakeAdapter();
+            const controllerA = new ShutterController(adapter, makeConfig());
+            await controllerA.createObjects();
+
+            const { adapter: adapterB } = createFakeAdapter(states);
+            const controllerB = new ShutterController(adapterB, makeConfig());
+            // Must not throw, and must not fabricate a pending move out of nothing.
+            await controllerB.createObjects();
+
+            const issuesB: string[] = [];
+            controllerB.onWatchdogIssue = message => issuesB.push(message);
+            clock.tick(10_000 + 30_000 + 1);
+            await controllerB.refreshPosition();
+            expect(issuesB).to.deep.equal([]);
+        });
+
+        it('re-arms the watchdog for a move that is still stuck after restart, without resetting its grace period', async () => {
+            const { adapter, states, emitPositionActual } = createFakeAdapter();
+            const controllerA = new ShutterController(adapter, makeConfig({ maxRuntimeSecs: 10 }));
+            await controllerA.createObjects();
+
+            await controllerA.commandPosition(100);
+            emitPositionActual('foreign.positionActual', 0); // never actually reaches the target before "restart"
+
+            // The grace period has already fully elapsed by the time the adapter comes back up.
+            clock.tick(10_000 + 30_000 + 1);
+
+            const { adapter: adapterB, emitPositionActual: emitB } = createFakeAdapter(states);
+            const controllerB = new ShutterController(adapterB, makeConfig({ maxRuntimeSecs: 10 }));
+            const issuesB: string[] = [];
+            controllerB.onWatchdogIssue = message => issuesB.push(message);
+            await controllerB.createObjects();
+
+            // The new driver instance does not know the real position until it receives one.
+            emitB('foreign.positionActual', 0);
+            await controllerB.refreshPosition();
+
+            expect(issuesB).to.have.length(1);
+        });
+
+        it('silently resolves a move that actually finished while the adapter was stopped', async () => {
+            const { adapter, states, emitPositionActual } = createFakeAdapter();
+            const controllerA = new ShutterController(adapter, makeConfig({ maxRuntimeSecs: 10 }));
+            await controllerA.createObjects();
+
+            await controllerA.commandPosition(100);
+            emitPositionActual('foreign.positionActual', 0);
+
+            clock.tick(10_000 + 30_000 + 1);
+
+            const {
+                adapter: adapterB,
+                emitPositionActual: emitB,
+                getOwnState: getOwnStateB,
+            } = createFakeAdapter(states);
+            const controllerB = new ShutterController(adapterB, makeConfig({ maxRuntimeSecs: 10 }));
+            const issuesB: string[] = [];
+            controllerB.onWatchdogIssue = message => issuesB.push(message);
+            await controllerB.createObjects();
+
+            // The covering actually reached its target while the adapter was down.
+            emitB('foreign.positionActual', 100);
+            await controllerB.refreshPosition();
+
+            expect(issuesB).to.deep.equal([]);
+            expect(getOwnStateB('shutters.shutter1.pendingMoveTargetPercent')?.val).to.equal(-1);
+        });
+    });
+
+    describe('activityLog (plan section 10a.8)', () => {
+        function readActivityLog(getOwnState: (id: string) => IFakeState | undefined): unknown[] {
+            const raw = getOwnState('shutters.shutter1.activityLog')?.val;
+            return typeof raw === 'string' ? JSON.parse(raw) : [];
+        }
+
+        it('adds one entry per automated action, most recent first', async () => {
+            const { adapter, getOwnState } = createFakeAdapter();
+            const controller = new ShutterController(adapter, makeConfig());
+
+            await controller.applyAutomatedPosition(70, 'Sun protection');
+            await controller.applyAutomatedPosition(0, 'Wind protection', true);
+
+            const entries = readActivityLog(getOwnState);
+            expect(entries).to.have.length(2);
+            expect(entries[0]).to.deep.include({ reason: 'Wind protection', percent: 0 });
+            expect(entries[1]).to.deep.include({ reason: 'Sun protection', percent: 70 });
+            expect((entries[0] as { ts: number }).ts).to.be.a('number');
+        });
+
+        it('caps the log at 10 entries, dropping the oldest', async () => {
+            const { adapter, getOwnState } = createFakeAdapter();
+            const controller = new ShutterController(adapter, makeConfig());
+
+            for (let i = 0; i < 12; i++) {
+                // bypassMotorProtection=true: this test is about the log itself, not the motor-protection cooldown (7d).
+                await controller.applyAutomatedPosition(i, `Reason ${i}`, true);
+            }
+
+            const entries = readActivityLog(getOwnState);
+            expect(entries).to.have.length(10);
+            expect((entries[0] as { reason: string }).reason).to.equal('Reason 11');
+            expect((entries[9] as { reason: string }).reason).to.equal('Reason 2');
+        });
+
+        it('does not log a manual command', async () => {
+            const { adapter, getOwnState } = createFakeAdapter();
+            const controller = new ShutterController(adapter, makeConfig());
+
+            await controller.commandPosition(50);
+
+            expect(readActivityLog(getOwnState)).to.deep.equal([]);
+        });
+
+        it('recovers from a corrupted activityLog value instead of throwing', async () => {
+            const { adapter, getOwnState } = createFakeAdapter();
+            const controller = new ShutterController(adapter, makeConfig());
+            await adapter.setStateAsync('shutters.shutter1.activityLog', { val: 'not json', ack: true });
+
+            await controller.applyAutomatedPosition(50, 'Schedule');
+
+            const entries = readActivityLog(getOwnState);
+            expect(entries).to.have.length(1);
+            expect(entries[0]).to.deep.include({ reason: 'Schedule', percent: 50 });
+        });
+    });
+
+    describe('tilt control (plan section 2a.5)', () => {
+        it('does not create tilt/tiltActual objects when no tilt state is configured', async () => {
+            const { adapter } = createFakeAdapter();
+            const controller = new ShutterController(adapter, makeConfig());
+
+            await controller.createObjects();
+
+            expect(controller.getOwnStateIds()).to.not.include('shutters.shutter1.tilt');
+        });
+
+        it('creates tilt/tiltActual objects and includes tilt in getOwnStateIds when configured', async () => {
+            const { adapter } = createFakeAdapter();
+            const controller = new ShutterController(
+                adapter,
+                makeConfig({
+                    coveringType: 'raffstore',
+                    states: {
+                        position: 'foreign.position',
+                        positionActual: 'foreign.positionActual',
+                        stop: 'foreign.stop',
+                        tilt: 'foreign.tilt',
+                        tiltActual: 'foreign.tiltActual',
+                    },
+                }),
+            );
+
+            await controller.createObjects();
+
+            expect(controller.getOwnStateIds()).to.include('shutters.shutter1.tilt');
+        });
+
+        it('commandTilt() forwards to the driver and acknowledges the tilt state', async () => {
+            const { adapter, setForeignStateCalls, getOwnState } = createFakeAdapter();
+            const controller = new ShutterController(
+                adapter,
+                makeConfig({
+                    coveringType: 'raffstore',
+                    states: {
+                        position: 'foreign.position',
+                        positionActual: 'foreign.positionActual',
+                        tilt: 'foreign.tilt',
+                        tiltActual: 'foreign.tiltActual',
+                    },
+                }),
+            );
+
+            await controller.commandTilt(40);
+
+            expect(setForeignStateCalls).to.deep.equal([{ id: 'foreign.tilt', val: 40 }]);
+            expect(getOwnState('shutters.shutter1.tilt')).to.deep.include({ val: 40, ack: true });
+        });
+
+        it('commandTilt() notifies onManualCommand, same as other manual commands', async () => {
+            const { adapter } = createFakeAdapter();
+            const controller = new ShutterController(
+                adapter,
+                makeConfig({
+                    states: {
+                        position: 'foreign.position',
+                        positionActual: 'foreign.positionActual',
+                        tilt: 'foreign.tilt',
+                    },
+                }),
+            );
+            let manualCommandCount = 0;
+            controller.onManualCommand = () => manualCommandCount++;
+
+            await controller.commandTilt(20);
+
+            expect(manualCommandCount).to.equal(1);
+        });
+
+        it('refreshPosition() updates tiltActual from the driver, independent of position feedback', async () => {
+            const { adapter, emitPositionActual, getOwnState } = createFakeAdapter();
+            const controller = new ShutterController(
+                adapter,
+                makeConfig({
+                    coveringType: 'raffstore',
+                    states: {
+                        position: 'foreign.position',
+                        positionActual: 'foreign.positionActual',
+                        tilt: 'foreign.tilt',
+                        tiltActual: 'foreign.tiltActual',
+                    },
+                }),
+            );
+            await controller.createObjects();
+
+            emitPositionActual('foreign.tiltActual', 65);
+            await controller.refreshPosition();
+
+            expect(getOwnState('shutters.shutter1.tiltActual')?.val).to.equal(65);
+        });
+
+        it('does nothing when handleStateChange receives a tilt state change but no tilt is configured', async () => {
+            const { adapter, setForeignStateCalls } = createFakeAdapter();
+            const controller = new ShutterController(adapter, makeConfig());
+
+            // Not configured, so getOwnStateIds() would never dispatch this in real use, but the
+            // driver-level no-op (PositionStopDriverBase.setTilt()) must still not throw/write anything.
+            const handled = await controller.handleStateChange('shutters.shutter1.tilt', {
+                val: 30,
+                ack: false,
+            } as ioBroker.State);
+
+            expect(handled).to.equal(true);
+            expect(setForeignStateCalls).to.deep.equal([]);
         });
     });
 

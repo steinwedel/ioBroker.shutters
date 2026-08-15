@@ -367,4 +367,53 @@ describe('scheduler', () => {
             expect(scheduler.resolveCurrentAction(reversedArea, new Date(2026, 6, 15, 15, 0, 0, 0))).to.equal('open');
         });
     });
+
+    describe('Scheduler iCal overrides (plan section 5.1)', () => {
+        const area: IAreaScheduleConfig = {
+            id: 'area1',
+            name: 'Kinderzimmer',
+            scheduleMode: 'uniform',
+            weekday: { open: '07:30', close: '21:00' },
+            weekend: {},
+        };
+
+        it('applies a matching global override on top of the resolved day schedule', () => {
+            const scheduler = new Scheduler(
+                createFakeAdapter(),
+                [area],
+                () => false,
+                undefined,
+                () => {},
+                () => [{ areaName: undefined, action: 'open', time: '06:00' }],
+            );
+
+            // The regular schedule would only report 'open' from 07:30; the override moves it to 06:00.
+            expect(scheduler.resolveCurrentAction(area, new Date(2026, 6, 15, 6, 30, 0, 0))).to.equal('open');
+        });
+
+        it('does not apply an override targeting a different area', () => {
+            const scheduler = new Scheduler(
+                createFakeAdapter(),
+                [area],
+                () => false,
+                undefined,
+                () => {},
+                () => [{ areaName: 'Wohnzimmer', action: 'open', time: '06:00' }],
+            );
+
+            expect(scheduler.resolveCurrentAction(area, new Date(2026, 6, 15, 6, 30, 0, 0))).to.be.undefined;
+        });
+
+        it('behaves exactly like no override at all when the callback is omitted', () => {
+            const scheduler = new Scheduler(
+                createFakeAdapter(),
+                [area],
+                () => false,
+                undefined,
+                () => {},
+            );
+
+            expect(scheduler.resolveCurrentAction(area, new Date(2026, 6, 15, 8, 0, 0, 0))).to.equal('open');
+        });
+    });
 });

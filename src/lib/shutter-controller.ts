@@ -9,6 +9,20 @@ const WATCHDOG_TOLERANCE_PERCENT = 3;
 const WATCHDOG_GRACE_MS = 30_000;
 /** Default for `IShutterConfig.minCommandIntervalMs` (motor protection, plan section 7d) if unset. */
 const DEFAULT_MIN_COMMAND_INTERVAL_MS = 8_000;
+/** Sentinel `pendingMoveTargetPercent` value meaning "no move currently pending" (plan section 9a.2). */
+const NO_PENDING_MOVE = -1;
+/** Maximum number of entries kept in `activityLog` (plan section 10a.8) - a short, rolling history, not a full audit log. */
+const MAX_ACTIVITY_LOG_ENTRIES = 10;
+
+/** One entry of `IShutterConfig`'s `activityLog` state (plan section 10a.8), most recent first. */
+export interface IActivityLogEntry {
+    /** ms-since-epoch timestamp the action was taken at. */
+    ts: number;
+    /** Same human-readable reason written to `statusText` at the time, e.g. "Sun protection". */
+    reason: string;
+    /** Target covering position (0-100) this action drove to. */
+    percent: number;
+}
 
 /**
  * Owns the ioBroker objects/states for a single covering and forwards
@@ -33,6 +47,8 @@ export class ShutterController {
 
     /** Called whenever a manual (user-issued) command is processed; used by `automation.ts` to apply the sun-protection override (plan section 6.4). */
     public onManualCommand: (() => void) | undefined;
+    /** Called whenever the watchdog (plan section 9a.1) reports a newly stuck covering, with the same human-readable message written to `watchdogLastIssue`; used by `main.ts` to forward it to `notify.ts` (plan section 9a.3). */
+    public onWatchdogIssue: ((message: string) => void) | undefined;
 
     /**
      * @param adapter - Adapter instance, used for state/object access.
@@ -104,6 +120,45 @@ export class ShutterController {
             native: {},
         });
 
+        // Slat tilt (plan section 2a.5, raffstore/lamellen only) - only created when a tilt state is
+        // actually configured, since most coverings (rolladen/markise, or a raffstore/lamellen device
+        // whose driver/system does not expose a separate tilt control) have no tilt at all. `lamellen`
+        // (vertical louvres) rotate through a wider 0-180° range; `raffstore`'s horizontal slats use
+        // the same 0-100 convention as position. Purely a display range (min/max) - `commandTilt()`/
+        // `PositionStopDriverBase.setTilt()` pass the value through unmapped either way.
+        if (config.states.tilt) {
+            const tiltMax = config.coveringType === 'lamellen' ? 180 : 100;
+            const tiltUnit = config.coveringType === 'lamellen' ? '°' : '%';
+            await adapter.setObjectNotExistsAsync(`${basePath}.tilt`, {
+                type: 'state',
+                common: {
+                    name: `${config.name} - target slat tilt angle`,
+                    type: 'number',
+                    role: 'level',
+                    unit: tiltUnit,
+                    min: 0,
+                    max: tiltMax,
+                    read: true,
+                    write: true,
+                },
+                native: {},
+            });
+            await adapter.setObjectNotExistsAsync(`${basePath}.tiltActual`, {
+                type: 'state',
+                common: {
+                    name: `${config.name} - actual slat tilt angle`,
+                    type: 'number',
+                    role: 'value',
+                    unit: tiltUnit,
+                    min: 0,
+                    max: tiltMax,
+                    read: true,
+                    write: false,
+                },
+                native: {},
+            });
+        }
+
         await adapter.setObjectNotExistsAsync(`${basePath}.open`, {
             type: 'state',
             common: {
@@ -171,6 +226,18 @@ export class ShutterController {
             native: {},
         });
 
+        await adapter.setObjectNotExistsAsync(`${basePath}.activityLog`, {
+            type: 'state',
+            common: {
+                name: `${config.name} - recent automated actions (JSON, plan section 10a.8)`,
+                type: 'string',
+                role: 'json',
+                read: true,
+                write: false,
+            },
+            native: {},
+        });
+
         await adapter.setObjectNotExistsAsync(`${basePath}.watchdogLastIssue`, {
             type: 'state',
             common: {
@@ -210,15 +277,42 @@ export class ShutterController {
             native: {},
         });
 
+        await adapter.setObjectNotExistsAsync(`${basePath}.pendingMoveTargetPercent`, {
+            type: 'state',
+            common: {
+                name: `${config.name} - target position of the move currently in progress, if any (-1 = none, plan section 9a.2)`,
+                type: 'number',
+                role: 'value',
+                read: true,
+                write: false,
+                expert: true,
+            },
+            native: {},
+        });
+
+        await adapter.setObjectNotExistsAsync(`${basePath}.pendingMoveIssuedAt`, {
+            type: 'state',
+            common: {
+                name: `${config.name} - ms timestamp the currently pending move was issued at (plan section 9a.2)`,
+                type: 'number',
+                role: 'value',
+                read: true,
+                write: false,
+                expert: true,
+            },
+            native: {},
+        });
+
         await adapter.setStateAsync(`${basePath}.automationEnabled`, config.automationEnabled, true);
         await adapter.setStateAsync(`${basePath}.statusText`, 'Idle', true);
 
+        await this.recoverPendingMove();
         await this.refreshPosition();
     }
 
     /** IDs of the own states this controller reacts to; use with `adapter.subscribeStates`. */
     public getOwnStateIds(): string[] {
-        return [
+        const ids = [
             `${this.basePath}.position`,
             `${this.basePath}.open`,
             `${this.basePath}.close`,
@@ -226,6 +320,10 @@ export class ShutterController {
             `${this.basePath}.calibrate`,
             `${this.basePath}.automationEnabled`,
         ];
+        if (this.config.states.tilt) {
+            ids.push(`${this.basePath}.tilt`);
+        }
+        return ids;
     }
 
     /** @returns The full configuration of this covering, for use by automation modules. */
@@ -289,6 +387,9 @@ export class ShutterController {
                 this.automationEnabled = Boolean(state.val);
                 await this.acknowledge('automationEnabled', this.automationEnabled);
                 return true;
+            case `${this.basePath}.tilt`:
+                await this.commandTilt(Number(state.val));
+                return true;
             default:
                 return false;
         }
@@ -347,7 +448,24 @@ export class ShutterController {
         this.cancelBufferedCommand();
         await this.driver.stop();
         await this.acknowledge('stop', false);
+        await this.clearPersistedPendingMove();
         this.onManualCommand?.();
+    }
+
+    /**
+     * Drives the slat tilt to `anglePercent` (plan section 2a.5), as a direct user command. Not
+     * subject to motor protection (7d) or the watchdog (9a.1) - those are scoped to the main
+     * height/extension axis and its runtime-based timing model, which does not apply to tilt.
+     * A no-op at the driver level if this covering has no tilt state configured (see
+     * `PositionStopDriverBase.setTilt()`); `handleStateChange()` only routes here when
+     * `states.tilt` is configured in the first place, so that should not normally happen.
+     *
+     * @param anglePercent - Target tilt angle, 0-100 (or a wider range for `lamellen`, see `IShutterConfig.states.tilt`).
+     */
+    public async commandTilt(anglePercent: number): Promise<void> {
+        this.onManualCommand?.();
+        await this.driver.setTilt?.(anglePercent);
+        await this.acknowledge('tilt', anglePercent);
     }
 
     /**
@@ -374,9 +492,46 @@ export class ShutterController {
             async () => {
                 await this.adapter.setStateAsync(`${this.basePath}.position`, { val: coveringPercent, ack: true });
                 await this.adapter.setStateAsync(`${this.basePath}.statusText`, { val: reason, ack: true });
+                await this.pushActivityLogEntry(reason, coveringPercent);
             },
             bypassMotorProtection,
         );
+    }
+
+    /**
+     * Prepends one entry to `activityLog` (plan section 10a.8), keeping only the most recent
+     * `MAX_ACTIVITY_LOG_ENTRIES` - a short, rolling history of automated actions answering not just
+     * "what is it doing now" (`statusText`) but also "what did it do today and why", to reduce
+     * follow-up questions/ease troubleshooting unexpected behavior. Written from the same place as
+     * `statusText` (`applyAutomatedPosition()`) so no separate trigger-detection logic is needed;
+     * manual commands are intentionally not logged here, same as they do not update `statusText`.
+     *
+     * @param reason - Same human-readable reason written to `statusText`.
+     * @param percent - Target covering position this action drove to.
+     */
+    private async pushActivityLogEntry(reason: string, percent: number): Promise<void> {
+        const state = await this.adapter.getStateAsync(`${this.basePath}.activityLog`);
+        const existing = this.parseActivityLog(state?.val);
+        const entries = [{ ts: Date.now(), reason, percent }, ...existing].slice(0, MAX_ACTIVITY_LOG_ENTRIES);
+        await this.adapter.setStateAsync(`${this.basePath}.activityLog`, { val: JSON.stringify(entries), ack: true });
+    }
+
+    /**
+     * Parses `activityLog`'s raw value, tolerating a missing/malformed value (treated as empty)
+     * rather than letting a corrupted state prevent all future logging.
+     *
+     * @param val - Raw `ioBroker.State.val` of the `activityLog` state.
+     */
+    private parseActivityLog(val: ioBroker.StateValue | undefined): IActivityLogEntry[] {
+        if (typeof val !== 'string' || val === '') {
+            return [];
+        }
+        try {
+            const parsed: unknown = JSON.parse(val);
+            return Array.isArray(parsed) ? (parsed as IActivityLogEntry[]) : [];
+        } catch {
+            return [];
+        }
     }
 
     /**
@@ -463,11 +618,41 @@ export class ShutterController {
         afterDrive: () => Promise<void>,
     ): Promise<void> {
         this.lastDriverCommandAt = Date.now();
-        this.pendingMove = { targetPercent, issuedAt: Date.now() };
+        const issuedAt = Date.now();
+        this.pendingMove = { targetPercent, issuedAt };
         this.watchdogReported = false;
+        // Persisted so a restart mid-move can still detect a genuinely stuck covering afterwards
+        // (plan section 9a.2) - see `recoverPendingMove()`.
+        await this.adapter.setStateAsync(`${this.basePath}.pendingMoveTargetPercent`, {
+            val: targetPercent,
+            ack: true,
+        });
+        await this.adapter.setStateAsync(`${this.basePath}.pendingMoveIssuedAt`, { val: issuedAt, ack: true });
         await invokeDriver();
         await afterDrive();
         await this.refreshPosition();
+    }
+
+    /**
+     * Restores an in-progress move from `pendingMoveTargetPercent`/`pendingMoveIssuedAt` (plan
+     * section 9a.2), so a restart mid-move does not silently forget about it. Called once, right
+     * before the first `refreshPosition()` in `createObjects()` - that call's watchdog check then
+     * immediately re-evaluates the restored move against the driver's real, freshly re-read position
+     * (`getCurrentPosition()`), using the original `issuedAt` timestamp rather than restarting the
+     * grace period: if the covering actually finished moving while the adapter was stopped, this
+     * resolves silently with no false report; if it is genuinely still stuck, the watchdog reports it
+     * right away instead of only appearing to be idle at whatever position it happens to be in.
+     */
+    private async recoverPendingMove(): Promise<void> {
+        const targetState = await this.adapter.getStateAsync(`${this.basePath}.pendingMoveTargetPercent`);
+        const targetPercent = typeof targetState?.val === 'number' ? targetState.val : NO_PENDING_MOVE;
+        if (targetPercent === NO_PENDING_MOVE) {
+            return;
+        }
+
+        const issuedAtState = await this.adapter.getStateAsync(`${this.basePath}.pendingMoveIssuedAt`);
+        const issuedAt = typeof issuedAtState?.val === 'number' ? issuedAtState.val : Date.now();
+        this.pendingMove = { targetPercent, issuedAt };
     }
 
     /** Discards any command still waiting out the motor-protection cooldown, without executing it. */
@@ -489,6 +674,13 @@ export class ShutterController {
      * are skipped entirely - the watchdog needs real feedback to work.
      */
     public async refreshPosition(): Promise<void> {
+        if (this.config.states.tilt) {
+            const tiltPercent = this.driver.getCurrentTilt?.();
+            if (tiltPercent !== undefined) {
+                await this.adapter.setStateChangedAsync(`${this.basePath}.tiltActual`, tiltPercent, true);
+            }
+        }
+
         const runtimePercent = this.driver.getCurrentPosition();
         if (runtimePercent === undefined) {
             return;
@@ -530,6 +722,7 @@ export class ShutterController {
         if (Math.abs(runtimePercent - targetRuntime) <= WATCHDOG_TOLERANCE_PERCENT) {
             this.pendingMove = undefined;
             this.watchdogReported = false;
+            await this.clearPersistedPendingMove();
             return;
         }
 
@@ -546,5 +739,14 @@ export class ShutterController {
         const countState = await this.adapter.getStateAsync(`${this.basePath}.watchdogIssueCount`);
         const nextCount = (typeof countState?.val === 'number' ? countState.val : 0) + 1;
         await this.adapter.setStateAsync(`${this.basePath}.watchdogIssueCount`, { val: nextCount, ack: true });
+        this.onWatchdogIssue?.(message);
+    }
+
+    /** Clears the persisted pending-move tracking (plan section 9a.2), once a move has resolved (reached its target, or been superseded/stopped). */
+    private async clearPersistedPendingMove(): Promise<void> {
+        await this.adapter.setStateAsync(`${this.basePath}.pendingMoveTargetPercent`, {
+            val: NO_PENDING_MOVE,
+            ack: true,
+        });
     }
 }

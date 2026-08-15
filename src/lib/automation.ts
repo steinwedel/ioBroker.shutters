@@ -1,10 +1,13 @@
 import { clampForDoorProtection } from './door-protection';
+import { protectedPosition, safePosition } from './covering-types';
 import { evaluateFrostProtection } from './frost-protection';
 import { BelowThresholdHysteresis } from './generic-hysteresis';
+import { evaluateNightCooling } from './night-cooling';
 import { evaluateRainProtection } from './rain-protection';
 import type { ShutterController } from './shutter-controller';
 import {
     evaluateSunProtection,
+    isHeatProtectionMinTempSatisfied,
     isSunProtectionEligible,
     isWithinOrientationWindow,
     isWithinTimeWindow,
@@ -28,6 +31,10 @@ interface ICoveringAutomationState {
     sunActive: boolean;
     /** Whether wind protection is currently active for this covering. */
     windActive: boolean;
+    /** Whether frost protection is currently active (suppressing automated movement) for this covering. */
+    frostActive: boolean;
+    /** Whether night cooling is currently active (holding the covering open through what would otherwise be the schedule's close) for this covering. */
+    nightCoolingActive: boolean;
     /** Tracks how long solar radiation has stayed below the "may open again" threshold. */
     sunHysteresis: BelowThresholdHysteresis;
     /** Tracks how long wind speed has stayed below the "calm enough to deactivate" threshold. */
@@ -54,6 +61,10 @@ export interface IAutomationOptions {
     windCalmMinDurationMs: number;
     /** Outdoor temperature (°C) at/below which frost protection may activate. */
     frostThreshold: number;
+    /** Indoor temperature (°C) at/above which night cooling (7c) may activate for an eligible covering. */
+    nightCoolingIndoorMinTemp: number;
+    /** Minimum indoor-minus-outdoor temperature difference (°C) required for night cooling (7c) to activate. */
+    nightCoolingMinDelta: number;
     /** How often the automation engine re-evaluates all coverings, in ms. */
     tickMs: number;
     /** Location used to compute the sun's azimuth for orientation-based sun windows (6.2); undefined disables that mode, falling back to `sunWindowStart`/`sunWindowEnd` for every covering. */
@@ -71,7 +82,10 @@ export interface IAutomationOptions {
  * 1. Wind protection (always wins, even over a sun-protection override)
  * 2. Rain protection
  * 3. Sun protection (unless overridden until local midnight by a manual command)
- * 4. Schedule (suppressed entirely while frost protection is active)
+ * 4. Schedule - or, while the schedule wants to close and night cooling (7c) is active for this
+ *    covering, night cooling instead, holding it open
+ * 5. Frost protection suppresses automated movement entirely, taking priority over night cooling
+ *    (a genuine mechanical/safety concern outranks a comfort feature), but not over wind/rain/sun.
  *
  * All of the above are subject to door-contact clamping (never close
  * further than the current position while the door is open). Manual
@@ -83,7 +97,31 @@ export class AutomationEngine {
     private readonly scheduleTargets = new Map<string, number>();
     private readonly lastApplied = new Map<string, { percent: number; reason: string }>();
     private readonly doorOpenByStateId = new Map<string, boolean>();
+    /** Most recently read value of every configured `nightCoolingIndoorTempStateId` (plan section 7c), kept up to date the same way as `doorOpenByStateId`. */
+    private readonly indoorTempByStateId = new Map<string, number | undefined>();
     private tickTimer: ioBroker.Interval | undefined;
+    /** Whether wind protection was active for at least one covering as of the last tick, see `notifyAggregatedProtectionChanges()`. */
+    private windProtectionEngaged = false;
+    /** Whether frost protection was active for at least one covering as of the last tick, see `notifyAggregatedProtectionChanges()`. */
+    private frostProtectionEngaged = false;
+    /** Whether sun protection was active for at least one covering as of the last tick, see `notifyAggregatedProtectionChanges()`/`onSunProtectionChange`. */
+    private sunProtectionEngaged = false;
+
+    /**
+     * Called whenever wind protection (plan section 7a) engages for the first covering or clears for
+     * the first one - aggregated across every covering rather than per covering, so a storm affecting
+     * many coverings at once produces one notification instead of one per covering (plan section
+     * 9a.3/10a.6). Used by `main.ts` to forward it to `notify.ts`.
+     */
+    public onWindProtectionChange: ((active: boolean) => void) | undefined;
+    /** Same as `onWindProtectionChange`, for frost protection (plan section 7b). */
+    public onFrostProtectionChange: ((active: boolean) => void) | undefined;
+    /**
+     * Same as `onWindProtectionChange`, for sun protection (plan section 6) - used by `main.ts` for the
+     * seasonal reminder (plan section 10a.14), not for a routine notification (sun protection engaging
+     * is normal, expected behavior, unlike wind/frost).
+     */
+    public onSunProtectionChange: ((active: boolean) => void) | undefined;
 
     /**
      * @param adapter - Adapter instance, used for `setInterval`/`clearInterval` and foreign door-state access.
@@ -101,6 +139,8 @@ export class AutomationEngine {
             this.states.set(id, {
                 sunActive: false,
                 windActive: false,
+                frostActive: false,
+                nightCoolingActive: false,
                 sunHysteresis: new BelowThresholdHysteresis(),
                 windHysteresis: new BelowThresholdHysteresis(),
                 sunOverrideUntilMs: 0,
@@ -109,7 +149,7 @@ export class AutomationEngine {
         }
     }
 
-    /** Subscribes all configured door-contact states and starts the periodic evaluation tick. */
+    /** Subscribes all configured door-contact/indoor-temperature states and starts the periodic evaluation tick. */
     public async start(): Promise<void> {
         // Restore any sun-protection override deadline that was still active when the adapter last
         // stopped (plan section 9a.2) - without this, a "Tagessperre" set by a manual command would be
@@ -123,10 +163,14 @@ export class AutomationEngine {
         }
 
         const doorStateIds = new Set<string>();
+        const indoorTempStateIds = new Set<string>();
         for (const controller of this.controllers.values()) {
-            const stateId = controller.getConfig().doorContactStateId;
-            if (stateId) {
-                doorStateIds.add(stateId);
+            const config = controller.getConfig();
+            if (config.doorContactStateId) {
+                doorStateIds.add(config.doorContactStateId);
+            }
+            if (config.nightCoolingIndoorTempStateId) {
+                indoorTempStateIds.add(config.nightCoolingIndoorTempStateId);
             }
         }
         for (const stateId of doorStateIds) {
@@ -134,15 +178,20 @@ export class AutomationEngine {
             const state = await this.adapter.getForeignStateAsync(stateId);
             this.doorOpenByStateId.set(stateId, state?.val === true);
         }
-        this.adapter.on('stateChange', this.handleDoorStateChange);
+        for (const stateId of indoorTempStateIds) {
+            await this.adapter.subscribeForeignStatesAsync(stateId);
+            const state = await this.adapter.getForeignStateAsync(stateId);
+            this.indoorTempByStateId.set(stateId, typeof state?.val === 'number' ? state.val : undefined);
+        }
+        this.adapter.on('stateChange', this.handleForeignStateChange);
 
         this.tick();
         this.tickTimer = this.adapter.setInterval(() => this.tick(), this.options.tickMs);
     }
 
-    /** Stops the periodic evaluation tick and unsubscribes the door-state listener. */
+    /** Stops the periodic evaluation tick and unsubscribes the door-state/indoor-temperature listener. */
     public stop(): void {
-        this.adapter.removeListener('stateChange', this.handleDoorStateChange);
+        this.adapter.removeListener('stateChange', this.handleForeignStateChange);
         if (this.tickTimer) {
             this.adapter.clearInterval(this.tickTimer);
             this.tickTimer = undefined;
@@ -174,11 +223,14 @@ export class AutomationEngine {
         this.tick();
     }
 
-    private readonly handleDoorStateChange = (id: string, state: ioBroker.State | null | undefined): void => {
-        if (!this.doorOpenByStateId.has(id)) {
-            return;
+    /** Updates `doorOpenByStateId`/`indoorTempByStateId` as their subscribed foreign states change; ignores every other state change. */
+    private readonly handleForeignStateChange = (id: string, state: ioBroker.State | null | undefined): void => {
+        if (this.doorOpenByStateId.has(id)) {
+            this.doorOpenByStateId.set(id, state?.val === true);
         }
-        this.doorOpenByStateId.set(id, state?.val === true);
+        if (this.indoorTempByStateId.has(id)) {
+            this.indoorTempByStateId.set(id, typeof state?.val === 'number' ? state.val : undefined);
+        }
     };
 
     /**
@@ -214,6 +266,16 @@ export class AutomationEngine {
 
         for (const [id, controller] of this.controllers) {
             if (!controller.isAutomationEnabled()) {
+                // Not part of the aggregate wind/frost/sun protection state (below) while disabled - a
+                // covering the user has taken out of automation is not being protected anymore, so it
+                // must not keep contributing a stale "active" value from before it was disabled.
+                const state = this.states.get(id);
+                if (state) {
+                    state.windActive = false;
+                    state.frostActive = false;
+                    state.nightCoolingActive = false;
+                    state.sunActive = false;
+                }
                 continue;
             }
             try {
@@ -221,6 +283,38 @@ export class AutomationEngine {
             } catch (err) {
                 this.adapter.log.error(`Automation evaluation failed for covering "${id}": ${(err as Error).message}`);
             }
+        }
+
+        this.notifyAggregatedProtectionChanges();
+    }
+
+    /**
+     * Compares this tick's combined wind/frost protection state (active for at least one covering)
+     * against the previous tick and fires `onWindProtectionChange`/`onFrostProtectionChange` on a
+     * rising/falling edge, see those fields' docs. Called once per tick, after every covering has been
+     * (re-)evaluated.
+     */
+    private notifyAggregatedProtectionChanges(): void {
+        let windActiveNow = false;
+        let frostActiveNow = false;
+        let sunActiveNow = false;
+        for (const state of this.states.values()) {
+            windActiveNow = windActiveNow || state.windActive;
+            frostActiveNow = frostActiveNow || state.frostActive;
+            sunActiveNow = sunActiveNow || state.sunActive;
+        }
+
+        if (windActiveNow !== this.windProtectionEngaged) {
+            this.windProtectionEngaged = windActiveNow;
+            this.onWindProtectionChange?.(windActiveNow);
+        }
+        if (frostActiveNow !== this.frostProtectionEngaged) {
+            this.frostProtectionEngaged = frostActiveNow;
+            this.onFrostProtectionChange?.(frostActiveNow);
+        }
+        if (sunActiveNow !== this.sunProtectionEngaged) {
+            this.sunProtectionEngaged = sunActiveNow;
+            this.onSunProtectionChange?.(sunActiveNow);
         }
     }
 
@@ -247,14 +341,25 @@ export class AutomationEngine {
             });
 
         if (state.windActive) {
-            this.applyTarget(id, controller, 0, 'Wind protection', config.doorContactStateId, true);
+            state.frostActive = false;
+            state.nightCoolingActive = false;
+            this.applyTarget(
+                id,
+                controller,
+                safePosition(config.coveringType),
+                'Wind protection',
+                config.doorContactStateId,
+                true,
+            );
             return;
         }
 
         const rainEnabled = config.rainProtectionEnabled ?? true;
         const rainActive = rainEnabled && evaluateRainProtection(this.weather.getRain());
         if (rainActive) {
-            const target = config.rainTargetPercent ?? 100;
+            state.frostActive = false;
+            state.nightCoolingActive = false;
+            const target = config.rainTargetPercent ?? protectedPosition(config.coveringType);
             this.applyTarget(id, controller, target, 'Rain protection', config.doorContactStateId);
             return;
         }
@@ -276,6 +381,10 @@ export class AutomationEngine {
         const sunOverrideActive = nowMs < state.sunOverrideUntilMs;
         const scheduleOpen = this.scheduleTargets.get(id) === 0;
         const inWindow = this.isWithinSunWindow(config, now);
+        const minTempSatisfied = isHeatProtectionMinTempSatisfied(
+            this.weather.getOutdoorTemperature(),
+            config.sunProtectionMinTemp,
+        );
         const sunEligible = isSunProtectionEligible(
             this.options.sunProtectionGlobalEnabled,
             sunEnabled,
@@ -283,6 +392,7 @@ export class AutomationEngine {
             scheduleOpen,
             inWindow,
             sunOverrideActive,
+            minTempSatisfied,
         );
         if (!sunEligible) {
             state.sunHysteresis.reset();
@@ -302,6 +412,8 @@ export class AutomationEngine {
             });
         }
         if (state.sunActive) {
+            state.frostActive = false;
+            state.nightCoolingActive = false;
             const target = config.sunTargetPercent ?? 70;
             this.applyTarget(id, controller, target, 'Sun protection', config.doorContactStateId);
             return;
@@ -316,15 +428,46 @@ export class AutomationEngine {
                 rain: this.weather.getRain(),
                 threshold: this.options.frostThreshold,
             });
+        state.frostActive = frostActive;
         if (frostActive) {
-            // Automated movement is suppressed entirely; leave the covering as-is.
+            // Automated movement is suppressed entirely; leave the covering as-is. This takes
+            // priority over night cooling (7c) - a genuine mechanical/safety concern outranks a
+            // comfort feature.
+            state.nightCoolingActive = false;
             return;
         }
 
         const scheduleTarget = this.scheduleTargets.get(id);
-        if (scheduleTarget !== undefined) {
-            this.applyTarget(id, controller, scheduleTarget, 'Schedule', config.doorContactStateId);
+        if (scheduleTarget === undefined) {
+            state.nightCoolingActive = false;
+            return;
         }
+
+        // Night cooling (7c) only ever matters while the schedule is about to close the covering -
+        // that is already only the case in the evening/night per this covering's own plan, so no
+        // separately configured "night window" is needed on top of it (see night-cooling.ts doc).
+        if (scheduleTarget === 100) {
+            const nightCoolingEnabled = config.nightCoolingEnabled ?? false;
+            const indoorTempStateId = config.nightCoolingIndoorTempStateId;
+            state.nightCoolingActive =
+                nightCoolingEnabled &&
+                !!indoorTempStateId &&
+                evaluateNightCooling({
+                    indoorTemp: this.indoorTempByStateId.get(indoorTempStateId),
+                    outdoorTemp: this.weather.getOutdoorTemperature(),
+                    indoorMinTemp: this.options.nightCoolingIndoorMinTemp,
+                    minDelta: this.options.nightCoolingMinDelta,
+                    isSummer: this.weather.getIsSummer(),
+                });
+            if (state.nightCoolingActive) {
+                this.applyTarget(id, controller, 0, 'Night cooling', config.doorContactStateId);
+                return;
+            }
+        } else {
+            state.nightCoolingActive = false;
+        }
+
+        this.applyTarget(id, controller, scheduleTarget, 'Schedule', config.doorContactStateId);
     }
 
     /**

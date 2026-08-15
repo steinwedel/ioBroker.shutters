@@ -1,3 +1,4 @@
+import { ForeignNumberTracker } from './foreign-state-tracker';
 import type { IShutterDriver } from './types';
 
 /**
@@ -15,8 +16,7 @@ import type { IShutterDriver } from './types';
 export class GenericPositionDriver implements IShutterDriver {
     public readonly type = 'generic-position';
 
-    private currentPosition: number | undefined;
-    private readonly unsubscribe: (() => void) | undefined;
+    private readonly positionTracker: ForeignNumberTracker;
 
     /**
      * @param adapter - Adapter instance, used for foreign state access.
@@ -26,19 +26,9 @@ export class GenericPositionDriver implements IShutterDriver {
     public constructor(
         private readonly adapter: ioBroker.Adapter,
         private readonly positionStateId: string,
-        private readonly positionActualStateId: string,
+        positionActualStateId: string,
     ) {
-        void this.adapter
-            .subscribeForeignStatesAsync(this.positionActualStateId)
-            .catch(err => this.adapter.log.warn(`GenericPositionDriver: subscribe failed: ${err}`));
-
-        const handler = (id: string, state: ioBroker.State | null | undefined): void => {
-            if (id === this.positionActualStateId && state && typeof state.val === 'number') {
-                this.currentPosition = state.val;
-            }
-        };
-        this.adapter.on('stateChange', handler);
-        this.unsubscribe = () => this.adapter.removeListener('stateChange', handler);
+        this.positionTracker = new ForeignNumberTracker(adapter, positionActualStateId, 'GenericPositionDriver');
     }
 
     /** @param targetPercent - Target position 0-100. */
@@ -65,7 +55,7 @@ export class GenericPositionDriver implements IShutterDriver {
 
     /** @returns The last known actual position, or undefined if not yet received. */
     public getCurrentPosition(): number | undefined {
-        return this.currentPosition;
+        return this.positionTracker.getValue();
     }
 
     /** @returns Always undefined; this driver has no movement feedback. */
@@ -75,6 +65,6 @@ export class GenericPositionDriver implements IShutterDriver {
 
     /** Unsubscribes the state-change listener registered in the constructor. */
     public destroy(): void {
-        this.unsubscribe?.();
+        this.positionTracker.destroy();
     }
 }

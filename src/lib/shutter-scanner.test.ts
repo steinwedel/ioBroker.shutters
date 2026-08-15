@@ -279,4 +279,268 @@ describe('shutter-scanner', () => {
         expect(result.errors).to.have.lengthOf(1);
         expect(result.errors[0]).to.include('boom');
     });
+
+    describe('additional level.blind-role namespaces (hmip, enocean, velbus, velux/klf200, tahoma)', () => {
+        it('proposes an hmip candidate with a lowercase "stop" sibling', async () => {
+            const adapter = createFakeAdapter([
+                {
+                    id: 'hmip.0.device1.shutterLevel',
+                    value: { type: 'state', common: { role: 'level.blind', write: true } },
+                },
+                { id: 'hmip.0.device1.stop', value: { type: 'state', common: { role: 'button.stop' } } },
+            ]);
+
+            const result = await scanForShutters(adapter, new Set());
+
+            expect(result.shutters).to.have.lengthOf(1);
+            expect(result.shutters[0]).to.include({ driverType: 'hmip' });
+            expect(result.shutters[0].states).to.deep.equal({
+                position: 'hmip.0.device1.shutterLevel',
+                positionActual: 'hmip.0.device1.shutterLevel',
+                stop: 'hmip.0.device1.stop',
+            });
+        });
+
+        it('finds a lowercase ".stop" sibling even without the button.stop role', async () => {
+            const adapter = createFakeAdapter([
+                {
+                    id: 'velbus.0.blind1.position',
+                    value: { type: 'state', common: { role: 'level.blind', write: true } },
+                },
+                { id: 'velbus.0.blind1.stop', value: { type: 'state', common: {} } },
+            ]);
+
+            const result = await scanForShutters(adapter, new Set());
+
+            expect(result.shutters).to.have.lengthOf(1);
+            expect(result.shutters[0].states.stop).to.equal('velbus.0.blind1.stop');
+        });
+
+        it('proposes an enocean candidate', async () => {
+            const adapter = createFakeAdapter([
+                {
+                    id: 'enocean.0.actor1.position',
+                    value: { type: 'state', common: { role: 'level.blind', write: true } },
+                },
+            ]);
+
+            const result = await scanForShutters(adapter, new Set());
+
+            expect(result.shutters).to.have.lengthOf(1);
+            expect(result.shutters[0]).to.include({ driverType: 'enocean' });
+        });
+
+        it('proposes a velux candidate for both the velux and klf200 namespaces', async () => {
+            const adapter = createFakeAdapter([
+                {
+                    id: 'velux.0.product1.position',
+                    value: { type: 'state', common: { role: 'level.blind', write: true } },
+                },
+                {
+                    id: 'klf200.0.product2.position',
+                    value: { type: 'state', common: { role: 'level.blind', write: true } },
+                },
+            ]);
+
+            const result = await scanForShutters(adapter, new Set());
+
+            expect(result.shutters).to.have.lengthOf(2);
+            expect(result.shutters.every(s => s.driverType === 'velux')).to.equal(true);
+        });
+
+        it('proposes a somfy candidate for the tahoma namespace', async () => {
+            const adapter = createFakeAdapter([
+                {
+                    id: 'tahoma.0.device1.core:ClosureState',
+                    value: { type: 'state', common: { role: 'level.blind', write: true } },
+                },
+            ]);
+
+            const result = await scanForShutters(adapter, new Set());
+
+            expect(result.shutters).to.have.lengthOf(1);
+            expect(result.shutters[0]).to.include({ driverType: 'somfy' });
+        });
+    });
+
+    describe('Tuya detection pass', () => {
+        it('proposes a tuya candidate from percent_control + percent_state', async () => {
+            const adapter = createFakeAdapter([
+                { id: 'tuya.0.dev1.1_percent_control', value: { type: 'state', common: { name: 'Blind 1' } } },
+                { id: 'tuya.0.dev1.1_percent_state', value: { type: 'state', common: {} } },
+            ]);
+
+            const result = await scanForShutters(adapter, new Set());
+
+            expect(result.shutters).to.have.lengthOf(1);
+            expect(result.shutters[0]).to.include({ driverType: 'tuya', name: 'Blind 1' });
+            expect(result.shutters[0].states).to.deep.equal({
+                position: 'tuya.0.dev1.1_percent_control',
+                positionActual: 'tuya.0.dev1.1_percent_state',
+            });
+        });
+
+        it('proposes a tuya candidate from a control DP alone', async () => {
+            const adapter = createFakeAdapter([{ id: 'tuya.0.dev2.1_control', value: { type: 'state', common: {} } }]);
+
+            const result = await scanForShutters(adapter, new Set());
+
+            expect(result.shutters).to.have.lengthOf(1);
+            expect(result.shutters[0]).to.include({ driverType: 'tuya' });
+            expect(result.shutters[0].states).to.deep.equal({ control: 'tuya.0.dev2.1_control' });
+        });
+
+        it('does not match percent_control/control suffixes outside the tuya namespace', async () => {
+            const adapter = createFakeAdapter([
+                { id: 'someother.0.dev1.percent_control', value: { type: 'state', common: {} } },
+            ]);
+
+            const result = await scanForShutters(adapter, new Set());
+
+            expect(result.shutters).to.have.lengthOf(0);
+        });
+
+        it('skips an already-configured Tuya state', async () => {
+            const adapter = createFakeAdapter([{ id: 'tuya.0.dev1.1_control', value: { type: 'state', common: {} } }]);
+
+            const result = await scanForShutters(adapter, new Set(['tuya.0.dev1.1_control']));
+
+            expect(result.shutters).to.have.lengthOf(0);
+        });
+    });
+
+    describe('Loxone detection pass', () => {
+        it('proposes a loxone candidate from an up/down pair', async () => {
+            const adapter = createFakeAdapter([
+                { id: 'loxone.0.blind1.up', value: { type: 'state', common: { name: 'Jalousie 1' } } },
+                { id: 'loxone.0.blind1.down', value: { type: 'state', common: {} } },
+            ]);
+
+            const result = await scanForShutters(adapter, new Set());
+
+            expect(result.shutters).to.have.lengthOf(1);
+            expect(result.shutters[0]).to.include({ driverType: 'loxone', name: 'Jalousie 1' });
+            expect(result.shutters[0].states).to.deep.equal({
+                up: 'loxone.0.blind1.up',
+                down: 'loxone.0.blind1.down',
+            });
+        });
+
+        it('includes optional position/info states when present alongside up/down', async () => {
+            const adapter = createFakeAdapter([
+                { id: 'loxone.0.blind1.up', value: { type: 'state', common: {} } },
+                { id: 'loxone.0.blind1.down', value: { type: 'state', common: {} } },
+                { id: 'loxone.0.blind1.position', value: { type: 'state', common: {} } },
+                { id: 'loxone.0.blind1.info', value: { type: 'state', common: {} } },
+            ]);
+
+            const result = await scanForShutters(adapter, new Set());
+
+            expect(result.shutters).to.have.lengthOf(1);
+            expect(result.shutters[0].states).to.deep.equal({
+                up: 'loxone.0.blind1.up',
+                down: 'loxone.0.blind1.down',
+                position: 'loxone.0.blind1.position',
+                positionActual: 'loxone.0.blind1.info',
+            });
+        });
+
+        it('does not propose a candidate with only "up" and no "down"', async () => {
+            const adapter = createFakeAdapter([{ id: 'loxone.0.blind1.up', value: { type: 'state', common: {} } }]);
+
+            const result = await scanForShutters(adapter, new Set());
+
+            expect(result.shutters).to.have.lengthOf(0);
+        });
+    });
+
+    describe('Homey detection pass', () => {
+        it('proposes a homey candidate from windowcoverings_set, in any namespace', async () => {
+            const adapter = createFakeAdapter([
+                {
+                    id: 'homeybridge.0.device1.windowcoverings_set',
+                    value: { type: 'state', common: { name: 'Homey Blind' } },
+                },
+            ]);
+
+            const result = await scanForShutters(adapter, new Set());
+
+            expect(result.shutters).to.have.lengthOf(1);
+            expect(result.shutters[0]).to.include({ driverType: 'homey', name: 'Homey Blind' });
+            expect(result.shutters[0].states).to.deep.equal({
+                position: 'homeybridge.0.device1.windowcoverings_set',
+                positionActual: 'homeybridge.0.device1.windowcoverings_set',
+            });
+        });
+
+        it('skips an already-configured Homey state', async () => {
+            const adapter = createFakeAdapter([
+                { id: 'homeybridge.0.device1.windowcoverings_set', value: { type: 'state', common: {} } },
+            ]);
+
+            const result = await scanForShutters(adapter, new Set(['homeybridge.0.device1.windowcoverings_set']));
+
+            expect(result.shutters).to.have.lengthOf(0);
+        });
+    });
+
+    describe('onProgress (plan section 2b.3)', () => {
+        it('reports every scan phase in order when candidates are found across multiple passes', async () => {
+            const adapter = createFakeAdapter([
+                {
+                    id: 'knx.0.livingroom.shutter_position',
+                    value: { type: 'state', common: { role: 'level.blind', write: true } },
+                },
+                { id: 'tuya.0.dev1.1_percent_control', value: { type: 'state', common: {} } },
+                { id: 'loxone.0.jalousie1.up', value: { type: 'state', common: {} } },
+                { id: 'loxone.0.jalousie1.down', value: { type: 'state', common: {} } },
+                { id: 'homeybridge.0.device1.windowcoverings_set', value: { type: 'state', common: {} } },
+            ]);
+            const messages: string[] = [];
+
+            await scanForShutters(adapter, new Set(), message => messages.push(message));
+
+            expect(messages).to.deep.equal([
+                'Fetching object list...',
+                'Scanning for coverings with a level.blind/button role...',
+                'Scanning Homematic "Verschluss" channels...',
+                'Resolving generic relay candidates...',
+                'Scanning Tuya candidates...',
+                'Scanning Loxone candidates...',
+                'Scanning Homey candidates...',
+                'Scan complete.',
+            ]);
+        });
+
+        it('still reports "Scan complete." even when the scan itself fails', async () => {
+            const adapter = {
+                namespace: 'shutters.0',
+                // eslint-disable-next-line @typescript-eslint/require-await -- intentionally synchronous test double for an async adapter method
+                getObjectViewAsync: async () => {
+                    throw new Error('boom');
+                },
+                // eslint-disable-next-line @typescript-eslint/require-await -- intentionally synchronous test double for an async adapter method
+                getForeignObjectsAsync: async () => ({}),
+            } as unknown as ioBroker.Adapter;
+            const messages: string[] = [];
+
+            const result = await scanForShutters(adapter, new Set(), message => messages.push(message));
+
+            expect(result.errors).to.have.lengthOf(1);
+            expect(messages[messages.length - 1]).to.equal('Scan complete.');
+        });
+
+        it('works exactly as before when onProgress is omitted', async () => {
+            const adapter = createFakeAdapter([
+                {
+                    id: 'knx.0.livingroom.shutter_position',
+                    value: { type: 'state', common: { role: 'level.blind', write: true } },
+                },
+            ]);
+
+            const result = await scanForShutters(adapter, new Set());
+
+            expect(result.shutters).to.have.lengthOf(1);
+        });
+    });
 });

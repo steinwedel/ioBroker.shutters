@@ -1,34 +1,43 @@
+import { ForeignNumberTracker } from './foreign-state-tracker';
 import type { IShutterDriver } from './types';
 
+/**
+ * Shared base for every driver that commands position via a single writable percentage state and
+ * reads position back via a (possibly the same) readable percentage state, with an optional
+ * dedicated stop command and an optional dedicated slat-tilt command/readback pair (plan section 2a.5,
+ * raffstore/lamellen only). Every position+stop driver in the plan's driver table (homematic, hmip,
+ * knx, shelly, zigbee, zigbee2mqtt, somfy, velux, enocean, velbus, homey) extends this directly,
+ * inheriting tilt support automatically - no per-driver code is needed to support it, only a
+ * configured `states.tilt`/`states.tiltActual` pair (see `driver-factory.ts`).
+ */
 export abstract class PositionStopDriverBase implements IShutterDriver {
     public abstract readonly type: string;
 
-    private currentPosition: number | undefined;
-    private readonly unsubscribe: () => void;
+    private readonly positionTracker: ForeignNumberTracker;
+    private readonly tiltTracker: ForeignNumberTracker | undefined;
 
     /**
      * @param adapter - Adapter instance, used for foreign state access.
      * @param positionStateId - Foreign state written with the target 0-100 value.
      * @param positionActualStateId - Foreign state read for the current position; defaults to `positionStateId` if the system reports both on the same state.
      * @param stopStateId - Foreign state pulsed to stop movement, if the system supports a dedicated stop command.
+     * @param tiltStateId - Foreign state written with the target slat-tilt angle 0-100/0-180° (plan section 2a.5), or undefined if this covering has no tilt control (`coveringType` other than `raffstore`/`lamellen`, or the system/device does not support it).
+     * @param tiltActualStateId - Foreign state read for the current slat-tilt angle; defaults to `tiltStateId` if the system reports both on the same state. Ignored if `tiltStateId` is undefined.
      */
     public constructor(
         protected readonly adapter: ioBroker.Adapter,
         private readonly positionStateId: string,
-        private readonly positionActualStateId: string,
+        positionActualStateId: string,
         private readonly stopStateId: string | undefined,
+        private readonly tiltStateId?: string,
+        tiltActualStateId?: string,
     ) {
-        void this.adapter
-            .subscribeForeignStatesAsync(this.positionActualStateId)
-            .catch(err => this.adapter.log.warn(`${this.constructor.name}: subscribe failed: ${err}`));
-
-        const handler = (id: string, state: ioBroker.State | null | undefined): void => {
-            if (id === this.positionActualStateId && state && typeof state.val === 'number') {
-                this.currentPosition = this.fromExternalPosition(state.val);
-            }
-        };
-        this.adapter.on('stateChange', handler);
-        this.unsubscribe = () => this.adapter.removeListener('stateChange', handler);
+        this.positionTracker = new ForeignNumberTracker(adapter, positionActualStateId, this.constructor.name, value =>
+            this.fromExternalPosition(value),
+        );
+        this.tiltTracker = tiltStateId
+            ? new ForeignNumberTracker(adapter, tiltActualStateId ?? tiltStateId, this.constructor.name)
+            : undefined;
     }
 
     public async setPosition(targetPercent: number): Promise<void> {
@@ -62,7 +71,7 @@ export abstract class PositionStopDriverBase implements IShutterDriver {
 
     /** @returns The last known actual position, or undefined if not yet received. */
     public getCurrentPosition(): number | undefined {
-        return this.currentPosition;
+        return this.positionTracker.getValue();
     }
 
     /** @returns Always undefined; none of the systems using this base class report movement status yet. */
@@ -70,8 +79,27 @@ export abstract class PositionStopDriverBase implements IShutterDriver {
         return undefined;
     }
 
-    /** Unsubscribes the state-change listener registered in the constructor. */
+    /**
+     * Drives the slat tilt to `anglePercent` (plan section 2a.5), if a tilt state is configured for
+     * this covering; otherwise a no-op (a `raffstore`/`lamellen` device with no tilt state configured,
+     * or any other `coveringType`, simply has no tilt control - not an error condition).
+     *
+     * @param anglePercent - Target tilt angle, 0-100 (or a wider range for `lamellen`'s rotation, see `IShutterConfig.states.tilt`); passed through unmapped, same convention as the foreign state itself.
+     */
+    public async setTilt(anglePercent: number): Promise<void> {
+        if (this.tiltStateId) {
+            await this.adapter.setForeignStateAsync(this.tiltStateId, anglePercent, false);
+        }
+    }
+
+    /** @returns The last known actual tilt angle, or undefined if no tilt state is configured/not yet received. */
+    public getCurrentTilt(): number | undefined {
+        return this.tiltTracker?.getValue();
+    }
+
+    /** Unsubscribes the state-change listener(s) registered in the constructor. */
     public destroy(): void {
-        this.unsubscribe();
+        this.positionTracker.destroy();
+        this.tiltTracker?.destroy();
     }
 }

@@ -1,13 +1,14 @@
 # Context
 
 ## Current Task
-- Implemented plan items: fixed README/code discrepancies, persisted the sun-protection override (9a.2), added motor-protection cooldown (7d), and added unit tests for `automation.ts`/`shutter-controller.ts`.
+- Extended autoscan (`shutter-scanner.ts`) to detect the 9 newly-added driver systems.
 
 ## Key Decisions
-- `sunProtectionOverrideUntil` is now a persisted `ack=true` state per covering (`ShutterController.getPersistedSunProtectionOverrideUntil()`/`setSunProtectionOverrideUntil()`); `AutomationEngine.start()` restores it, and it's cleared back to 0 once expired instead of just becoming logically irrelevant.
-- Motor protection (7d) is a central gate in `shutter-controller.ts` (`gatedDriverCommand()`/`executeDriverCommand()`) shared by manual commands, schedule, and protection modules; only wind protection (`bypassMotorProtection: true`) skips it; `stop()` is exempt entirely and cancels any buffered command.
-- Added `sinon`/`@types/sinon` as direct devDependencies (previously only transitive via `@iobroker/testing`) to fake `Date.now()`/control timers deterministically in the new tests, since `automation.ts`/`shutter-controller.ts` call `Date.now()`/`new Date()` directly rather than taking an injectable clock.
-- README corrected: removed/qualified claims for drivers, notify, weather fallback, and night cooling that aren't implemented; added a "Planned, not yet implemented" section.
+- HmIP/EnOcean/Velbus/Velux/KLF200/Somfy(tahoma): added to `ADAPTER_TO_DRIVER_TYPE`, reusing the existing `level.blind`-role scan (assumes they follow that convention like Homematic/KNX/Shelly/Zigbee - unverified against real systems, but low-risk since it only extends already-working infrastructure).
+- Broadened `findStopSibling()` to also match a lowercase `.stop` suffix (not just `.STOP`/`button.stop`), matching HmIP/Velbus's typical naming.
+- Tuya/Loxone/Homey don't use the `level.blind` role, so they get dedicated name-suffix detection passes instead (`scanTuyaCandidates`/`scanLoxoneCandidates`/`scanHomeyCandidates`); Tuya/Loxone are namespace-scoped (`tuya.*`/`loxone.*`) to avoid false positives, Homey is namespace-independent since bridge integrations vary. Tuya's suffix matching tolerates a DP-number prefix (e.g. `1_percent_control`), a real-world Tuya naming detail found while writing the test.
+- Generic MQTT is deliberately NOT auto-discovered - the plan itself states its topics have no fixed naming convention, so pattern-matching would be unreliable.
+- Also fixed `homey-driver.ts`'s doc comment: Homey's real `windowcoverings_state` capability is a string status enum, not a numeric position readback as previously (incorrectly) documented.
 
 ## Next Steps
 - None outstanding for this change.

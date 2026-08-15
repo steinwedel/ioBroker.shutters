@@ -2,21 +2,41 @@ import type { CoveringType, DriverType } from './types';
 
 /**
  * Auto-discovery for coverings (plan section 2b). Scans all foreign state
- * objects for the standard ioBroker roles that indicate a motorized
- * covering, and proposes ready-to-use `IShutterConfig` fragments.
+ * objects for the standard ioBroker roles/naming conventions that indicate
+ * a motorized covering, and proposes ready-to-use `IShutterConfig`
+ * fragments.
  *
- * The "Kern-Set" system-specific drivers from the plan's priority order
- * (section 2a.4: homematic, knx, shelly, zigbee, zigbee2mqtt) are detected
- * by adapter namespace and proposed with the matching `driverType`;
- * everything else with a `level.blind`/`button.open.blind` role falls back
- * to the generic drivers (2b.2 "Generic" row). The remaining
- * system-specific drivers from the plan (hmip, tuya, somfy, velux,
- * enocean, velbus, loxone, homey, mqtt) are not detected/implemented yet.
+ * Detection strategy per system (plan section 2b.2):
+ * - homematic, knx, shelly, zigbee, zigbee2mqtt, hmip, enocean, velbus,
+ *   velux/klf200, somfy (tahoma): a `level.blind` role, classified by
+ *   adapter namespace via `ADAPTER_TO_DRIVER_TYPE`. Anything else with a
+ *   `level.blind` role falls back to the generic `generic-position` driver.
+ * - homematic additionally has a dedicated "Verschluss" Gewerk pass for
+ *   channels missing the role.
+ * - `button.open.blind`/`button.close.blind`/`button.stop` roles (any
+ *   namespace) are proposed as `generic-relay`.
+ * - tuya: a dedicated pass matching the `percent_control`/`percent_state`/
+ *   `control` DP name suffixes under the `tuya.*` namespace (Tuya DPs are
+ *   not tagged with a `level.blind` role).
+ * - loxone: a dedicated pass matching sibling `up`/`down` (and optional
+ *   `position`/`info`) state name suffixes under the `loxone.*` namespace.
+ * - homey: a dedicated pass matching the `windowcoverings_set` state name
+ *   suffix, in any namespace (Homey bridges vary).
+ * - generic MQTT covers are intentionally not auto-discovered: the whole
+ *   point of that driver is that its command/status topics have no fixed
+ *   naming convention to pattern-match on (see `mqtt-driver.ts`), so they
+ *   must be configured manually.
  *
- * There is also no setup wizard UI yet that could let a user
- * review/rename/import a scan result interactively; results are logged and
- * written to `info.lastScanResult` as JSON for manual copy-paste into the
- * `shutters` table instead (see admin/jsonConfig.json for the scan button).
+ * All namespace-based classifications above are best-effort assumptions
+ * about each system's typical ioBroker integration conventions, since they
+ * cannot be verified against a real instance of every system; a covering
+ * that is not detected, or detected with the wrong `driverType`, can always
+ * be added/corrected manually.
+ *
+ * The admin UI (plan section 2b.3, `admin/shutters.js`) presents the result as a preview list with a
+ * checkbox and editable name per candidate rather than importing every candidate automatically; only
+ * the ones the user leaves checked when confirming are actually added to `native.shutters[]` (see
+ * `main.ts`'s `applyScannedShutters` message handler).
  */
 
 /** One auto-discovered covering candidate, ready to copy into `native.shutters[]` after review. */
@@ -49,10 +69,19 @@ export interface IScanResult {
     errors: string[];
 }
 
+/**
+ * Reports a human-readable progress message as `scanForShutters()` moves through its sequential
+ * phases (plan section 2b.3) - genuinely sequential, not a cosmetic split of otherwise-parallel work:
+ * fetching the full object list is normally the only phase with real latency, but each classification
+ * pass below still iterates the entire (potentially very large, in a real installation) object list
+ * again, so surfacing them individually is useful, not just decorative.
+ */
+export type ScanProgressCallback = (message: string) => void;
+
 /** Adapter instances never scanned, to avoid duplicates/recursion (plan section 2b.2). */
 const FORBIDDEN_SCAN_ADAPTERS = new Set(['admin', 'alias', 'linkeddevices', 'javascript']);
 
-/** Maps an adapter instance's namespace prefix (`id.split('.')[0]`) to the driver type it implies, for the "Kern-Set" from plan section 2a.4. */
+/** Maps an adapter instance's namespace prefix (`id.split('.')[0]`) to the driver type it implies, for every system whose ioBroker integration is expected to tag its position state with the standard `level.blind` role (plan section 2b.2). */
 const ADAPTER_TO_DRIVER_TYPE: Record<string, DriverType> = {
     'hm-rpc': 'homematic',
     'hm-rega': 'homematic',
@@ -60,6 +89,12 @@ const ADAPTER_TO_DRIVER_TYPE: Record<string, DriverType> = {
     shelly: 'shelly',
     zigbee: 'zigbee',
     zigbee2mqtt: 'zigbee2mqtt',
+    hmip: 'hmip',
+    enocean: 'enocean',
+    velbus: 'velbus',
+    velux: 'velux',
+    klf200: 'velux',
+    tahoma: 'somfy',
 };
 
 /**
@@ -80,7 +115,7 @@ function isForbidden(id: string, ownAdapterNamespace: string): boolean {
 
 /**
  * @param id - Full state ID.
- * @returns The driver type implied by `id`'s adapter instance, or `"generic-position"` if it does not belong to one of the "Kern-Set" adapters.
+ * @returns The driver type implied by `id`'s adapter instance, or `"generic-position"` if it does not belong to one of the namespaces in `ADAPTER_TO_DRIVER_TYPE`.
  */
 function classifyDriverType(id: string): DriverType {
     const adapterName = id.split('.')[0] ?? '';
@@ -89,8 +124,10 @@ function classifyDriverType(id: string): DriverType {
 
 /**
  * Looks for a sibling stop state in the same parent channel/device
- * (`button.stop` role, or a Homematic-style `STOP` state), used to fill in
- * `states.stop` for the "Kern-Set" drivers.
+ * (`button.stop` role, or an id ending in `.STOP`/`.stop`, matching every
+ * system-specific stop naming convention seen across the plan's driver
+ * table, e.g. Homematic's `STOP` and HmIP/Velbus's lowercase `stop`), used
+ * to fill in `states.stop` for the `level.blind`-role-based drivers.
  *
  * @param positionStateId - Position state whose parent to search for a stop sibling.
  * @param objectsById - All scanned state objects, keyed by ID.
@@ -101,7 +138,7 @@ function findStopSibling(positionStateId: string, objectsById: Map<string, ioBro
         if (id === positionStateId || !id.startsWith(`${parentId}.`)) {
             continue;
         }
-        if (obj.common?.role === 'button.stop' || id.endsWith('.STOP')) {
+        if (obj.common?.role === 'button.stop' || id.endsWith('.STOP') || id.endsWith('.stop')) {
             return id;
         }
     }
@@ -170,6 +207,203 @@ function deriveCoveringId(stateId: string): string {
 }
 
 /**
+ * @param id - Full state ID.
+ * @returns The final segment after the last `.`, lower-cased, e.g. `"percent_control"` for `"tuya.0.dev1.percent_control"`.
+ */
+function lastIdSegment(id: string): string {
+    return (id.slice(id.lastIndexOf('.') + 1) ?? '').toLowerCase();
+}
+
+/**
+ * Tuya (`ioBroker.tuya`) detection pass (plan section 2b.2): Tuya DPs are not tagged with a
+ * `level.blind` role, so this matches the `percent_control`/`percent_state`/`control` DP name
+ * suffixes directly instead, scoped to the `tuya.*` namespace to avoid false positives from unrelated
+ * devices using the same generic suffix names elsewhere.
+ *
+ * @param objectsById - All scanned state objects, keyed by ID.
+ * @param isSkipped - Whether a given state ID must be excluded (forbidden namespace or already configured).
+ * @param seenCoveringIds - Covering IDs already proposed in this scan, to avoid duplicates.
+ * @param shutters - Result array to push newly discovered candidates onto.
+ */
+function scanTuyaCandidates(
+    objectsById: Map<string, ioBroker.StateObject>,
+    isSkipped: (id: string) => boolean,
+    seenCoveringIds: Set<string>,
+    shutters: IScannedShutter[],
+): void {
+    const byParent = new Map<
+        string,
+        { percentControl?: string; percentState?: string; control?: string; name?: string }
+    >();
+
+    for (const [id, obj] of objectsById) {
+        if (!id.startsWith('tuya.') || isSkipped(id)) {
+            continue;
+        }
+        // Tuya DP names are typically prefixed with a DP number, e.g. "1_percent_control" rather than a
+        // bare "percent_control" segment - `endsWith()` (not exact equality) accommodates that.
+        const suffix = lastIdSegment(id);
+        const isPercentControl = suffix.endsWith('percent_control');
+        const isPercentState = !isPercentControl && suffix.endsWith('percent_state');
+        const isControl = !isPercentControl && !isPercentState && suffix.endsWith('control');
+        if (!isPercentControl && !isPercentState && !isControl) {
+            continue;
+        }
+        const parentId = id.slice(0, id.lastIndexOf('.'));
+        const entry = byParent.get(parentId) ?? {};
+        if (isPercentControl) {
+            entry.percentControl = id;
+        } else if (isPercentState) {
+            entry.percentState = id;
+        } else {
+            entry.control = id;
+        }
+        entry.name ??= resolveName(obj.common.name, parentId);
+        byParent.set(parentId, entry);
+    }
+
+    for (const [parentId, entry] of byParent) {
+        // Matches driver-factory.ts's own validation: at least a percent-control or a control DP is required.
+        if (!entry.percentControl && !entry.control) {
+            continue;
+        }
+        const coveringId = deriveCoveringId(parentId);
+        if (seenCoveringIds.has(coveringId)) {
+            continue;
+        }
+        seenCoveringIds.add(coveringId);
+        const states: Record<string, string> = {};
+        if (entry.percentControl) {
+            states.position = entry.percentControl;
+        }
+        if (entry.percentState) {
+            states.positionActual = entry.percentState;
+        }
+        if (entry.control) {
+            states.control = entry.control;
+        }
+        shutters.push({
+            id: coveringId,
+            name: entry.name ?? coveringId,
+            driverType: 'tuya',
+            coveringType: 'rolladen',
+            automationEnabled: true,
+            states,
+        });
+    }
+}
+
+/**
+ * Loxone (`ioBroker.loxone`) detection pass (plan section 2b.2): matches sibling `up`/`down` impulse
+ * states (and, if present, `position`/`info` for direct percentage control) under the same parent
+ * Jalousie block, scoped to the `loxone.*` namespace.
+ *
+ * @param objectsById - All scanned state objects, keyed by ID.
+ * @param isSkipped - Whether a given state ID must be excluded (forbidden namespace or already configured).
+ * @param seenCoveringIds - Covering IDs already proposed in this scan, to avoid duplicates.
+ * @param shutters - Result array to push newly discovered candidates onto.
+ */
+function scanLoxoneCandidates(
+    objectsById: Map<string, ioBroker.StateObject>,
+    isSkipped: (id: string) => boolean,
+    seenCoveringIds: Set<string>,
+    shutters: IScannedShutter[],
+): void {
+    const byParent = new Map<
+        string,
+        { up?: string; down?: string; position?: string; positionActual?: string; name?: string }
+    >();
+
+    for (const [id, obj] of objectsById) {
+        if (!id.startsWith('loxone.') || isSkipped(id)) {
+            continue;
+        }
+        const suffix = lastIdSegment(id);
+        if (suffix !== 'up' && suffix !== 'down' && suffix !== 'position' && suffix !== 'info') {
+            continue;
+        }
+        const parentId = id.slice(0, id.lastIndexOf('.'));
+        const entry = byParent.get(parentId) ?? {};
+        if (suffix === 'up') {
+            entry.up = id;
+        } else if (suffix === 'down') {
+            entry.down = id;
+        } else if (suffix === 'position') {
+            entry.position = id;
+        } else {
+            entry.positionActual = id;
+        }
+        entry.name ??= resolveName(obj.common.name, parentId);
+        byParent.set(parentId, entry);
+    }
+
+    for (const [parentId, entry] of byParent) {
+        // Matches driver-factory.ts's own validation: both up and down are required.
+        if (!entry.up || !entry.down) {
+            continue;
+        }
+        const coveringId = deriveCoveringId(parentId);
+        if (seenCoveringIds.has(coveringId)) {
+            continue;
+        }
+        seenCoveringIds.add(coveringId);
+        const states: Record<string, string> = { up: entry.up, down: entry.down };
+        if (entry.position) {
+            states.position = entry.position;
+        }
+        if (entry.positionActual) {
+            states.positionActual = entry.positionActual;
+        }
+        shutters.push({
+            id: coveringId,
+            name: entry.name ?? coveringId,
+            driverType: 'loxone',
+            coveringType: 'rolladen',
+            automationEnabled: true,
+            states,
+        });
+    }
+}
+
+/**
+ * Homey detection pass (plan section 2b.2): matches the `windowcoverings_set` capability state name
+ * suffix, in any namespace (Homey bridge integrations vary). Homey's real `windowcoverings_state`
+ * capability is a string status enum, not a numeric position, so it is not usable as a read-back (see
+ * `homey-driver.ts`) - `windowcoverings_set` is proposed as both `position` and `positionActual`,
+ * assuming a bridge that mirrors the last-written value back onto the same state.
+ *
+ * @param objectsById - All scanned state objects, keyed by ID.
+ * @param isSkipped - Whether a given state ID must be excluded (forbidden namespace or already configured).
+ * @param seenCoveringIds - Covering IDs already proposed in this scan, to avoid duplicates.
+ * @param shutters - Result array to push newly discovered candidates onto.
+ */
+function scanHomeyCandidates(
+    objectsById: Map<string, ioBroker.StateObject>,
+    isSkipped: (id: string) => boolean,
+    seenCoveringIds: Set<string>,
+    shutters: IScannedShutter[],
+): void {
+    for (const [id, obj] of objectsById) {
+        if (isSkipped(id) || lastIdSegment(id) !== 'windowcoverings_set') {
+            continue;
+        }
+        const coveringId = deriveCoveringId(id);
+        if (seenCoveringIds.has(coveringId)) {
+            continue;
+        }
+        seenCoveringIds.add(coveringId);
+        shutters.push({
+            id: coveringId,
+            name: resolveName(obj.common.name, coveringId),
+            driverType: 'homey',
+            coveringType: 'rolladen',
+            automationEnabled: true,
+            states: { position: id, positionActual: id },
+        });
+    }
+}
+
+/**
  * @param name - `common.name`, which may be a plain string or a per-language object.
  * @param fallback - Value to use if `name` is empty/not resolvable.
  */
@@ -191,10 +425,12 @@ function resolveName(name: ioBroker.StateCommon['name'] | undefined, fallback: s
  *
  * @param adapter - Adapter instance, used for object access and its own namespace.
  * @param alreadyConfiguredStateIds - Foreign state IDs already referenced by an existing covering, to avoid proposing duplicates.
+ * @param onProgress - Optional callback invoked with a human-readable message as each scan phase starts, see `ScanProgressCallback`.
  */
 export async function scanForShutters(
     adapter: ioBroker.Adapter,
     alreadyConfiguredStateIds: Set<string>,
+    onProgress?: ScanProgressCallback,
 ): Promise<IScanResult> {
     const errors: string[] = [];
     const shutters: IScannedShutter[] = [];
@@ -204,6 +440,7 @@ export async function scanForShutters(
     const relayCandidatesByParent = new Map<string, { open?: string; close?: string; stop?: string; name?: string }>();
 
     try {
+        onProgress?.('Fetching object list...');
         const view = await adapter.getObjectViewAsync('system', 'state', { startkey: '', endkey: '\u9999' });
 
         const objectsById = new Map<string, ioBroker.StateObject>();
@@ -213,6 +450,7 @@ export async function scanForShutters(
             }
         }
 
+        onProgress?.('Scanning for coverings with a level.blind/button role...');
         for (const [id, obj] of objectsById) {
             if (isForbidden(id, adapter.namespace) || alreadyConfiguredStateIds.has(id)) {
                 continue;
@@ -261,6 +499,7 @@ export async function scanForShutters(
         // shutter/blind channels with the "Verschluss" function instead of
         // (or in addition to) a `level.blind` role on the LEVEL state. Catch
         // those here so they are not missed by the role-based pass above.
+        onProgress?.('Scanning Homematic "Verschluss" channels...');
         const shutterFunctionMembers = await findHomematicShutterFunctionMembers(adapter, errors);
         for (const member of shutterFunctionMembers) {
             const adapterName = member.split('.')[0] ?? '';
@@ -295,6 +534,7 @@ export async function scanForShutters(
             });
         }
 
+        onProgress?.('Resolving generic relay candidates...');
         for (const [parentId, entry] of relayCandidatesByParent) {
             if (!entry.open || !entry.close) {
                 continue; // Need at least open+close to be usable by generic-relay-driver.
@@ -317,9 +557,21 @@ export async function scanForShutters(
                 states,
             });
         }
+
+        // Systems whose state naming does not follow the `level.blind`-role convention above get a
+        // dedicated pass each, matching the state name suffixes described in plan section 2b.2.
+        const isSkipped = (id: string): boolean =>
+            isForbidden(id, adapter.namespace) || alreadyConfiguredStateIds.has(id);
+        onProgress?.('Scanning Tuya candidates...');
+        scanTuyaCandidates(objectsById, isSkipped, seenCoveringIds, shutters);
+        onProgress?.('Scanning Loxone candidates...');
+        scanLoxoneCandidates(objectsById, isSkipped, seenCoveringIds, shutters);
+        onProgress?.('Scanning Homey candidates...');
+        scanHomeyCandidates(objectsById, isSkipped, seenCoveringIds, shutters);
     } catch (err) {
         errors.push(`Scan failed: ${(err as Error).message}`);
     }
 
+    onProgress?.('Scan complete.');
     return { shutters, errors };
 }

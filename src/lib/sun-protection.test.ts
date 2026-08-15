@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import {
     evaluateSunProtection,
+    isHeatProtectionMinTempSatisfied,
     isSunProtectionEligible,
     isWithinOrientationWindow,
     isWithinTimeWindow,
@@ -59,14 +60,35 @@ describe('sun-protection', () => {
     });
 
     describe('isSunProtectionEligible', () => {
-        it('requires global and covering enable, summer, an open schedule and the local time window', () => {
-            expect(isSunProtectionEligible(true, true, true, true, true, false)).to.equal(true);
-            expect(isSunProtectionEligible(false, true, true, true, true, false)).to.equal(false);
-            expect(isSunProtectionEligible(true, false, true, true, true, false)).to.equal(false);
-            expect(isSunProtectionEligible(true, true, false, true, true, false)).to.equal(false);
-            expect(isSunProtectionEligible(true, true, true, false, true, false)).to.equal(false);
-            expect(isSunProtectionEligible(true, true, true, true, false, false)).to.equal(false);
-            expect(isSunProtectionEligible(true, true, true, true, true, true)).to.equal(false);
+        it('requires global and covering enable, summer, an open schedule, the local time window and the temperature filter', () => {
+            expect(isSunProtectionEligible(true, true, true, true, true, false, true)).to.equal(true);
+            expect(isSunProtectionEligible(false, true, true, true, true, false, true)).to.equal(false);
+            expect(isSunProtectionEligible(true, false, true, true, true, false, true)).to.equal(false);
+            expect(isSunProtectionEligible(true, true, false, true, true, false, true)).to.equal(false);
+            expect(isSunProtectionEligible(true, true, true, false, true, false, true)).to.equal(false);
+            expect(isSunProtectionEligible(true, true, true, true, false, false, true)).to.equal(false);
+            expect(isSunProtectionEligible(true, true, true, true, true, true, true)).to.equal(false);
+            expect(isSunProtectionEligible(true, true, true, true, true, false, false)).to.equal(false);
+        });
+    });
+
+    describe('isHeatProtectionMinTempSatisfied (plan section 6.5)', () => {
+        it('is always satisfied when no threshold is configured, regardless of temperature', () => {
+            expect(isHeatProtectionMinTempSatisfied(5, undefined)).to.equal(true);
+            expect(isHeatProtectionMinTempSatisfied(undefined, undefined)).to.equal(true);
+        });
+
+        it('is satisfied once the temperature reaches the threshold', () => {
+            expect(isHeatProtectionMinTempSatisfied(20, 20)).to.equal(true);
+            expect(isHeatProtectionMinTempSatisfied(25, 20)).to.equal(true);
+        });
+
+        it('is not satisfied below the threshold', () => {
+            expect(isHeatProtectionMinTempSatisfied(19.9, 20)).to.equal(false);
+        });
+
+        it('is not satisfied when a threshold is configured but the temperature is unavailable', () => {
+            expect(isHeatProtectionMinTempSatisfied(undefined, 20)).to.equal(false);
         });
     });
 
