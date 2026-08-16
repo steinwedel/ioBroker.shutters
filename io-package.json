@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.51",
+    "version": "0.0.52",
     "news": {
+      "0.0.52": {
+        "en": "**ENHANCED**: Remove the unused JSONConfig admin artifact",
+        "de": "**VERBESSERT**: Entfernt das nicht verwendete JSONConfig-Admin-Artefakt.",
+        "ru": "**УЛУЧШЕНО**: Удален неиспользуемый административный артефакт JSONConfig.",
+        "pt": "**APRIMORADO**: Remove o artefato administrativo JSONConfig não utilizado.",
+        "nl": "**VERBETERD**: Verwijder het ongebruikte JSONConfig-beheerartefact.",
+        "fr": "**AMÉLIORÉ** : Suppression de l’artefact d’administration JSONConfig inutilisé",
+        "it": "**MIGLIORATO**: Rimossa la cartella amministrativa JSONConfig non utilizzata",
+        "es": "**MEJORADO**: Eliminar el artefacto de administración JSONConfig no utilizado",
+        "pl": "**ULEPSZONE**: Usuń nieużywany artefakt administratora JSONConfig",
+        "uk": "**ПОКРАЩЕНО**: Видалено невикористаний артефакт адміністратора JSONConfig",
+        "zh-cn": "**增强功能**：移除未使用的 JSONConfig 管理组件"
+      },
       "0.0.51": {
         "en": "**FIXED**: Restore the Materialize Admin UI",
         "de": "**BEHOBEN**: Die Materialize-Admin-Benutzeroberfläche wurde wiederhergestellt.",
@@ -80,19 +93,6 @@
         "pl": "**NAPRAWIONO**: Wyrównaj pole maksymalnego zachmurzenia bezpośrednio obok minimalnej temperatury chroniącej przed słońcem",
         "uk": "**ВИПРАВЛЕНО**: Вирівняйте поле максимальної хмарності безпосередньо поруч із мінімальною температурою для захисту від сонця",
         "zh-cn": "**已修复**：将最大云量覆盖率字段与防晒最低温度字段直接对齐"
-      },
-      "0.0.45": {
-        "en": "**ENHANCED**: Refine the Coverings sun-protection cloud cover and tolerance field layout",
-        "de": "**VERBESSERT**: Verfeinerung des Layouts für Sonnenschutz, Wolkenabdeckung und Toleranzfelder der Abdeckungen.",
-        "ru": "**УЛУЧШЕНО**: Уточнено расположение полей с данными о защите от солнца, облачности и допустимых отклонениях.",
-        "pt": "**APRIMORADO**: Refine o layout do campo de cobertura de nuvens e tolerância à proteção solar do Coverings.",
-        "nl": "**VERBETERD**: Verfijn de lay-out van het veld voor zonwering, bewolking en tolerantie.",
-        "fr": "**AMÉLIORÉ** : Amélioration de la disposition des champs de protection solaire, de couverture nuageuse et de tolérance",
-        "it": "**MIGLIORATO**: Perfezionata la disposizione del campo di copertura, protezione solare, copertura nuvolosa e tolleranza.",
-        "es": "**MEJORADO**: Perfeccionamiento de la cobertura de nubes de protección solar y la disposición del campo de tolerancia de Coverings",
-        "pl": "**ULEPSZONE**: Udoskonalono układ zachmurzenia i pola tolerancji ochrony przeciwsłonecznej Coverings",
-        "uk": "**ПОКРАЩЕНО**: Удосконалено макет поля допуску та хмарності для сонцезахисних покриттів.",
-        "zh-cn": "**增强功能**：优化遮阳云层覆盖和容差字段布局"
       }
     },
     "titleLang": {

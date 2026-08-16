@@ -1,11 +1,11 @@
 # Context
 
 ## Current Task
-- Restoring the Materialize Admin UI after an incorrect JSONConfig activation.
+- Removed the unused JSONConfig artifact and restored Materialize as the only Admin UI.
 
 ## Key Decisions
 - `adminUI.config` must remain `materialize`; never activate JSONConfig.
-- `jsonConfig.json` remains inactive and does not control the Admin UI.
+- `jsonConfig.json` has been removed and is not maintained.
 - Covering state hierarchy preserves legacy direct-state compatibility.
 
 ## Next Steps

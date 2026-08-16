@@ -10,7 +10,6 @@
         },
         {
             "fileMatch": [
-                "admin/jsonConfig.json",
                 "admin/jsonConfig.json5",
                 "admin/jsonCustom.json",
                 "admin/jsonCustom.json5",

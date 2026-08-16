@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.52 (2026-08-16)
+
+* (steinwedel) **ENHANCED**: Remove the unused JSONConfig admin artifact
+
 ## 0.0.51 (2026-08-16)
 
 * (steinwedel) **FIXED**: Restore the Materialize Admin UI
