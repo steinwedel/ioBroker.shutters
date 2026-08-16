@@ -1408,27 +1408,30 @@ function renderCoveringCard(covering, index) {
     doorProtectionRow.appendChild(
         makeCheckbox('cov-' + index + '-doorProtectionEnabled', 'doorProtectionEnabled', covering.doorProtectionEnabled, function (v) {
             covering.doorProtectionEnabled = v;
+            renderCoverings();
             onChangeFired();
         }),
     );
-    var doorContactField = makeStateIdField(
-        'cov-' + index + '-doorContactStateId',
-        'doorContactStateId',
-        covering.doorContactStateId,
-        6,
-        function (v) {
-            covering.doorContactStateId = v;
-            onChangeFired();
-        },
-    );
-    doorContactField.className += ' shutters-door-contact-field';
-    doorProtectionRow.appendChild(doorContactField);
-    doorProtectionRow.appendChild(
-        makeCheckbox('cov-' + index + '-invertDoorContact', 'invertDoorContact', covering.invertDoorContact, function (v) {
-            covering.invertDoorContact = v;
-            onChangeFired();
-        }),
-    );
+    if (covering.doorProtectionEnabled) {
+        var doorContactField = makeStateIdField(
+            'cov-' + index + '-doorContactStateId',
+            'doorContactStateId',
+            covering.doorContactStateId,
+            6,
+            function (v) {
+                covering.doorContactStateId = v;
+                onChangeFired();
+            },
+        );
+        doorContactField.className += ' shutters-door-contact-field';
+        doorProtectionRow.appendChild(doorContactField);
+        doorProtectionRow.appendChild(
+            makeCheckbox('cov-' + index + '-invertDoorContact', 'invertDoorContact', covering.invertDoorContact, function (v) {
+                covering.invertDoorContact = v;
+                onChangeFired();
+            }),
+        );
+    }
     protectionRow1.appendChild(doorProtectionRow);
     card.appendChild(protectionRow1);
 

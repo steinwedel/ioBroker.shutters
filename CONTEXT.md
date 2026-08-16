@@ -1,11 +1,11 @@
 # Context
 
 ## Current Task
-- Completed project JSDoc documentation and prepared the Admin UI updates for deployment.
+- Hide door-contact configuration fields when Rolladensperre is disabled.
 
 ## Key Decisions
-- All existing JSDoc lint warnings are addressed without changing runtime behavior.
-- Admin UI changes include explicit System, Zeitplan, and Türkontakt-State-ID labels.
+- Switching Rolladensperre immediately re-renders its configuration row.
+- Disabled fields retain their saved values for later reactivation.
 - Deployment uses the central `../scripts/deploy.sh` process.
 
 ## Next Steps

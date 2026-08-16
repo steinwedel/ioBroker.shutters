@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.41 (2026-08-16)
+
+* (steinwedel) **ENHANCED**: Hide door-contact fields while Rolladensperre is disabled
+
 ## 0.0.40 (2026-08-16)
 
 * (steinwedel) **FIXED**: Complete JSDoc documentation required by the project linter
