@@ -67,16 +67,18 @@ tests.integration(path.join(__dirname, '..'), {
             }).timeout(30_000);
 
             it('scales HmIP foreign feedback and commands in the adapter position convention', async () => {
-                expect((await waitForState(harness, 'shutters.0.shutters.shutter2.positionActual', value => value === 75)).val).to.equal(75);
+                expect((await waitForState(harness, 'shutters.0.shutters.shutter2.status.positionActual', value => value === 75)).val).to.equal(75);
 
-                await harness.states.setState('shutters.0.shutters.shutter2.position', { val: 40, ack: false });
+                await harness.states.setState('shutters.0.shutters.shutter2.control.position', { val: 40, ack: false });
                 const target = await waitForState(harness, hmipPositionId, value => value === 0.6);
                 expect(target.val).to.equal(0.6);
                 expect(target.ack).to.equal(false);
 
                 await harness.states.setState(hmipActualId, { val: 0.1, ack: true });
-                expect((await waitForState(harness, 'shutters.0.shutters.shutter2.positionActual', value => value === 90)).val).to.equal(90);
+                expect((await waitForState(harness, 'shutters.0.shutters.shutter2.status.positionActual', value => value === 90)).val).to.equal(90);
             }).timeout(30_000);
+
+
         });
     },
 });

@@ -22,6 +22,49 @@ const PROTECTION_NAMES = [
 ] as const;
 type IProtectionName = (typeof PROTECTION_NAMES)[number];
 
+type ICoveringChannel = 'control' | 'configuration' | 'status' | 'protection' | 'calibration' | 'diagnostics';
+
+const STATE_CHANNELS: Record<string, ICoveringChannel> = {
+    position: 'control',
+    tilt: 'control',
+    open: 'control',
+    close: 'control',
+    stop: 'control',
+    automationEnabled: 'configuration',
+    orientation: 'configuration',
+    area: 'configuration',
+    driverType: 'configuration',
+    coveringType: 'configuration',
+    positionActual: 'status',
+    positionRaw: 'status',
+    tiltActual: 'status',
+    state: 'status',
+    statusText: 'status',
+    activityLog: 'status',
+    doorProtectionActive: 'protection',
+    sunProtectionEnabled: 'protection',
+    rainProtectionEnabled: 'protection',
+    windProtectionEnabled: 'protection',
+    frostProtectionEnabled: 'protection',
+    nightCoolingEnabled: 'protection',
+    sunProtectionActive: 'protection',
+    rainProtectionActive: 'protection',
+    windProtectionActive: 'protection',
+    frostProtectionActive: 'protection',
+    nightCoolingActive: 'protection',
+    sunProtectionOverrideUntil: 'protection',
+    calibrate: 'calibration',
+    calibrationStatus: 'calibration',
+    calibrationConfirm: 'calibration',
+    calibrationAbort: 'calibration',
+    calibrationOpenRuntimeSecs: 'calibration',
+    calibrationCloseRuntimeSecs: 'calibration',
+    watchdogLastIssue: 'diagnostics',
+    watchdogIssueCount: 'diagnostics',
+    pendingMoveTargetPercent: 'diagnostics',
+    pendingMoveIssuedAt: 'diagnostics',
+};
+
 /** One entry of `IShutterConfig`'s `activityLog` state (plan section 10a.8), most recent first. */
 export interface IActivityLogEntry {
     /** ms-since-epoch timestamp the action was taken at. */
@@ -43,6 +86,7 @@ export class ShutterController {
     private readonly driver: IShutterDriver;
     private readonly basePath: string;
     private readonly curve: ICalibrationPoint[];
+    private readonly legacyStateNames = new Set<string>();
     private automationEnabled: boolean;
     private pendingMove: { targetPercent: number; issuedAt: number } | undefined;
     private watchdogReported = false;
@@ -75,9 +119,18 @@ export class ShutterController {
         this.automationEnabled = config.automationEnabled;
     }
 
+    private stateId(name: string): string {
+        return `${this.basePath}.${STATE_CHANNELS[name]}.${name}`;
+    }
+
+    private legacyStateId(name: string): string {
+        return `${this.basePath}.${name}`;
+    }
+
     /** Creates/updates all objects for this covering. Safe to call repeatedly (uses setObjectNotExists). */
     public async createObjects(): Promise<void> {
         const { adapter, basePath, config } = this;
+        const stateId = (name: string): string => this.stateId(name);
 
         await adapter.setObjectNotExistsAsync(basePath, {
             type: 'device',
@@ -85,7 +138,15 @@ export class ShutterController {
             native: {},
         });
 
-        await adapter.setObjectNotExistsAsync(`${basePath}.position`, {
+        for (const channel of new Set(Object.values(STATE_CHANNELS))) {
+            await adapter.setObjectNotExistsAsync(`${basePath}.${channel}`, {
+                type: 'channel',
+                common: { name: channel, role: channel === 'control' ? 'blind' : undefined },
+                native: {},
+            });
+        }
+
+        await adapter.setObjectNotExistsAsync(stateId('position'), {
             type: 'state',
             common: {
                 name: `${config.name} - target position`,
@@ -100,7 +161,7 @@ export class ShutterController {
             native: {},
         });
 
-        await adapter.setObjectNotExistsAsync(`${basePath}.positionActual`, {
+        await adapter.setObjectNotExistsAsync(stateId('positionActual'), {
             type: 'state',
             common: {
                 name: `${config.name} - actual position`,
@@ -115,7 +176,7 @@ export class ShutterController {
             native: {},
         });
 
-        await adapter.setObjectNotExistsAsync(`${basePath}.positionRaw`, {
+        await adapter.setObjectNotExistsAsync(stateId('positionRaw'), {
             type: 'state',
             common: {
                 name: `${config.name} - raw motor runtime`,
@@ -140,7 +201,7 @@ export class ShutterController {
         if (config.states.tilt) {
             const tiltMax = config.coveringType === 'lamellen' ? 180 : 100;
             const tiltUnit = config.coveringType === 'lamellen' ? '°' : '%';
-            await adapter.setObjectNotExistsAsync(`${basePath}.tilt`, {
+            await adapter.setObjectNotExistsAsync(stateId('tilt'), {
                 type: 'state',
                 common: {
                     name: `${config.name} - target slat tilt angle`,
@@ -154,7 +215,7 @@ export class ShutterController {
                 },
                 native: {},
             });
-            await adapter.setObjectNotExistsAsync(`${basePath}.tiltActual`, {
+            await adapter.setObjectNotExistsAsync(stateId('tiltActual'), {
                 type: 'state',
                 common: {
                     name: `${config.name} - actual slat tilt angle`,
@@ -170,7 +231,7 @@ export class ShutterController {
             });
         }
 
-        await adapter.setObjectNotExistsAsync(`${basePath}.open`, {
+        await adapter.setObjectNotExistsAsync(stateId('open'), {
             type: 'state',
             common: {
                 name: `${config.name} - open`,
@@ -182,7 +243,7 @@ export class ShutterController {
             native: {},
         });
 
-        await adapter.setObjectNotExistsAsync(`${basePath}.close`, {
+        await adapter.setObjectNotExistsAsync(stateId('close'), {
             type: 'state',
             common: {
                 name: `${config.name} - close`,
@@ -194,13 +255,13 @@ export class ShutterController {
             native: {},
         });
 
-        await adapter.setObjectNotExistsAsync(`${basePath}.stop`, {
+        await adapter.setObjectNotExistsAsync(stateId('stop'), {
             type: 'state',
             common: { name: `${config.name} - stop`, type: 'boolean', role: 'button.stop', read: true, write: true },
             native: {},
         });
 
-        await adapter.setObjectNotExistsAsync(`${basePath}.calibrate`, {
+        await adapter.setObjectNotExistsAsync(stateId('calibrate'), {
             type: 'state',
             common: {
                 name: `${config.name} - start guided calibration run`,
@@ -214,7 +275,7 @@ export class ShutterController {
         });
 
         if (config.driverType === 'generic-relay') {
-            await adapter.setObjectNotExistsAsync(`${basePath}.calibrationStatus`, {
+            await adapter.setObjectNotExistsAsync(stateId('calibrationStatus'), {
                 type: 'state',
                 common: {
                     name: `${config.name} - calibration status`,
@@ -226,7 +287,7 @@ export class ShutterController {
                 },
                 native: {},
             });
-            await adapter.setObjectNotExistsAsync(`${basePath}.calibrationConfirm`, {
+            await adapter.setObjectNotExistsAsync(stateId('calibrationConfirm'), {
                 type: 'state',
                 common: {
                     name: `${config.name} - confirm calibration travel end`,
@@ -238,7 +299,7 @@ export class ShutterController {
                 },
                 native: {},
             });
-            await adapter.setObjectNotExistsAsync(`${basePath}.calibrationAbort`, {
+            await adapter.setObjectNotExistsAsync(stateId('calibrationAbort'), {
                 type: 'state',
                 common: {
                     name: `${config.name} - abort calibration`,
@@ -250,7 +311,7 @@ export class ShutterController {
                 },
                 native: {},
             });
-            await adapter.setObjectNotExistsAsync(`${basePath}.calibrationOpenRuntimeSecs`, {
+            await adapter.setObjectNotExistsAsync(stateId('calibrationOpenRuntimeSecs'), {
                 type: 'state',
                 common: {
                     name: `${config.name} - measured opening runtime`,
@@ -263,7 +324,7 @@ export class ShutterController {
                 },
                 native: {},
             });
-            await adapter.setObjectNotExistsAsync(`${basePath}.calibrationCloseRuntimeSecs`, {
+            await adapter.setObjectNotExistsAsync(stateId('calibrationCloseRuntimeSecs'), {
                 type: 'state',
                 common: {
                     name: `${config.name} - measured closing runtime`,
@@ -278,7 +339,7 @@ export class ShutterController {
             });
         }
 
-        await adapter.setObjectNotExistsAsync(`${basePath}.automationEnabled`, {
+        await adapter.setObjectNotExistsAsync(stateId('automationEnabled'), {
             type: 'state',
             common: {
                 name: `${config.name} - automation enabled`,
@@ -290,7 +351,7 @@ export class ShutterController {
             native: {},
         });
 
-        await adapter.setObjectNotExistsAsync(`${basePath}.state`, {
+        await adapter.setObjectNotExistsAsync(stateId('state'), {
             type: 'state',
             common: {
                 name: `${config.name} - state`,
@@ -305,7 +366,7 @@ export class ShutterController {
             native: {},
         });
 
-        await adapter.setObjectNotExistsAsync(`${basePath}.orientation`, {
+        await adapter.setObjectNotExistsAsync(stateId('orientation'), {
             type: 'state',
             common: {
                 name: `${config.name} - configured orientation`,
@@ -320,12 +381,12 @@ export class ShutterController {
             native: {},
         });
 
-        for (const [name, value] of [
+        for (const [name] of [
             ['area', config.areaId ?? config.area ?? ''],
             ['driverType', config.driverType],
             ['coveringType', config.coveringType],
         ]) {
-            await adapter.setObjectNotExistsAsync(`${basePath}.${name}`, {
+            await adapter.setObjectNotExistsAsync(stateId(name), {
                 type: 'state',
                 common: {
                     name: `${config.name} - configured ${name}`,
@@ -336,10 +397,9 @@ export class ShutterController {
                 },
                 native: {},
             });
-            await adapter.setStateAsync(`${basePath}.${name}`, value, true);
         }
 
-        await adapter.setObjectNotExistsAsync(`${basePath}.statusText`, {
+        await adapter.setObjectNotExistsAsync(stateId('statusText'), {
             type: 'state',
             common: {
                 name: `${config.name} - status`,
@@ -351,7 +411,7 @@ export class ShutterController {
             native: {},
         });
 
-        await adapter.setObjectNotExistsAsync(`${basePath}.doorProtectionActive`, {
+        await adapter.setObjectNotExistsAsync(stateId('doorProtectionActive'), {
             type: 'state',
             common: {
                 name: `${config.name} - door protection active (plan section 7e)`,
@@ -371,7 +431,7 @@ export class ShutterController {
             'frostProtectionEnabled',
             'nightCoolingEnabled',
         ]) {
-            await adapter.setObjectNotExistsAsync(`${basePath}.${name}`, {
+            await adapter.setObjectNotExistsAsync(stateId(name), {
                 type: 'state',
                 common: {
                     name: `${config.name} - ${name}`,
@@ -390,7 +450,7 @@ export class ShutterController {
             'frostProtectionActive',
             'nightCoolingActive',
         ]) {
-            await adapter.setObjectNotExistsAsync(`${basePath}.${name}`, {
+            await adapter.setObjectNotExistsAsync(stateId(name), {
                 type: 'state',
                 common: {
                     name: `${config.name} - ${name}`,
@@ -404,7 +464,7 @@ export class ShutterController {
             });
         }
 
-        await adapter.setObjectNotExistsAsync(`${basePath}.activityLog`, {
+        await adapter.setObjectNotExistsAsync(stateId('activityLog'), {
             type: 'state',
             common: {
                 name: `${config.name} - recent automated actions (JSON, plan section 10a.8)`,
@@ -416,7 +476,7 @@ export class ShutterController {
             native: {},
         });
 
-        await adapter.setObjectNotExistsAsync(`${basePath}.watchdogLastIssue`, {
+        await adapter.setObjectNotExistsAsync(stateId('watchdogLastIssue'), {
             type: 'state',
             common: {
                 name: `${config.name} - last watchdog issue`,
@@ -429,7 +489,7 @@ export class ShutterController {
             native: {},
         });
 
-        await adapter.setObjectNotExistsAsync(`${basePath}.watchdogIssueCount`, {
+        await adapter.setObjectNotExistsAsync(stateId('watchdogIssueCount'), {
             type: 'state',
             common: {
                 name: `${config.name} - watchdog issue count`,
@@ -442,7 +502,7 @@ export class ShutterController {
             native: {},
         });
 
-        await adapter.setObjectNotExistsAsync(`${basePath}.sunProtectionOverrideUntil`, {
+        await adapter.setObjectNotExistsAsync(stateId('sunProtectionOverrideUntil'), {
             type: 'state',
             common: {
                 name: `${config.name} - sun protection suspended until (ms timestamp, 0 = not suspended)`,
@@ -455,7 +515,7 @@ export class ShutterController {
             native: {},
         });
 
-        await adapter.setObjectNotExistsAsync(`${basePath}.pendingMoveTargetPercent`, {
+        await adapter.setObjectNotExistsAsync(stateId('pendingMoveTargetPercent'), {
             type: 'state',
             common: {
                 name: `${config.name} - target position of the move currently in progress, if any (-1 = none, plan section 9a.2)`,
@@ -468,7 +528,7 @@ export class ShutterController {
             native: {},
         });
 
-        await adapter.setObjectNotExistsAsync(`${basePath}.pendingMoveIssuedAt`, {
+        await adapter.setObjectNotExistsAsync(stateId('pendingMoveIssuedAt'), {
             type: 'state',
             common: {
                 name: `${config.name} - ms timestamp the currently pending move was issued at (plan section 9a.2)`,
@@ -481,32 +541,85 @@ export class ShutterController {
             native: {},
         });
 
-        await adapter.setStateAsync(`${basePath}.automationEnabled`, config.automationEnabled, true);
-        await adapter.setStateAsync(`${basePath}.orientation`, config.orientation ?? 0, true);
+        await this.registerLegacyStates();
+        await this.migrateLegacyStates();
+        await this.initializeState('area', config.areaId ?? config.area ?? '');
+        await this.initializeState('driverType', config.driverType);
+        await this.initializeState('coveringType', config.coveringType);
+        await this.initializeState('automationEnabled', config.automationEnabled);
+        await this.initializeState('orientation', config.orientation ?? 0);
         await this.setProtectionConfigurationStates();
         await this.setProtectionActivityStates();
-        await adapter.setStateAsync(`${basePath}.state`, 1, true);
-        await adapter.setStateAsync(`${basePath}.statusText`, 'Idle', true);
+        await this.initializeState('state', 1);
+        await this.initializeState('statusText', 'Idle');
 
         await this.recoverPendingMove();
         await this.refreshPosition();
     }
 
+    private async registerLegacyStates(): Promise<void> {
+        for (const name of Object.keys(STATE_CHANNELS)) {
+            if (await this.adapter.getObjectAsync(this.legacyStateId(name))) {
+                this.legacyStateNames.add(name);
+            }
+        }
+    }
+
+    private async migrateLegacyStates(): Promise<void> {
+        for (const name of this.legacyStateNames) {
+            if (await this.adapter.getStateAsync(this.stateId(name))) {
+                continue;
+            }
+            const legacy = await this.adapter.getStateAsync(this.legacyStateId(name));
+            if (legacy) {
+                await this.adapter.setStateAsync(this.stateId(name), { val: legacy.val, ack: true });
+            }
+        }
+    }
+
+    private async initializeState(name: string, value: ioBroker.StateValue): Promise<void> {
+        if (!(await this.adapter.getStateAsync(this.stateId(name)))) {
+            await this.writeState(name, value, true);
+        }
+    }
+
+    private async writeState(name: string, value: ioBroker.StateValue, ack: boolean): Promise<void> {
+        await this.adapter.setStateAsync(this.stateId(name), { val: value, ack });
+        if (this.legacyStateNames.has(name)) {
+            await this.adapter.setStateAsync(this.legacyStateId(name), { val: value, ack: true });
+        }
+    }
+
     /** IDs of the own states this controller reacts to; use with `adapter.subscribeStates`. */
     public getOwnStateIds(): string[] {
         const ids = [
-            `${this.basePath}.position`,
-            `${this.basePath}.open`,
-            `${this.basePath}.close`,
-            `${this.basePath}.stop`,
-            `${this.basePath}.calibrate`,
-            `${this.basePath}.automationEnabled`,
+            this.stateId('position'),
+            this.stateId('open'),
+            this.stateId('close'),
+            this.stateId('stop'),
+            this.stateId('calibrate'),
+            this.stateId('automationEnabled'),
         ];
         if (this.config.states.tilt) {
-            ids.push(`${this.basePath}.tilt`);
+            ids.push(this.stateId('tilt'));
         }
         if (this.config.driverType === 'generic-relay') {
-            ids.push(`${this.basePath}.calibrationConfirm`, `${this.basePath}.calibrationAbort`);
+            ids.push(this.stateId('calibrationConfirm'), this.stateId('calibrationAbort'));
+        }
+        for (const name of [
+            'position',
+            'open',
+            'close',
+            'stop',
+            'calibrate',
+            'automationEnabled',
+            'tilt',
+            'calibrationConfirm',
+            'calibrationAbort',
+        ]) {
+            if (this.legacyStateNames.has(name)) {
+                ids.push(this.legacyStateId(name));
+            }
         }
         return ids;
     }
@@ -560,7 +673,7 @@ export class ShutterController {
      * @param active - Whether this covering's door contact is currently open.
      */
     public async setDoorProtectionActive(active: boolean): Promise<void> {
-        await this.adapter.setStateAsync(`${this.basePath}.doorProtectionActive`, { val: active, ack: true });
+        await this.writeState('doorProtectionActive', active, true);
     }
 
     /**
@@ -568,10 +681,7 @@ export class ShutterController {
      */
     public async setProtectionActivityStates(active: Partial<Record<IProtectionName, boolean>> = {}): Promise<void> {
         for (const name of PROTECTION_NAMES) {
-            await this.adapter.setStateAsync(`${this.basePath}.${name}Active`, {
-                val: active[name] ?? false,
-                ack: true,
-            });
+            await this.writeState(`${name}Active`, active[name] ?? false, true);
         }
     }
 
@@ -587,36 +697,39 @@ export class ShutterController {
             return false;
         }
 
-        switch (id) {
-            case `${this.basePath}.position`:
+        const legacyName = [...this.legacyStateNames].find(name => id === this.legacyStateId(name));
+        const canonicalId = legacyName ? this.stateId(legacyName) : id;
+
+        switch (canonicalId) {
+            case this.stateId('position'):
                 await this.commandPosition(Number(state.val));
                 return true;
-            case `${this.basePath}.open`:
+            case this.stateId('open'):
                 await this.commandOpen();
                 return true;
-            case `${this.basePath}.close`:
+            case this.stateId('close'):
                 await this.commandClose();
                 return true;
-            case `${this.basePath}.stop`:
+            case this.stateId('stop'):
                 await this.commandStop();
                 return true;
-            case `${this.basePath}.calibrate`:
+            case this.stateId('calibrate'):
                 await this.acknowledge('calibrate', false);
                 await this.startCalibration();
                 return true;
-            case `${this.basePath}.calibrationConfirm`:
+            case this.stateId('calibrationConfirm'):
                 await this.acknowledge('calibrationConfirm', false);
                 await this.confirmCalibration();
                 return true;
-            case `${this.basePath}.calibrationAbort`:
+            case this.stateId('calibrationAbort'):
                 await this.acknowledge('calibrationAbort', false);
                 await this.finishCalibration('Calibration aborted.');
                 return true;
-            case `${this.basePath}.automationEnabled`:
+            case this.stateId('automationEnabled'):
                 this.automationEnabled = Boolean(state.val);
                 await this.acknowledge('automationEnabled', this.automationEnabled);
                 return true;
-            case `${this.basePath}.tilt`:
+            case this.stateId('tilt'):
                 await this.commandTilt(Number(state.val));
                 return true;
             default:
@@ -669,14 +782,8 @@ export class ShutterController {
             this.adapter.clearTimeout(this.calibration.timer);
         }
         this.calibration = undefined;
-        await this.adapter.setStateAsync(`${this.basePath}.calibrationCloseRuntimeSecs`, {
-            val: closeRuntimeSecs,
-            ack: true,
-        });
-        await this.adapter.setStateAsync(`${this.basePath}.calibrationOpenRuntimeSecs`, {
-            val: durationSecs,
-            ack: true,
-        });
+        await this.writeState('calibrationCloseRuntimeSecs', closeRuntimeSecs ?? 0, true);
+        await this.writeState('calibrationOpenRuntimeSecs', durationSecs, true);
         await this.setCalibrationStatus(
             'Calibration completed. Copy the measured runtimes into the covering configuration.',
         );
@@ -696,7 +803,7 @@ export class ShutterController {
 
     private async setCalibrationStatus(status: string): Promise<void> {
         if (this.config.driverType === 'generic-relay') {
-            await this.adapter.setStateAsync(`${this.basePath}.calibrationStatus`, { val: status, ack: true });
+            await this.writeState('calibrationStatus', status, true);
         }
     }
 
@@ -796,8 +903,8 @@ export class ShutterController {
             coveringPercent,
             () => this.driver.setPosition(coveringToRuntime(coveringPercent, this.curve)),
             async () => {
-                await this.adapter.setStateAsync(`${this.basePath}.position`, { val: coveringPercent, ack: true });
-                await this.adapter.setStateAsync(`${this.basePath}.statusText`, { val: reason, ack: true });
+                await this.writeState('position', coveringPercent, true);
+                await this.writeState('statusText', reason, true);
                 await this.pushActivityLogEntry(reason, coveringPercent);
             },
             bypassMotorProtection,
@@ -816,10 +923,10 @@ export class ShutterController {
      * @param percent - Target covering position this action drove to.
      */
     private async pushActivityLogEntry(reason: string, percent: number): Promise<void> {
-        const state = await this.adapter.getStateAsync(`${this.basePath}.activityLog`);
+        const state = await this.adapter.getStateAsync(this.stateId('activityLog'));
         const existing = this.parseActivityLog(state?.val);
         const entries = [{ ts: Date.now(), reason, percent }, ...existing].slice(0, MAX_ACTIVITY_LOG_ENTRIES);
-        await this.adapter.setStateAsync(`${this.basePath}.activityLog`, { val: JSON.stringify(entries), ack: true });
+        await this.writeState('activityLog', JSON.stringify(entries), true);
     }
 
     /**
@@ -847,7 +954,7 @@ export class ShutterController {
      * @returns Local midnight (ms since epoch) until which sun protection is suspended, or 0 if not currently suspended/never set.
      */
     public async getPersistedSunProtectionOverrideUntil(): Promise<number> {
-        const state = await this.adapter.getStateAsync(`${this.basePath}.sunProtectionOverrideUntil`);
+        const state = await this.adapter.getStateAsync(this.stateId('sunProtectionOverrideUntil'));
         return typeof state?.val === 'number' ? state.val : 0;
     }
 
@@ -859,7 +966,7 @@ export class ShutterController {
      * @param untilMs - Local midnight (ms since epoch) until which sun protection is suspended, or 0 to clear.
      */
     public async setSunProtectionOverrideUntil(untilMs: number): Promise<void> {
-        await this.adapter.setStateAsync(`${this.basePath}.sunProtectionOverrideUntil`, { val: untilMs, ack: true });
+        await this.writeState('sunProtectionOverrideUntil', untilMs, true);
     }
 
     private async setProtectionConfigurationStates(): Promise<void> {
@@ -872,10 +979,7 @@ export class ShutterController {
             nightCooling: this.config.nightCoolingEnabled ?? false,
         };
         for (const name of PROTECTION_NAMES) {
-            await this.adapter.setStateAsync(`${this.basePath}.${name}Enabled`, {
-                val: enabled[name],
-                ack: true,
-            });
+            await this.writeState(`${name}Enabled`, enabled[name], true);
         }
     }
 
@@ -886,7 +990,7 @@ export class ShutterController {
             : currentPercent !== undefined && currentPercent <= WATCHDOG_TOLERANCE_PERCENT
               ? 0
               : 1;
-        await this.adapter.setStateAsync(`${this.basePath}.state`, { val: state, ack: true });
+        await this.writeState('state', state, true);
     }
 
     /**
@@ -956,11 +1060,8 @@ export class ShutterController {
         this.watchdogReported = false;
         // Persisted so a restart mid-move can still detect a genuinely stuck covering afterwards
         // (plan section 9a.2) - see `recoverPendingMove()`.
-        await this.adapter.setStateAsync(`${this.basePath}.pendingMoveTargetPercent`, {
-            val: targetPercent,
-            ack: true,
-        });
-        await this.adapter.setStateAsync(`${this.basePath}.pendingMoveIssuedAt`, { val: issuedAt, ack: true });
+        await this.writeState('pendingMoveTargetPercent', targetPercent, true);
+        await this.writeState('pendingMoveIssuedAt', issuedAt, true);
         await this.updateState();
         await invokeDriver();
         await afterDrive();
@@ -978,13 +1079,13 @@ export class ShutterController {
      * right away instead of only appearing to be idle at whatever position it happens to be in.
      */
     private async recoverPendingMove(): Promise<void> {
-        const targetState = await this.adapter.getStateAsync(`${this.basePath}.pendingMoveTargetPercent`);
+        const targetState = await this.adapter.getStateAsync(this.stateId('pendingMoveTargetPercent'));
         const targetPercent = typeof targetState?.val === 'number' ? targetState.val : NO_PENDING_MOVE;
         if (targetPercent === NO_PENDING_MOVE) {
             return;
         }
 
-        const issuedAtState = await this.adapter.getStateAsync(`${this.basePath}.pendingMoveIssuedAt`);
+        const issuedAtState = await this.adapter.getStateAsync(this.stateId('pendingMoveIssuedAt'));
         const issuedAt = typeof issuedAtState?.val === 'number' ? issuedAtState.val : Date.now();
         this.pendingMove = { targetPercent, issuedAt };
     }
@@ -1011,7 +1112,7 @@ export class ShutterController {
         if (this.config.states.tilt) {
             const tiltPercent = this.driver.getCurrentTilt?.();
             if (tiltPercent !== undefined) {
-                await this.adapter.setStateChangedAsync(`${this.basePath}.tiltActual`, tiltPercent, true);
+                await this.writeState('tiltActual', tiltPercent, true);
             }
         }
 
@@ -1019,12 +1120,8 @@ export class ShutterController {
         if (runtimePercent === undefined) {
             return;
         }
-        await this.adapter.setStateChangedAsync(`${this.basePath}.positionRaw`, runtimePercent, true);
-        await this.adapter.setStateChangedAsync(
-            `${this.basePath}.positionActual`,
-            runtimeToCovering(runtimePercent, this.curve),
-            true,
-        );
+        await this.writeState('positionRaw', runtimePercent, true);
+        await this.writeState('positionActual', runtimeToCovering(runtimePercent, this.curve), true);
         await this.checkWatchdog(runtimePercent);
         await this.updateState();
     }
@@ -1048,7 +1145,7 @@ export class ShutterController {
      * @param value - Value to acknowledge.
      */
     private async acknowledge(stateName: string, value: ioBroker.StateValue): Promise<void> {
-        await this.adapter.setStateAsync(`${this.basePath}.${stateName}`, { val: value, ack: true });
+        await this.writeState(stateName, value, true);
     }
 
     /**
@@ -1075,19 +1172,16 @@ export class ShutterController {
         this.watchdogReported = true;
         const message = `Covering "${this.config.id}" did not reach target position ${this.pendingMove.targetPercent}% within the expected time.`;
         this.adapter.log.warn(message);
-        await this.adapter.setStateAsync(`${this.basePath}.watchdogLastIssue`, { val: message, ack: true });
+        await this.writeState('watchdogLastIssue', message, true);
 
-        const countState = await this.adapter.getStateAsync(`${this.basePath}.watchdogIssueCount`);
+        const countState = await this.adapter.getStateAsync(this.stateId('watchdogIssueCount'));
         const nextCount = (typeof countState?.val === 'number' ? countState.val : 0) + 1;
-        await this.adapter.setStateAsync(`${this.basePath}.watchdogIssueCount`, { val: nextCount, ack: true });
+        await this.writeState('watchdogIssueCount', nextCount, true);
         this.onWatchdogIssue?.(message);
     }
 
     /** Clears the persisted pending-move tracking (plan section 9a.2), once a move has resolved (reached its target, or been superseded/stopped). */
     private async clearPersistedPendingMove(): Promise<void> {
-        await this.adapter.setStateAsync(`${this.basePath}.pendingMoveTargetPercent`, {
-            val: NO_PENDING_MOVE,
-            ack: true,
-        });
+        await this.writeState('pendingMoveTargetPercent', NO_PENDING_MOVE, true);
     }
 }

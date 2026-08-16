@@ -332,6 +332,10 @@ export interface IShuttersNativeConfig {
     sunOpenThreshold?: number;
     /** How long solar radiation must stay below `sunOpenThreshold` before opening again (hysteresis, plan section 6.1). Default: 600000 (10 min). */
     sunOpenMinDurationMs?: number;
+    /** Whether clear/mostly-clear cloud cover can independently activate sun protection. Default: false. */
+    sunProtectionCloudCoverTriggerEnabled?: boolean;
+    /** Maximum cloud cover (%) considered clear/mostly clear by the optional cloud-cover trigger. Default: 40. */
+    sunProtectionClearSkyCloudCoverMaxPercent?: number;
 
     /** Wind speed (km/h) at/above which wind protection activates. Default: 40. */
     windOpenThreshold?: number;

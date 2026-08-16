@@ -1,4 +1,11 @@
 # Changelog
+## 0.0.50 (2026-08-16)
+
+* (steinwedel) **ENHANCED**: Migrate covering objects to device → channel → state hierarchy with legacy state compatibility
+* (steinwedel) **FIXED**: Reset the adapter connection state during unload and refresh calibration documentation
+* (steinwedel) **ENHANCED**: Remove the unused vulnerable development server dependency
+* (steinwedel) **ENHANCED**: Replace the legacy Admin UI with JSONConfig and support the current holiday state model
+
 ## 0.0.49 (2026-08-16)
 
 * (steinwedel) **ENHANCED**: Synchronize all Admin UI translations from the authoritative German dictionary

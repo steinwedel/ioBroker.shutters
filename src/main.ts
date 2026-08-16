@@ -30,7 +30,7 @@ class Shutters extends utils.Adapter {
     private readonly controllers = new Map<string, ShutterController>();
     private readonly groupControllers: GroupController[] = [];
     private readonly sceneControllers: SceneController[] = [];
-    /** Maps a full state ID (e.g. "shutters.0.shutters.wz.position") to the handler that owns it (covering/group/scene). */
+    /** Maps a full state ID (e.g. "shutters.0.shutters.wz.control.position") to the handler that owns it (covering/group/scene). */
     private readonly stateIdToHandler = new Map<string, IStateChangeHandler>();
     /** Periodic driver -> positionActual/positionRaw sync, see `dataSource: poll` in io-package.json. */
     private positionRefreshTimer: ioBroker.Interval | undefined;
@@ -141,8 +141,6 @@ class Shutters extends utils.Adapter {
             this.subscribeStates(stateId.slice(this.namespace.length + 1));
         }
 
-        await this.setStateAsync('info.connection', this.controllers.size > 0, true);
-
         this.positionRefreshTimer = this.setInterval(() => {
             for (const controller of this.controllers.values()) {
                 controller.refreshPosition().catch(err => {
@@ -233,6 +231,7 @@ class Shutters extends utils.Adapter {
 
         await this.automationEngine.start();
         this.scheduler.start();
+        await this.setStateAsync('info.connection', this.controllers.size > 0, true);
     }
 
     /**
@@ -812,6 +811,10 @@ class Shutters extends utils.Adapter {
 
         if (id === this.config.holidayStateId) {
             this.isPublicHoliday = !!state.val;
+            this.scheduler?.stop();
+            this.reconcileScheduleTargetsOnStartup();
+            this.scheduler?.start();
+            this.automationEngine?.evaluateNow();
             return;
         }
 
@@ -844,6 +847,7 @@ class Shutters extends utils.Adapter {
      */
     private onUnload(callback: () => void): void {
         try {
+            void this.setState('info.connection', false, true);
             this.scheduler?.stop();
             this.automationEngine?.stop();
             this.weatherSource?.stop();
@@ -856,11 +860,10 @@ class Shutters extends utils.Adapter {
             for (const controller of this.controllers.values()) {
                 controller.destroy();
             }
-            callback();
         } catch (error) {
             this.log.error(`Error during unloading: ${(error as Error).message}`);
-            callback();
         }
+        callback();
     }
 }
 

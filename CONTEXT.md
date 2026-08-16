@@ -1,12 +1,12 @@
 # Context
 
 ## Current Task
-- Synchronized all Admin i18n files from the authoritative German dictionary.
+- Migrated Admin configuration to JSONConfig and the current holiday-state model.
 
 ## Key Decisions
-- All 11 locale files contain the same 150 translation keys.
-- Missing non-German translations use generated localized text or English fallback.
-- Deployment uses the central `../scripts/deploy.sh` process.
+- JSONConfig uses a boolean external `holidayStateId` and updates schedules on holiday-state changes.
+- All JSONConfig labels are present in every generated i18n file.
+- Covering state hierarchy preserves legacy direct-state compatibility.
 
 ## Next Steps
-- Run the public Adapter Checker before releasing to stable.
+- Run a real Compact Mode restart and legacy-object migration test before stable release.

@@ -245,7 +245,7 @@ describe('shutter-scanner', () => {
         const adapter = createFakeAdapter([
             { id: 'javascript.0.somestate', value: { type: 'state', common: { role: 'level.blind', write: true } } },
             {
-                id: 'shutters.0.shutters.other.position',
+                id: 'shutters.0.shutters.other.control.position',
                 value: { type: 'state', common: { role: 'level.blind', write: true } },
             },
         ]);

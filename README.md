@@ -68,7 +68,8 @@ Each covering is automatically assigned a stable, sequential ID (e.g. `shutter1`
 - A covering type (roller shutter, external venetian blind, awning, vertical lamella blind).
 - The connected system (driver) and the relevant state IDs — filled in automatically by the scan, or entered manually.
 - Optional window orientation, used by sun protection.
-- Optional calibration curve, if covering height is not proportional to motor runtime.
+- Optional calibration curve mapping the requested covering height to the required motor-runtime percentage when height is not proportional to runtime.
+- Generic-relay coverings support a guided calibration run: close/open the covering, confirm each end stop, then copy the measured `calibrationOpenRuntimeSecs` and `calibrationCloseRuntimeSecs` values into the relay runtime configuration.
 - Optional protection toggles (wind, frost), each enabled/disabled per covering with sensible defaults based on the covering type.
 - Optional minimum pause between movement commands (motor protection), with a sensible default.
 
@@ -108,9 +109,9 @@ Optionally configure an existing `pushover`/`telegram` adapter instance (e.g. "p
 
 For a vis/vis-2 dashboard, these states are the most useful to show:
 
-- `shutters.<id>.positionActual` — current covering position (0-100), e.g. as a slider widget.
-- `shutters.<id>.statusText` — human-readable reason for the covering's current behavior.
-- `shutters.<id>.watchdogLastIssue` — last "not responding" message, useful for a fault-overview widget across all coverings.
+- `shutters.<id>.status.positionActual` — current covering position (0-100), e.g. as a slider widget.
+- `shutters.<id>.status.statusText` — human-readable reason for the covering's current behavior.
+- `shutters.<id>.diagnostics.watchdogLastIssue` — last "not responding" message, useful for a fault-overview widget across all coverings.
 - `groups.<id>.openAll` / `groups.<id>.closeAll` and `quickActions.allOpen` / `quickActions.allClose` — one-tap buttons for whole rooms or the entire home.
 
 `sunProtectionActive`/`windProtectionActive`/`rainProtectionActive`/`frostProtectionActive` are internal automation state, not separate ioBroker states - `statusText` already reflects whichever of them is currently in effect.
@@ -125,7 +126,6 @@ For a vis/vis-2 dashboard, these states are the most useful to show:
 ## Planned, not yet implemented
 
 - Auto-discovery for generic MQTT covers - not applicable by design, since their command/status topics have no fixed naming convention to detect; these always need to be added manually with the matching state IDs.
-- Guided calibration run (the `calibrate` button currently only logs a reminder to configure the calibration curve manually).
 
 ## Changelog
 See [CHANGELOG.md](CHANGELOG.md)

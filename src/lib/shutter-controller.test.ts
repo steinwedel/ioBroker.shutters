@@ -33,8 +33,12 @@ interface IFakeAdapterHandle {
  * Minimal fake adapter exposing only what `ShutterController` and its `PositionStopDriverBase`-derived driver need.
  *
  * @param states - Existing state store to reuse (see `IFakeAdapterHandle.states`); defaults to a fresh, empty one.
+ * @param legacyObjects - Legacy direct state IDs that should appear as existing objects.
  */
-function createFakeAdapter(states: Map<string, IFakeState> = new Map()): IFakeAdapterHandle {
+function createFakeAdapter(
+    states: Map<string, IFakeState> = new Map(),
+    legacyObjects: Set<string> = new Set(),
+): IFakeAdapterHandle {
     const setForeignStateCalls: { id: string; val: ioBroker.StateValue }[] = [];
     const listeners: ((id: string, state: ioBroker.State | null | undefined) => void)[] = [];
     const timers: IFakeTimer[] = [];
@@ -55,6 +59,8 @@ function createFakeAdapter(states: Map<string, IFakeState> = new Map()): IFakeAd
         log: { warn: () => {}, error: () => {}, info: () => {} },
 
         setObjectNotExistsAsync: async () => {},
+        getObjectAsync: (id: string) =>
+            Promise.resolve(legacyObjects.has(id) ? ({ type: 'state' } as ioBroker.Object) : undefined),
         // eslint-disable-next-line @typescript-eslint/require-await -- intentionally synchronous test double for an async adapter method
         setStateAsync: async (
             id: string,
@@ -150,7 +156,7 @@ describe('ShutterController', () => {
 
             await controller.createObjects();
 
-            expect(getOwnState('shutters.shutter1.sunProtectionOverrideUntil')).to.be.undefined;
+            expect(getOwnState('shutters.shutter1.protection.sunProtectionOverrideUntil')).to.be.undefined;
         });
 
         it('initializes observability and configuration mirror states', async () => {
@@ -162,16 +168,54 @@ describe('ShutterController', () => {
 
             await controller.createObjects();
 
-            expect(getOwnState('shutters.shutter1.automationEnabled')).to.deep.equal({ val: true, ack: true });
-            expect(getOwnState('shutters.shutter1.statusText')?.val).to.equal('Idle');
-            expect(getOwnState('shutters.shutter1.state')).to.deep.equal({ val: 1, ack: true });
-            expect(getOwnState('shutters.shutter1.orientation')).to.deep.equal({ val: 180, ack: true });
-            expect(getOwnState('shutters.shutter1.area')).to.deep.equal({ val: 'living-room', ack: true });
-            expect(getOwnState('shutters.shutter1.driverType')).to.deep.equal({ val: 'shelly', ack: true });
-            expect(getOwnState('shutters.shutter1.coveringType')).to.deep.equal({ val: 'rolladen', ack: true });
-            expect(getOwnState('shutters.shutter1.sunProtectionEnabled')).to.deep.equal({ val: true, ack: true });
-            expect(getOwnState('shutters.shutter1.rainProtectionEnabled')).to.deep.equal({ val: true, ack: true });
-            expect(getOwnState('shutters.shutter1.nightCoolingEnabled')).to.deep.equal({ val: false, ack: true });
+            expect(getOwnState('shutters.shutter1.configuration.automationEnabled')).to.deep.equal({
+                val: true,
+                ack: true,
+            });
+            expect(getOwnState('shutters.shutter1.status.statusText')?.val).to.equal('Idle');
+            expect(getOwnState('shutters.shutter1.status.state')).to.deep.equal({ val: 1, ack: true });
+            expect(getOwnState('shutters.shutter1.configuration.orientation')).to.deep.equal({ val: 180, ack: true });
+            expect(getOwnState('shutters.shutter1.configuration.area')).to.deep.equal({
+                val: 'living-room',
+                ack: true,
+            });
+            expect(getOwnState('shutters.shutter1.configuration.driverType')).to.deep.equal({
+                val: 'shelly',
+                ack: true,
+            });
+            expect(getOwnState('shutters.shutter1.configuration.coveringType')).to.deep.equal({
+                val: 'rolladen',
+                ack: true,
+            });
+            expect(getOwnState('shutters.shutter1.protection.sunProtectionEnabled')).to.deep.equal({
+                val: true,
+                ack: true,
+            });
+            expect(getOwnState('shutters.shutter1.protection.rainProtectionEnabled')).to.deep.equal({
+                val: true,
+                ack: true,
+            });
+            expect(getOwnState('shutters.shutter1.protection.nightCoolingEnabled')).to.deep.equal({
+                val: false,
+                ack: true,
+            });
+        });
+
+        it('migrates and accepts an existing legacy command state without creating one for fresh installations', async () => {
+            const states = new Map<string, IFakeState>([['shutters.shutter1.position', { val: 25, ack: true }]]);
+            const { adapter, getOwnState, setForeignStateCalls } = createFakeAdapter(
+                states,
+                new Set(['shutters.shutter1.position']),
+            );
+            const controller = new ShutterController(adapter, makeConfig());
+
+            await controller.createObjects();
+            expect(getOwnState('shutters.shutter1.control.position')).to.deep.equal({ val: 25, ack: true });
+            expect(controller.getOwnStateIds()).to.include('shutters.shutter1.position');
+
+            await controller.handleStateChange('shutters.shutter1.position', { val: 40, ack: false } as ioBroker.State);
+            expect(setForeignStateCalls).to.deep.include({ id: 'foreign.position', val: 40 });
+            expect(getOwnState('shutters.shutter1.position')).to.deep.equal({ val: 40, ack: true });
         });
 
         it('sets state to moving while a command is pending', async () => {
@@ -180,7 +224,7 @@ describe('ShutterController', () => {
 
             await controller.commandPosition(50);
 
-            expect(getOwnState('shutters.shutter1.state')).to.deep.equal({ val: 2, ack: true });
+            expect(getOwnState('shutters.shutter1.status.state')).to.deep.equal({ val: 2, ack: true });
         });
     });
 
@@ -190,10 +234,16 @@ describe('ShutterController', () => {
             const controller = new ShutterController(adapter, makeConfig());
 
             await controller.setDoorProtectionActive(true);
-            expect(getOwnState('shutters.shutter1.doorProtectionActive')).to.deep.equal({ val: true, ack: true });
+            expect(getOwnState('shutters.shutter1.protection.doorProtectionActive')).to.deep.equal({
+                val: true,
+                ack: true,
+            });
 
             await controller.setDoorProtectionActive(false);
-            expect(getOwnState('shutters.shutter1.doorProtectionActive')).to.deep.equal({ val: false, ack: true });
+            expect(getOwnState('shutters.shutter1.protection.doorProtectionActive')).to.deep.equal({
+                val: false,
+                ack: true,
+            });
         });
     });
 
@@ -204,9 +254,18 @@ describe('ShutterController', () => {
 
             await controller.setProtectionActivityStates({ rainProtection: true, nightCooling: true });
 
-            expect(getOwnState('shutters.shutter1.sunProtectionActive')).to.deep.equal({ val: false, ack: true });
-            expect(getOwnState('shutters.shutter1.rainProtectionActive')).to.deep.equal({ val: true, ack: true });
-            expect(getOwnState('shutters.shutter1.nightCoolingActive')).to.deep.equal({ val: true, ack: true });
+            expect(getOwnState('shutters.shutter1.protection.sunProtectionActive')).to.deep.equal({
+                val: false,
+                ack: true,
+            });
+            expect(getOwnState('shutters.shutter1.protection.rainProtectionActive')).to.deep.equal({
+                val: true,
+                ack: true,
+            });
+            expect(getOwnState('shutters.shutter1.protection.nightCoolingActive')).to.deep.equal({
+                val: true,
+                ack: true,
+            });
         });
     });
 
@@ -225,7 +284,7 @@ describe('ShutterController', () => {
             await controller.setSunProtectionOverrideUntil(123_456);
 
             expect(await controller.getPersistedSunProtectionOverrideUntil()).to.equal(123_456);
-            expect(getOwnState('shutters.shutter1.sunProtectionOverrideUntil')).to.deep.equal({
+            expect(getOwnState('shutters.shutter1.protection.sunProtectionOverrideUntil')).to.deep.equal({
                 val: 123_456,
                 ack: true,
             });
@@ -373,8 +432,8 @@ describe('ShutterController', () => {
             clock.tick(10_000 + 30_000 + 1);
             await controller.refreshPosition();
 
-            expect(getOwnState('shutters.shutter1.watchdogLastIssue')?.val).to.be.a('string');
-            expect(getOwnState('shutters.shutter1.watchdogIssueCount')?.val).to.equal(1);
+            expect(getOwnState('shutters.shutter1.diagnostics.watchdogLastIssue')?.val).to.be.a('string');
+            expect(getOwnState('shutters.shutter1.diagnostics.watchdogIssueCount')?.val).to.equal(1);
         });
 
         it('does not report an issue once the target has actually been reached', async () => {
@@ -387,7 +446,7 @@ describe('ShutterController', () => {
             clock.tick(10_000 + 30_000 + 1);
             await controller.refreshPosition();
 
-            expect(getOwnState('shutters.shutter1.watchdogLastIssue')).to.be.undefined;
+            expect(getOwnState('shutters.shutter1.diagnostics.watchdogLastIssue')).to.be.undefined;
         });
 
         it('does not report before max runtime + grace period has elapsed', async () => {
@@ -400,7 +459,7 @@ describe('ShutterController', () => {
             clock.tick(10_000 + 30_000 - 1);
             await controller.refreshPosition();
 
-            expect(getOwnState('shutters.shutter1.watchdogLastIssue')).to.be.undefined;
+            expect(getOwnState('shutters.shutter1.diagnostics.watchdogLastIssue')).to.be.undefined;
         });
 
         it('only reports once for the same stuck move (dedupe)', async () => {
@@ -414,7 +473,7 @@ describe('ShutterController', () => {
             await controller.refreshPosition();
             await controller.refreshPosition();
 
-            expect(getOwnState('shutters.shutter1.watchdogIssueCount')?.val).to.equal(1);
+            expect(getOwnState('shutters.shutter1.diagnostics.watchdogIssueCount')?.val).to.equal(1);
         });
 
         it('invokes onWatchdogIssue with the same message written to watchdogLastIssue', async () => {
@@ -430,7 +489,7 @@ describe('ShutterController', () => {
             await controller.refreshPosition();
 
             expect(issues).to.have.length(1);
-            expect(issues[0]).to.equal(getOwnState('shutters.shutter1.watchdogLastIssue')?.val);
+            expect(issues[0]).to.equal(getOwnState('shutters.shutter1.diagnostics.watchdogLastIssue')?.val);
         });
 
         it('does not invoke onWatchdogIssue when no issue occurs', async () => {
@@ -516,13 +575,13 @@ describe('ShutterController', () => {
             await controllerB.refreshPosition();
 
             expect(issuesB).to.deep.equal([]);
-            expect(getOwnStateB('shutters.shutter1.pendingMoveTargetPercent')?.val).to.equal(-1);
+            expect(getOwnStateB('shutters.shutter1.diagnostics.pendingMoveTargetPercent')?.val).to.equal(-1);
         });
     });
 
     describe('activityLog (plan section 10a.8)', () => {
         function readActivityLog(getOwnState: (id: string) => IFakeState | undefined): unknown[] {
-            const raw = getOwnState('shutters.shutter1.activityLog')?.val;
+            const raw = getOwnState('shutters.shutter1.status.activityLog')?.val;
             return typeof raw === 'string' ? JSON.parse(raw) : [];
         }
 
@@ -567,7 +626,7 @@ describe('ShutterController', () => {
         it('recovers from a corrupted activityLog value instead of throwing', async () => {
             const { adapter, getOwnState } = createFakeAdapter();
             const controller = new ShutterController(adapter, makeConfig());
-            await adapter.setStateAsync('shutters.shutter1.activityLog', { val: 'not json', ack: true });
+            await adapter.setStateAsync('shutters.shutter1.status.activityLog', { val: 'not json', ack: true });
 
             await controller.applyAutomatedPosition(50, 'Schedule');
 
@@ -584,7 +643,7 @@ describe('ShutterController', () => {
 
             await controller.createObjects();
 
-            expect(controller.getOwnStateIds()).to.not.include('shutters.shutter1.tilt');
+            expect(controller.getOwnStateIds()).to.not.include('shutters.shutter1.control.tilt');
         });
 
         it('creates tilt/tiltActual objects and includes tilt in getOwnStateIds when configured', async () => {
@@ -605,7 +664,7 @@ describe('ShutterController', () => {
 
             await controller.createObjects();
 
-            expect(controller.getOwnStateIds()).to.include('shutters.shutter1.tilt');
+            expect(controller.getOwnStateIds()).to.include('shutters.shutter1.control.tilt');
         });
 
         it('commandTilt() forwards to the driver and acknowledges the tilt state', async () => {
@@ -626,7 +685,7 @@ describe('ShutterController', () => {
             await controller.commandTilt(40);
 
             expect(setForeignStateCalls).to.deep.equal([{ id: 'foreign.tilt', val: 40 }]);
-            expect(getOwnState('shutters.shutter1.tilt')).to.deep.include({ val: 40, ack: true });
+            expect(getOwnState('shutters.shutter1.control.tilt')).to.deep.include({ val: 40, ack: true });
         });
 
         it('commandTilt() notifies onManualCommand, same as other manual commands', async () => {
@@ -668,7 +727,7 @@ describe('ShutterController', () => {
             emitPositionActual('foreign.tiltActual', 65);
             await controller.refreshPosition();
 
-            expect(getOwnState('shutters.shutter1.tiltActual')?.val).to.equal(65);
+            expect(getOwnState('shutters.shutter1.status.tiltActual')?.val).to.equal(65);
         });
 
         it('does nothing when handleStateChange receives a tilt state change but no tilt is configured', async () => {
@@ -677,7 +736,7 @@ describe('ShutterController', () => {
 
             // Not configured, so getOwnStateIds() would never dispatch this in real use, but the
             // driver-level no-op (PositionStopDriverBase.setTilt()) must still not throw/write anything.
-            const handled = await controller.handleStateChange('shutters.shutter1.tilt', {
+            const handled = await controller.handleStateChange('shutters.shutter1.control.tilt', {
                 val: 30,
                 ack: false,
             } as ioBroker.State);

@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.49",
+    "version": "0.0.50",
     "news": {
+      "0.0.50": {
+        "en": "**ENHANCED**: Migrate covering objects to device → channel → state hierarchy with legacy state compatibility\n**FIXED**: Reset the adapter connection state during unload and refresh calibration documentation\n**ENHANCED**: Remove the unused vulnerable development server dependency\n**ENHANCED**: Replace the legacy Admin UI with JSONConfig and support the current holiday state model",
+        "de": "**VERBESSERT**: Migration von Covering-Objekten zur Geräte-→-Kanal-→-Zustands-Hierarchie mit Legacy-Zustandskompatibilität\n**BEHOBEN**: Zurücksetzen des Adapterverbindungsstatus beim Entladen und Aktualisieren der Kalibrierungsdokumentation\n**VERBESSERT**: Entfernt die ungenutzte, anfällige Abhängigkeit vom Entwicklungsserver.\n**VERBESSERT**: Die veraltete Admin-Benutzeroberfläche wird durch JSONConfig ersetzt und das aktuelle Feiertagsstatusmodell wird unterstützt.",
+        "ru": "**УЛУЧШЕНО**: Перенос объектов покрытия в иерархию устройство → канал → состояние с сохранением совместимости с устаревшими состояниями.\n**ИСПРАВЛЕНО**: Сброс состояния подключения адаптера во время выгрузки и обновление документации по калибровке.\n**УЛУЧШЕНО**: Удалена неиспользуемая уязвимая зависимость от сервера разработки.\n**УЛУЧШЕНО**: Заменен устаревший административный интерфейс на JSONConfig и добавлена поддержка текущей модели состояний праздников.",
+        "pt": "**APRIMORADO**: Migração de objetos de cobertura para a hierarquia dispositivo → canal → estado, com compatibilidade com estados legados.\n**CORRIGIDO**: Redefinir o estado de conexão do adaptador durante o descarregamento e atualizar a documentação de calibração.\n**APRIMORADO**: Remove a dependência vulnerável e não utilizada do servidor de desenvolvimento.\n**APRIMORADO**: Substituição da interface administrativa legada por JSONConfig e suporte ao modelo de estado de feriado atual.",
+        "nl": "**VERBETERD**: Migreer objecten met dekking naar de apparaat → kanaal → status-hiërarchie met behoud van compatibiliteit met de oude statusstructuur.\n**OPGELOST**: De verbindingsstatus van de adapter wordt gereset tijdens het ontladen en de kalibratiedocumentatie wordt vernieuwd.\n**VERBETERD**: Verwijder de ongebruikte, kwetsbare afhankelijkheid van de ontwikkelingsserver.\n**VERBETERD**: Vervang de oude beheerdersinterface door JSONConfig en ondersteun het huidige vakantiestatusmodel.",
+        "fr": "**AMÉLIORÉ** : Migration des objets de couverture vers la hiérarchie périphérique → canal → état avec compatibilité avec l’état existant\n**CORRIGÉ** : Réinitialisation de l’état de connexion de l’adaptateur pendant le déchargement et actualisation de la documentation d’étalonnage\n**AMÉLIORÉ** : Suppression de la dépendance inutilisée au serveur de développement vulnérable\n**AMÉLIORÉ** : Remplacement de l’interface d’administration existante par JSONConfig et prise en charge du modèle d’état des jours fériés actuel",
+        "it": "**MIGLIORATO**: Migra gli oggetti di copertura alla gerarchia dispositivo → canale → stato con compatibilità con lo stato legacy\n**RISOLTO**: Ripristina lo stato di connessione dell'adattatore durante lo scaricamento e aggiorna la documentazione di calibrazione\n**MIGLIORATO**: Rimossa la dipendenza vulnerabile e inutilizzata dal server di sviluppo\n**MIGLIORATO**: Sostituisci l'interfaccia utente di amministrazione legacy con JSONConfig e supporta l'attuale modello di stato delle festività.",
+        "es": "**MEJORADO**: Migración de objetos de cobertura a la jerarquía dispositivo → canal → estado con compatibilidad de estado heredada\n**CORREGIDO**: Restablecer el estado de conexión del adaptador durante la descarga y actualizar la documentación de calibración.\n**MEJORADO**: Eliminar la dependencia del servidor de desarrollo vulnerable que no se utiliza.\n**MEJORADO**: Reemplaza la interfaz de usuario de administración anterior con JSONConfig y admite el modelo de estado de vacaciones actual.",
+        "pl": "**ULEPSZONE**: Migracja obiektów obejmujących hierarchię urządzenie → kanał → stan ze zgodnością ze starszymi stanami\n**NAPRAWIONO**: Zresetuj stan połączenia adaptera podczas rozładowywania i odświeżania dokumentacji kalibracji\n**ULEPSZONE**: Usuń nieużywaną podatną na ataki zależność serwera programistycznego\n**ULEPSZONE**: Zastąp starszy interfejs użytkownika administratora JSONConfig i obsługuj obecny model stanu świątecznego",
+        "uk": "**ПОКРАЩЕНО**: Перенесення об'єктів покриття до ієрархії пристрою → каналу → стану з сумісністю зі старими станами\n**ВИПРАВЛЕНО**: Скидання стану підключення адаптера під час вивантаження та оновлення документації калібрування\n**ПОКРАЩЕНО**: Видалено невикористану вразливу залежність сервера розробки\n**ПОКРАЩЕНО**: Замінено застарілий інтерфейс адміністратора на JSONConfig та підтримка поточної моделі святкових станів",
+        "zh-cn": "**增强功能**：将覆盖对象迁移到设备→通道→状态层次结构，并保持与旧状态的兼容性\n**已修复**：卸载期间重置适配器连接状态并刷新校准文档\n**增强功能**：移除未使用的易受攻击的开发服务器依赖项\n**增强功能**：将旧版管理界面替换为 JSONConfig，并支持当前的节假日状态模型"
+      },
       "0.0.49": {
         "en": "**ENHANCED**: Synchronize all Admin UI translations from the authoritative German dictionary",
         "de": "**VERBESSERT**: Synchronisiert nun alle Übersetzungen der Admin-Benutzeroberfläche aus dem maßgeblichen deutschen Wörterbuch.",
@@ -80,19 +93,6 @@
         "pl": "**ULEPSZONE**: Udoskonalono etykiety pól ochrony przeciwsłonecznej Coverings, wyrównanie i układ rzędów",
         "uk": "**ПОКРАЩЕНО**: Удосконалено підписи полів сонцезахисних покриттів, вирівнювання та розташування рядків",
         "zh-cn": "**增强功能**：优化遮阳篷田间标签、对齐方式和行布局"
-      },
-      "0.0.43": {
-        "en": "**ENHANCED**: Start remaining sun-protection settings on a new line after the target position",
-        "de": "**VERBESSERT**: Die restlichen Sonnenschutzeinstellungen werden nach der Zielposition in einer neuen Zeile neu eingestellt.",
-        "ru": "**УЛУЧШЕНО**: Начинайте настройку оставшегося уровня защиты от солнца с новой строки после целевой позиции.",
-        "pt": "**APRIMORADO**: Inicie as configurações restantes de proteção solar em uma nova linha após a posição desejada.",
-        "nl": "**VERBETERD**: Start de resterende zonbeschermingsinstellingen op een nieuwe regel na de gewenste positie.",
-        "fr": "**AMÉLIORÉ** : Les autres réglages de protection solaire commencent sur une nouvelle ligne après la position cible.",
-        "it": "**MIGLIORATO**: Inizia le impostazioni rimanenti di protezione solare su una nuova riga dopo la posizione target",
-        "es": "**MEJORADO**: Comience a configurar los ajustes restantes de protección solar en una nueva línea después de la posición objetivo.",
-        "pl": "**ULEPSZONE**: Rozpocznij pozostałe ustawienia ochrony przeciwsłonecznej w nowym wierszu po pozycji docelowej",
-        "uk": "**ПОКРАЩЕНО**: Почніть налаштування решти сонцезахисних елементів на новому рядку після цільового положення",
-        "zh-cn": "**增强功能**：在目标位置之后，另起一行开始显示剩余的防晒设置"
       }
     },
     "titleLang": {
@@ -155,7 +155,7 @@
       "custom": true
     },
     "adminUI": {
-      "config": "materialize"
+      "config": "json"
     },
     "dependencies": [
       {
