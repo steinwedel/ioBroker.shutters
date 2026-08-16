@@ -1193,37 +1193,30 @@ function renderCoveringCard(covering, index) {
     });
     idField.querySelector('input').disabled = true;
     row1.appendChild(idField);
-    row1.appendChild(
+    card.appendChild(row1);
+
+    var row2 = document.createElement('div');
+    row2.className = 'shutters-row row';
+    row2.appendChild(
         makeText('cov-' + index + '-name', 'coveringName', covering.name, 3, function (v) {
             covering.name = v;
             title.innerText = v || covering.id;
             onChangeFired();
         }),
     );
-    row1.appendChild(
+    row2.appendChild(
         makeSelect('cov-' + index + '-coveringType', 'coveringType', covering.coveringType, COVERING_TYPES, function (v) {
             covering.coveringType = v;
-            renderCoverings(); // re-render: the tilt state field is only shown for raffstore/lamellen
+            renderCoverings();
             onChangeFired();
         }),
     );
-    row1.appendChild(
+    row2.appendChild(
         makeSelect('cov-' + index + '-driverType', 'driverType', covering.driverType, DRIVER_TYPES, function (v) {
             covering.driverType = v;
-            renderCoverings(); // re-render: relevant state fields depend on driverType
+            renderCoverings();
             onChangeFired();
         }),
-    );
-    card.appendChild(row1);
-
-    var row2 = document.createElement('div');
-    row2.className = 'shutters-row row';
-    row2.appendChild(
-            makeSelectPlain('cov-' + index + '-area', 'area', covering.areaId, getPlanOptions(), 3, function (v) {
-                covering.areaId = v;
-                delete covering.area;
-                onChangeFired();
-            }),
     );
     row2.appendChild(
         makeText(
@@ -1239,14 +1232,18 @@ function renderCoveringCard(covering, index) {
             'number',
         ),
     );
-    row2.appendChild(
-        makeCheckbox('cov-' + index + '-invertPosition', 'invertPosition', covering.invertPosition, function (v) {
-            covering.invertPosition = v;
-            renderCoverings();
+    card.appendChild(row2);
+
+    var row3 = document.createElement('div');
+    row3.className = 'shutters-row row';
+    row3.appendChild(
+        makeSelectPlain('cov-' + index + '-area', 'area', covering.areaId, getPlanOptions(), 3, function (v) {
+            covering.areaId = v;
+            delete covering.area;
             onChangeFired();
         }),
     );
-    card.appendChild(row2);
+    card.appendChild(row3);
 
     var statesTitle = document.createElement('div');
     statesTitle.className = 'shutters-section-title shutters-states-section-title';
@@ -1255,6 +1252,13 @@ function renderCoveringCard(covering, index) {
 
     var statesRow = document.createElement('div');
     statesRow.className = 'shutters-row row';
+    statesRow.appendChild(
+        makeCheckbox('cov-' + index + '-invertPosition', 'invertPosition', covering.invertPosition, function (v) {
+            covering.invertPosition = v;
+            renderCoverings();
+            onChangeFired();
+        }),
+    );
     getRelevantStateFields(covering.driverType, covering.invertPosition).forEach(function (field) {
         var dataKey = field[0];
         var labelKey = field[1];

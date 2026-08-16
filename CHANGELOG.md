@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.28 (2026-08-16)
+
+* (steinwedel) **ENHANCED**: Reorganize the Coverings card layout and clarify linked hardware terminology
+
 ## 0.0.27 (2026-08-16)
 
 * (steinwedel) **ENHANCED**: Rename and move the per-covering schedule automation option into the automation functions section

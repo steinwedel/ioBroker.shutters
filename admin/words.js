@@ -71,7 +71,7 @@ systemDictionary = {
     stateTiltActual: { en: 'Actual tilt state ID (optional)', de: 'Ist-Kippwinkel-State-ID (optional)' },
     stateUp: { en: 'Up state ID', de: 'Auf-Impuls-State-ID' },
     stateDown: { en: 'Down state ID', de: 'Ab-Impuls-State-ID' },
-    statesSectionTitle: { en: 'Foreign states', de: 'Fremd-States' },
+    statesSectionTitle: { en: 'Linked hardware', de: 'Verknüpfte Hardware' },
     protectionSectionTitle: { en: 'Protection settings', de: 'Automatikfunktionen' },
     sunProtectionHintText: {
         en: 'When "Orientation" above is set, the sun-window (when sun protection may apply) is derived from it: active whenever the current sun azimuth is within the tolerance below on either side of the orientation, e.g. a south-facing window (180°) with the default 70° tolerance is active for sun azimuths 110-250°. The window additionally requires the sun elevation to reach the minimum below (default 0° = above the horizon), and, if a maximum cloud cover is set, the sky to be clear enough (requires the cloud-cover state ID under Weather data). The sun window start/end fields are only used as a fallback when no orientation is set.',

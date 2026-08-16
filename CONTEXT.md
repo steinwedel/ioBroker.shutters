@@ -1,11 +1,11 @@
 # Context
 
 ## Current Task
-- Moved and renamed the per-covering schedule automation option in the Admin UI.
+- Reorganized Coverings card rows and renamed Fremd-States to Verknüpfte Hardware.
 
 ## Key Decisions
-- `automationEnabled` behavior and storage remain unchanged.
-- The checkbox now appears in Automatikfunktionen as Zeitautomatik.
+- Bezeichnung, Behangtyp, System, and Ausrichtung share the second row.
+- Positionszuordnung umkehren precedes the linked position-state fields.
 - Deployment uses the central `../scripts/deploy.sh` process.
 
 ## Next Steps
