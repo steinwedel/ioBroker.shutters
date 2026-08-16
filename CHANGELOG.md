@@ -1,4 +1,6 @@
 # Changelog
+## **WORK IN PROGRESS**
+
 ## 0.0.53 (2026-08-16)
 
 * (steinwedel) **ENHANCED**: Remove all obsolete configuration migration and compatibility code; require canonical covering IDs, plan IDs, and orientation tolerance bounds
