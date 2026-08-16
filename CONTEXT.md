@@ -1,11 +1,11 @@
 # Context
 
 ## Current Task
-- Disabled sun and rain protection without a configured orientation.
+- Synchronized all Admin i18n files from the authoritative German dictionary.
 
 ## Key Decisions
-- Admin toggles are disabled and values reset when orientation is cleared.
-- Runtime also gates sun and rain protection on a valid 0–359° orientation.
+- All 11 locale files contain the same 150 translation keys.
+- Missing non-German translations use generated localized text or English fallback.
 - Deployment uses the central `../scripts/deploy.sh` process.
 
 ## Next Steps

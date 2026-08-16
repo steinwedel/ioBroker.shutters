@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.48",
+    "version": "0.0.49",
     "news": {
+      "0.0.49": {
+        "en": "**ENHANCED**: Synchronize all Admin UI translations from the authoritative German dictionary",
+        "de": "**VERBESSERT**: Synchronisiert nun alle Übersetzungen der Admin-Benutzeroberfläche aus dem maßgeblichen deutschen Wörterbuch.",
+        "ru": "**УЛУЧШЕНО**: Синхронизация всех переводов административного интерфейса из авторитетного немецкого словаря.",
+        "pt": "**APRIMORADO**: Sincronize todas as traduções da interface administrativa com o dicionário alemão oficial.",
+        "nl": "**VERBETERD**: Synchroniseer alle vertalingen van de beheerdersinterface met het gezaghebbende Duitse woordenboek.",
+        "fr": "**AMÉLIORÉ** : Synchronisation de toutes les traductions de l’interface d’administration à partir du dictionnaire allemand de référence",
+        "it": "**MIGLIORATO**: Sincronizza tutte le traduzioni dell'interfaccia utente di amministrazione dal dizionario tedesco autorevole",
+        "es": "**MEJORADO**: Sincroniza todas las traducciones de la interfaz de administración desde el diccionario alemán oficial.",
+        "pl": "**ULEPSZONE**: Synchronizuj wszystkie tłumaczenia interfejsu administratora z autorytatywnego słownika języka niemieckiego",
+        "uk": "**ПОКРАЩЕНО**: Синхронізуйте всі переклади інтерфейсу адміністратора з авторитетного німецького словника",
+        "zh-cn": "**增强功能**：同步所有管理员用户界面翻译，使其与权威德语词典一致。"
+      },
       "0.0.48": {
         "en": "**ENHANCED**: Disable per-covering sun and rain protection when orientation is missing",
         "de": "**VERBESSERT**: Deaktivierung des vorabgedeckten Sonnen- und Regenschutzes bei fehlender Ausrichtung",
@@ -80,19 +93,6 @@
         "pl": "**ULEPSZONE**: Rozpocznij pozostałe ustawienia ochrony przeciwsłonecznej w nowym wierszu po pozycji docelowej",
         "uk": "**ПОКРАЩЕНО**: Почніть налаштування решти сонцезахисних елементів на новому рядку після цільового положення",
         "zh-cn": "**增强功能**：在目标位置之后，另起一行开始显示剩余的防晒设置"
-      },
-      "0.0.42": {
-        "en": "**ENHANCED**: Nest and indent Coverings sun-protection settings beneath their checkbox",
-        "de": "**VERBESSERT**: Die Sonnenschutzeinstellungen für Nest- und Einzugsabdeckungen befinden sich unterhalb der jeweiligen Checkbox.",
-        "ru": "**УЛУЧШЕНО**: Настройки защиты от солнца для чехлов Nest и Indent отображаются под соответствующим флажком.",
-        "pt": "**APRIMORADO**: Configurações de proteção solar para coberturas tipo ninho e nicho abaixo da caixa de seleção.",
-        "nl": "**VERBETERD**: Instellingen voor zonwering van Nest en Indent Covers onder het selectievakje",
-        "fr": "**AMÉLIORÉ** : Paramètres de protection solaire Nest et Indent Coverings sous leur case à cocher",
-        "it": "**MIGLIORATO**: Impostazioni di protezione solare per coperture nidificate e rientranti sotto la relativa casella di controllo",
-        "es": "**MEJORADO**: Ajustes de protección solar de las cubiertas que aparecen debajo de su casilla de verificación.",
-        "pl": "**ULEPSZONE**: Umieść i wgłęb ustawienia ochrony przeciwsłonecznej osłon pod ich polem wyboru",
-        "uk": "**ПОКРАЩЕНО**: Розміщуйте та додавайте відступи до налаштувань захисту від сонця для покриттів під їхнім прапорцем.",
-        "zh-cn": "**增强功能**：在复选框下方设置嵌套和凹陷式遮阳罩的防晒设置"
       }
     },
     "titleLang": {

@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.49 (2026-08-16)
+
+* (steinwedel) **ENHANCED**: Synchronize all Admin UI translations from the authoritative German dictionary
+
 ## 0.0.48 (2026-08-16)
 
 * (steinwedel) **ENHANCED**: Disable per-covering sun and rain protection when orientation is missing
