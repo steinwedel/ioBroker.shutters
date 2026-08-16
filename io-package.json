@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.28",
+    "version": "0.0.29",
     "news": {
+      "0.0.29": {
+        "en": "**FIXED**: Align the standalone Coverings ID field to the left",
+        "de": "**BEHOBEN**: Das eigenständige Feld „Bedeckungs-ID“ linksbündig ausrichten",
+        "ru": "**ИСПРАВЛЕНО**: Поле ID покрытия выровнено по левому краю.",
+        "pt": "**CORRIGIDO**: Alinhar o campo ID de Revestimentos independente à esquerda.",
+        "nl": "**OPGELOST**: Lijn het aparte veld 'Bedekkings-ID' links uit.",
+        "fr": "**CORRIGÉ** : Aligner le champ ID Coverings autonome à gauche",
+        "it": "**CORRETTO**: Allineare a sinistra il campo ID rivestimenti autonomo.",
+        "es": "**CORREGIDO**: Alinear el campo independiente Coverings ID a la izquierda.",
+        "pl": "**NAPRAWIONO**: Wyrównanie samodzielnego pola ID okładek do lewej strony",
+        "uk": "**ВИПРАВЛЕНО**: Вирівняти окреме поле ідентифікатора покриття ліворуч",
+        "zh-cn": "**已修复**：将独立的 Coverings ID 字段左对齐"
+      },
       "0.0.28": {
         "en": "**ENHANCED**: Reorganize the Coverings card layout and clarify linked hardware terminology",
         "de": "**VERBESSERT**: Das Layout der Coverings-Karten wurde neu organisiert und die zugehörige Hardware-Terminologie präzisiert.",
@@ -80,19 +93,6 @@
         "pl": "**NOWOŚĆ**: Dodaj nadpisanie `windOpenThreshold`/`windCloseAllowedThreshold` dla każdego pokrycia (sekcja planu 2a.5) dla pokrycia bardziej wrażliwego na wiatr niż pozostałe — interfejs użytkownika administratora pokazuje i wstępnie wypełnia niższą sugestię (20/10 km/h) dla markizy, ponieważ jej materiał/ramiona są znacznie bardziej wrażliwe na wiatr niż zamknięty pancerny rolladen\n**NAPRAWIONO**: `rainProtectionEnabled` jest teraz domyślnie wyłączone dla pokrycia `lamelowego` (zazwyczaj wewnątrz pomieszczeń, bez narażenia na rzeczywiste warunki atmosferyczne), co jest zgodne z istniejącym domyślnym ustawieniem `windProtectionEnabled`/`frostProtectionEnabled` - wcześniej ochrona przed deszczem była domyślnie włączona niezależnie od rodzaju pokrycia",
         "uk": "**НОВЕ**: Додано перевизначення `windOpenThreshold`/`windCloseAllowedThreshold` для кожного покриття (розділ плану 2a.5) для покриття, яке чутливіше до вітру, ніж решта - інтерфейс адміністратора показує та попередньо заповнює нижчу пропозицію (20/10 км/год) для маркіз, оскільки його тканина/рукавички набагато вразливіші до вітру, ніж закритий ролладен панцер.\n**ВИПРАВЛЕНО**: `rainProtectionEnabled` тепер за замовчуванням вимкнено для `ламельного` покриття (зазвичай у приміщенні, без реального впливу погодних умов), що відповідає існуючому значенню за замовчуванням для `windProtectionEnabled`/`frostProtectionEnabled` - раніше захист від дощу за замовчуванням був увімкнений незалежно від типу покриття.",
         "zh-cn": "**新增**：针对比其他覆盖物更易受风影响的覆盖物，添加每个覆盖物的 `windOpenThreshold`/`windCloseAllowedThreshold` 阈值覆盖（方案 2a.5 节）——管理界面会显示并预填一个较低的建议值（20/10 公里/小时），因为其织物/臂架比封闭的卷帘式装甲车更容易受到风的影响。\n**已修复**：对于层状覆盖物（通常用于室内，不会真正暴露在恶劣天气下），`rainProtectionEnabled` 现在默认禁用，与现有的 `windProtectionEnabled`/`frostProtectionEnabled` 的默认设置保持一致——之前无论覆盖物类型如何，防雨功能默认都是启用的。"
-      },
-      "0.0.22": {
-        "en": "**NEW**: Add an optional per-covering wind-direction filter for rain protection (plan section 7): configure a wind-direction weather state, then optionally set a per-covering tolerance so rain protection only reacts to rain actually being blown toward that covering's window, based on its orientation - left unset, behavior is unchanged (protects on any rain)",
-        "de": "**NEU**: Optionaler Windrichtungsfilter für den Regenschutz pro Abdeckung (Planabschnitt 7): Konfigurieren Sie einen Wetterzustand für die Windrichtung und legen Sie optional eine Toleranz pro Abdeckung fest, sodass der Regenschutz nur auf Regen reagiert, der tatsächlich auf das Fenster der jeweiligen Abdeckung gerichtet ist, basierend auf deren Ausrichtung. Wenn diese Option nicht festgelegt ist, bleibt das Verhalten unverändert (Schutz bei jedem Regen).",
-        "ru": "**НОВИНКА**: Добавьте дополнительный фильтр направления ветра для каждой шторы для защиты от дождя (раздел плана 7): настройте погодные условия, связанные с направлением ветра, а затем, при необходимости, установите допуск для каждой шторы, чтобы защита от дождя реагировала только на дождь, фактически дующий в сторону окна этой шторы, в зависимости от ее ориентации — если этот параметр не задан, поведение остается неизменным (защита от любого дождя).",
-        "pt": "**NOVO**: Adicione um filtro opcional de direção do vento por cobertura para proteção contra chuva (seção 7 do plano): configure um estado climático de direção do vento e, opcionalmente, defina uma tolerância por cobertura para que a proteção contra chuva reaja apenas à chuva que realmente está sendo soprada em direção à janela daquela cobertura, com base em sua orientação - se não estiver definida, o comportamento permanece inalterado (protege contra qualquer chuva).",
-        "nl": "**NIEUW**: Voeg een optioneel filter voor windrichting per overkapping toe voor regenbescherming (planonderdeel 7): configureer een weersomstandigheid voor de windrichting en stel vervolgens optioneel een tolerantie per overkapping in, zodat de regenbescherming alleen reageert op regen die daadwerkelijk richting het raam van die overkapping waait, op basis van de oriëntatie ervan. Indien niet ingesteld, blijft het gedrag ongewijzigd (bescherming bij alle regen).",
-        "fr": "**NOUVEAU** : Ajout d’un filtre optionnel de direction du vent par couverture pour la protection contre la pluie (section 7 du plan) : configurez un état météorologique de direction du vent, puis définissez éventuellement une tolérance par couverture afin que la protection contre la pluie ne réagisse qu’à la pluie soufflée vers la fenêtre de cette couverture, en fonction de son orientation ; si cette option n’est pas définie, le comportement reste inchangé (protection contre toute pluie).",
-        "it": "**NOVITÀ**: Aggiungi un filtro opzionale per la direzione del vento per ogni copertura per la protezione dalla pioggia (sezione 7 del progetto): configura uno stato meteorologico per la direzione del vento, quindi imposta facoltativamente una tolleranza per ogni copertura in modo che la protezione dalla pioggia reagisca solo alla pioggia effettivamente soffiata verso la finestra di quella copertura, in base al suo orientamento - se non impostato, il comportamento rimane invariato (protegge con qualsiasi pioggia)",
-        "es": "**NUEVO**: Añada un filtro opcional de dirección del viento por cubierta para la protección contra la lluvia (sección 7 del plano): configure un estado meteorológico de dirección del viento y, opcionalmente, establezca una tolerancia por cubierta para que la protección contra la lluvia solo reaccione cuando la lluvia se dirija realmente hacia la ventana de esa cubierta, según su orientación; si no se configura, el comportamiento no cambia (protege con cualquier lluvia).",
-        "pl": "**NOWOŚĆ**: Dodaj opcjonalny filtr kierunku wiatru dla każdego pokrycia w celu ochrony przed deszczem (sekcja planu 7): skonfiguruj stan pogody dla kierunku wiatru, a następnie opcjonalnie ustaw tolerancję dla każdego pokrycia, tak aby ochrona przed deszczem reagowała tylko na deszcz faktycznie wiejący w kierunku okna danego pokrycia, w oparciu o jego orientację — jeśli nie zostanie ustawiony, zachowanie pozostaje niezmienione (chroni przed każdym deszczem)",
-        "uk": "**НОВЕ**: Додайте додатковий фільтр напрямку вітру для кожного покриття для захисту від дощу (розділ плану 7): налаштуйте погодний стан напрямку вітру, а потім за потреби встановіть допуск для кожного покриття, щоб захист від дощу реагував лише на дощ, який фактично падає на вікно цього покриття, залежно від його орієнтації – якщо не налаштовано, поведінка не змінюється (захищає від будь-якого дощу)",
-        "zh-cn": "**新增**：为防雨罩添加可选的风向过滤器（方案第 7 部分）：配置风向天气状态，然后可选择设置每个遮盖物的容差，以便防雨罩仅在雨水实际吹向该遮盖物窗户时才做出反应，具体取决于其朝向 - 如果未设置，则行为不变（在任何雨天都提供保护）。"
       }
     },
     "titleLang": {

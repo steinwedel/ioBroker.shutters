@@ -1192,6 +1192,7 @@ function renderCoveringCard(covering, index) {
         // callback never actually fires from user input.
     });
     idField.querySelector('input').disabled = true;
+    idField.style.marginLeft = '0';
     row1.appendChild(idField);
     card.appendChild(row1);
 

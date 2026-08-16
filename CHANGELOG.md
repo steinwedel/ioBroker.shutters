@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.29 (2026-08-16)
+
+* (steinwedel) **FIXED**: Align the standalone Coverings ID field to the left
+
 ## 0.0.28 (2026-08-16)
 
 * (steinwedel) **ENHANCED**: Reorganize the Coverings card layout and clarify linked hardware terminology

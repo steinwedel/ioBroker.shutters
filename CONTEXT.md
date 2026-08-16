@@ -1,10 +1,10 @@
 # Context
 
 ## Current Task
-- Reorganized Coverings card rows and renamed Fremd-States to Verknüpfte Hardware.
+- Aligned the standalone Coverings ID field to the left and prepared deployment.
 
 ## Key Decisions
-- Bezeichnung, Behangtyp, System, and Ausrichtung share the second row.
+- Reset the Materialize auto margin only on the standalone ID field.
 - Positionszuordnung umkehren precedes the linked position-state fields.
 - Deployment uses the central `../scripts/deploy.sh` process.
 
