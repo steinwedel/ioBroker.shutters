@@ -1316,19 +1316,22 @@ function renderCoveringCard(covering, index) {
 
     var protectionRow1 = document.createElement('div');
     protectionRow1.className = 'shutters-row row shutters-automation-functions';
-    protectionRow1.appendChild(
+    var scheduleRow = document.createElement('div');
+    scheduleRow.className = 'shutters-automation-schedule';
+    scheduleRow.appendChild(
         makeCheckbox('cov-' + index + '-automationEnabled', 'automationEnabled', covering.automationEnabled, function (v) {
             covering.automationEnabled = v;
             onChangeFired();
         }),
     );
-    protectionRow1.appendChild(
+    scheduleRow.appendChild(
         makeSelectPlain('cov-' + index + '-area', 'area', covering.areaId, getPlanOptions(), 3, function (v) {
             covering.areaId = v;
             delete covering.area;
             onChangeFired();
         }),
     );
+    protectionRow1.appendChild(scheduleRow);
     protectionRow1.appendChild(
         makeCheckbox('cov-' + index + '-sunProtectionEnabled', 'sunProtectionEnabled', covering.sunProtectionEnabled, function (v) {
             covering.sunProtectionEnabled = v;

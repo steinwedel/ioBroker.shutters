@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.33",
+    "version": "0.0.34",
     "news": {
+      "0.0.34": {
+        "en": "**ENHANCED**: Position the Coverings plan selector beside the schedule automation option",
+        "de": "**VERBESSERT**: Platzieren Sie die Planauswahl für die Abdeckungen neben der Option für die Terminautomatisierung.",
+        "ru": "**УЛУЧШЕНО**: Разместите селектор плана покрытия рядом с опцией автоматизации расписания.",
+        "pt": "**APRIMORADO**: Posicione o seletor de planos de cobertura ao lado da opção de automação de agendamento.",
+        "nl": "**VERBETERD**: Plaats de optie voor het selecteren van het Coverings-plan naast de optie voor automatische planning.",
+        "fr": "**AMÉLIORÉ** : Placez le sélecteur de plan Coverings à côté de l’option d’automatisation de la planification.",
+        "it": "**MIGLIORATO**: Posiziona il selettore del piano Coverings accanto all'opzione di automazione della pianificazione",
+        "es": "**MEJORADO**: Coloque el selector de planes Coverings junto a la opción de automatización de programación.",
+        "pl": "**ULEPSZONE**: Umieść selektor planu „Okrycia” obok opcji automatyzacji harmonogramu",
+        "uk": "**ПОКРАЩЕНО**: Розташуйте селектор плану покриттів поруч із опцією автоматизації розкладу",
+        "zh-cn": "**增强功能**：将 Coverings 计划选择器放置在日程自动化选项旁边"
+      },
       "0.0.33": {
         "en": "**ENHANCED**: Move the Coverings plan selector into the automation functions section",
         "de": "**VERBESSERT**: Verschieben Sie die Planauswahl für die Bedeckungen in den Bereich „Automatisierungsfunktionen“.",
@@ -80,19 +93,6 @@
         "pl": "**ULEPSZONE**: Zreorganizowano układ karty Coverings i wyjaśniono terminologię dotyczącą powiązanego sprzętu",
         "uk": "**ПОКРАЩЕНО**: Реорганізовано макет картки «Покриття» та уточнено термінологію, пов’язану з обладнанням.",
         "zh-cn": "**增强功能**：重新组织 Coverings 卡片布局并明确相关硬件术语"
-      },
-      "0.0.27": {
-        "en": "**ENHANCED**: Rename and move the per-covering schedule automation option into the automation functions section",
-        "de": "**VERBESSERT**: Die Option zur Automatisierung des Abrechnungsplans wurde umbenannt und in den Abschnitt „Automatisierungsfunktionen“ verschoben.",
-        "ru": "**УЛУЧШЕНО**: Переименовать и переместить параметр автоматизации расписания по каждому покрытию в раздел функций автоматизации.",
-        "pt": "**APRIMORADO**: Renomeada e movida a opção de automação de escala por cobertura para a seção de funções de automação.",
-        "nl": "**VERBETERD**: Hernoem en verplaats de optie voor automatische planning per dekking naar de sectie met automatiseringsfuncties.",
-        "fr": "**AMÉLIORÉ** : Renommez et déplacez l’option d’automatisation du planning par couverture dans la section des fonctions d’automatisation.",
-        "it": "**MIGLIORATO**: Rinominare e spostare l'opzione di automazione della pianificazione per copertura nella sezione delle funzioni di automazione.",
-        "es": "**MEJORADO**: Cambie el nombre y mueva la opción de automatización de programación por cobertura a la sección de funciones de automatización.",
-        "pl": "**ULEPSZONE**: Zmień nazwę i przenieś opcję automatyzacji harmonogramu dla każdego pokrycia do sekcji funkcji automatyzacji",
-        "uk": "**ПОКРАЩЕНО**: Перейменуйте та перемістіть опцію автоматизації розкладу для кожного покриття до розділу функцій автоматизації",
-        "zh-cn": "**增强功能**：重命名并将按覆盖范围划分的日程自动化选项移至自动化功能部分。"
       }
     },
     "titleLang": {

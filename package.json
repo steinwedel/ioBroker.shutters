@@ -1,6 +1,6 @@
 {
   "name": "iobroker.shutters",
-  "version": "0.0.33",
+  "version": "0.0.34",
   "description": "Unified control and automation for roller shutters, blinds and awnings across multiple smart home systems",
   "author": {
     "name": "Gerhard Steinwedel",
