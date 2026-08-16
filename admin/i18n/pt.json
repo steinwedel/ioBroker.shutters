@@ -1,7 +1,7 @@
 {
     "area": "Área",
     "areaName": "Nome da área",
-    "areas": "Áreas",
+    "areas": "Programações",
     "areasHintText": "Configure aqui o horário diário de abertura/fechamento por área. Os horários são \"HH:MM\" (24h); deixe em branco para pular essa ação para aquela categoria de dia. Os feriados voltam à programação de fim de semana, a menos que uma programação de feriados seja definida.",
     "automationEnabled": "Automação habilitada",
     "coveringType": "Tipo de cobertura",
@@ -27,6 +27,7 @@
     "holidayOpen": "Feriado aberto",
     "id": "EU IA",
     "name": "Nome",
+    "coveringName": "Designação",
     "option1": "opção1",
     "option2": "opção2",
     "orientation": "Orientação (°)",

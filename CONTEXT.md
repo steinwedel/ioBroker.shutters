@@ -1,11 +1,11 @@
 # Context
 
 ## Current Task
-- Renamed the German Admin UI Plan tab to Zeitpläne and prepared the UI fixes for deployment.
+- Renamed the Coverings protection section to Automatikfunktionen.
 
 ## Key Decisions
-- Constrained floating labels to their field width and truncate visual overflow.
-- Applied the spacing adjustment only to the Fremd-States section.
+- The heading retains its existing translation key and behavior.
+- Position-state labels reflect supported inverted mappings.
 - Deployment uses the central `../scripts/deploy.sh` process.
 
 ## Next Steps

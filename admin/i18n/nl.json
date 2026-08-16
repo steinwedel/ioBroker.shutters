@@ -1,7 +1,7 @@
 {
     "area": "Gebied",
     "areaName": "Gebiedsnaam",
-    "areas": "Gebieden",
+    "areas": "Schema's",
     "areasHintText": "Configureer hier het dagelijkse openings-/sluitingsschema per gebied. De tijden zijn \"UU:MM\" (24 uur); laat leeg om die actie voor die dagcategorie over te slaan. Feestdagen vallen terug op het weekendrooster tenzij er een vakantierooster is ingesteld.",
     "automationEnabled": "Automatisering ingeschakeld",
     "coveringType": "Soort dekking",
@@ -27,6 +27,7 @@
     "holidayOpen": "Feestdag geopend",
     "id": "Identiteitskaart",
     "name": "Naam",
+    "coveringName": "Aanduiding",
     "option1": "optie1",
     "option2": "optie2",
     "orientation": "Oriëntatie (°)",

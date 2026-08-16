@@ -1,7 +1,7 @@
 {
     "area": "Zona",
     "areaName": "Nome dell'area",
-    "areas": "Aree",
+    "areas": "Programmi",
     "areasHintText": "Configura qui il programma giornaliero di apertura/chiusura per area. Gli orari sono \"HH:MM\" (24h); lasciare vuoto per saltare l'azione per la categoria di quel giorno. I giorni festivi rientrano nella programmazione del fine settimana, a meno che non venga impostata una programmazione festiva.",
     "automationEnabled": "Automazione abilitata",
     "coveringType": "Tipologia di copertura",
@@ -27,6 +27,7 @@
     "holidayOpen": "Aperto nei giorni festivi",
     "id": "ID",
     "name": "Nome",
+    "coveringName": "Denominazione",
     "option1": "opzione1",
     "option2": "opzione2",
     "orientation": "Orientamento (°)",

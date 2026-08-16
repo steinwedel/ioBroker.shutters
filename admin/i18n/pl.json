@@ -1,7 +1,7 @@
 {
     "area": "Obszar",
     "areaName": "Nazwa obszaru",
-    "areas": "Obszary",
+    "areas": "Harmonogramy",
     "areasHintText": "Tutaj możesz skonfigurować dzienny harmonogram otwierania/zamykania dla każdego obszaru. Czasy to „GG:MM” (24h); pozostaw puste, aby pominąć tę akcję dla tej kategorii dnia. Święta państwowe wracają do harmonogramu weekendowego, chyba że zostanie ustawiony harmonogram świąteczny.",
     "automationEnabled": "Automatyzacja włączona",
     "coveringType": "Rodzaj krycia",
@@ -27,6 +27,7 @@
     "holidayOpen": "Święto państwowe otwarte",
     "id": "ID",
     "name": "Nazwa",
+    "coveringName": "Oznaczenie",
     "option1": "opcja 1",
     "option2": "opcja 2",
     "orientation": "Orientacja (°)",

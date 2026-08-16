@@ -1,7 +1,7 @@
 {
     "area": "Bereich",
     "areaName": "Bereichsname",
-    "areas": "Bereiche",
+    "areas": "Zeitpläne",
     "areasHintText": "Hier wird der tägliche Öffnen-/Schließen-Zeitplan pro Bereich konfiguriert. Zeiten im Format \"HH:MM\" (24h); leer lassen, um diese Aktion für diese Tageskategorie zu überspringen. An Feiertagen gilt ohne eigenen Feiertagsplan automatisch der Wochenendplan.",
     "automationEnabled": "Automatik aktiviert",
     "coveringType": "Behangtyp",
@@ -27,6 +27,7 @@
     "holidayOpen": "Feiertag auf",
     "id": "ID",
     "name": "Name",
+    "coveringName": "Bezeichnung",
     "orientation": "Ausrichtung (°)",
     "publicHolidayFederalState": "Bundesland (für Feiertage)",
     "publicHolidayFederalStateBB": "Brandenburg",

@@ -1,7 +1,7 @@
 {
     "area": "Zone",
     "areaName": "Nom de la zone",
-    "areas": "Domaines",
+    "areas": "Horaires",
     "areasHintText": "Configurez ici le planning quotidien d'ouverture/fermeture par zone. Les heures sont \"HH:MM\" (24h) ; laissez vide pour ignorer cette action pour cette catégorie de jour. Les jours fériés reviennent à l'horaire du week-end, sauf si un horaire de jours fériés est défini.",
     "automationEnabled": "Automatisation activée",
     "coveringType": "Type de couverture",
@@ -27,6 +27,7 @@
     "holidayOpen": "Jour férié ouvert",
     "id": "IDENTIFIANT",
     "name": "Nom",
+    "coveringName": "Désignation",
     "option1": "option1",
     "option2": "option2",
     "orientation": "Orientation (°)",

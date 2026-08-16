@@ -1,7 +1,7 @@
 {
     "area": "Área",
     "areaName": "Nombre del área",
-    "areas": "Áreas",
+    "areas": "Horarios",
     "areasHintText": "Configura aquí el horario diario de apertura/cierre por zona. Los horarios son \"HH:MM\" (24h); déjelo vacío para omitir esa acción para esa categoría de día. Los días festivos vuelven al horario de fin de semana a menos que se establezca un horario de días festivos.",
     "automationEnabled": "Automatización habilitada",
     "coveringType": "Tipo de cobertura",
@@ -27,6 +27,7 @@
     "holidayOpen": "Día festivo abierto",
     "id": "IDENTIFICACIÓN",
     "name": "Nombre",
+    "coveringName": "Denominación",
     "option1": "opción1",
     "option2": "opción2",
     "orientation": "Orientación (°)",

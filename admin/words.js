@@ -17,6 +17,7 @@ systemDictionary = {
     discardScanButton: { en: 'Discard', de: 'Verwerfen' },
     id: { en: 'ID', de: 'ID' },
     name: { en: 'Name', de: 'Name' },
+    coveringName: { en: 'Designation', de: 'Bezeichnung' },
     coveringType: { en: 'Covering type', de: 'Behangtyp' },
     coveringTypeRolladen: { en: 'Roller shutter', de: 'Rolladen' },
     coveringTypeRaffstore: { en: 'External venetian blind', de: 'Raffstore' },
@@ -54,6 +55,14 @@ systemDictionary = {
         en: 'Actual position state ID (0% open/raised; 100% closed/lowered)',
         de: 'Ist-Positions-State-ID (0 % geöffnet/angehoben; 100 % geschlossen/abgesenkt)',
     },
+    statePositionInverted: {
+        en: 'Position command state ID (0% closed/lowered; 100% open/raised)',
+        de: 'Positions-Sollwert-State-ID (0 % geschlossen/abgesenkt; 100 % geöffnet/angehoben)',
+    },
+    statePositionActualInverted: {
+        en: 'Actual position state ID (0% closed/lowered; 100% open/raised)',
+        de: 'Ist-Positions-State-ID (0 % geschlossen/abgesenkt; 100 % geöffnet/angehoben)',
+    },
     stateOpen: { en: 'Open state ID', de: 'Auf-State-ID' },
     stateClose: { en: 'Close state ID', de: 'Zu-State-ID' },
     stateStop: { en: 'Stop state ID', de: 'Stopp-State-ID' },
@@ -63,7 +72,7 @@ systemDictionary = {
     stateUp: { en: 'Up state ID', de: 'Auf-Impuls-State-ID' },
     stateDown: { en: 'Down state ID', de: 'Ab-Impuls-State-ID' },
     statesSectionTitle: { en: 'Foreign states', de: 'Fremd-States' },
-    protectionSectionTitle: { en: 'Protection settings', de: 'Schutzfunktionen' },
+    protectionSectionTitle: { en: 'Protection settings', de: 'Automatikfunktionen' },
     sunProtectionHintText: {
         en: 'When "Orientation" above is set, the sun-window (when sun protection may apply) is derived from it: active whenever the current sun azimuth is within the tolerance below on either side of the orientation, e.g. a south-facing window (180°) with the default 70° tolerance is active for sun azimuths 110-250°. The window additionally requires the sun elevation to reach the minimum below (default 0° = above the horizon), and, if a maximum cloud cover is set, the sky to be clear enough (requires the cloud-cover state ID under Weather data). The sun window start/end fields are only used as a fallback when no orientation is set.',
         de: 'Wenn oben eine "Ausrichtung" gesetzt ist, wird das Sonnenschutz-Zeitfenster daraus abgeleitet: aktiv, solange der aktuelle Sonnenazimut innerhalb der unten stehenden Toleranz beidseitig der Ausrichtung liegt, z.B. ist ein nach Süden (180°) ausgerichtetes Fenster mit der Standardtoleranz von 70° für Sonnenazimute von 110-250° aktiv. Zusätzlich muss die Sonnenhöhe die unten stehende Mindesthöhe erreichen (Standard 0° = über dem Horizont), und, falls ein maximaler Bewölkungsgrad gesetzt ist, der Himmel entsprechend klar sein (benötigt die Bewölkungsgrad-State-ID unter Wetterdaten). Die Felder Sonnenschutz-Fenster Start/Ende werden nur als Fallback verwendet, wenn keine Ausrichtung gesetzt ist.',

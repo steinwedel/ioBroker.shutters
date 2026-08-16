@@ -1,7 +1,7 @@
 {
     "area": "区域",
     "areaName": "地区名称",
-    "areas": "领域",
+    "areas": "时间表",
     "areasHintText": "在此配置每个区域的每日开放/关闭时间表。时间为“HH:MM”（24 小时）；留空可跳过当天类别的该操作。除非设定了假期时间表，否则公共假期将恢复到周末时间表。",
     "automationEnabled": "启用自动化",
     "coveringType": "覆盖类型",
@@ -27,6 +27,7 @@
     "holidayOpen": "公众假期开放",
     "id": "ID",
     "name": "姓名",
+    "coveringName": "名称",
     "option1": "选项1",
     "option2": "选项2",
     "orientation": "方向（°）",

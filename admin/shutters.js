@@ -136,7 +136,22 @@ var DRIVER_TYPES = [
 //   plus optional direct position control for configurations that support it.
 // - everything else (homematic, hmip, knx, shelly, zigbee, zigbee2mqtt, somfy, velux, enocean, velbus,
 //   homey, generic-position): a position state plus an optional stop state and actual-position feedback.
-function getRelevantStateFields(driverType) {
+function getRelevantStateFields(driverType, invertPosition) {
+    var supportsPositionInversion = [
+        'homematic',
+        'hmip',
+        'knx',
+        'shelly',
+        'zigbee',
+        'zigbee2mqtt',
+        'somfy',
+        'velux',
+        'enocean',
+        'velbus',
+        'homey',
+    ].indexOf(driverType) !== -1;
+    var positionLabel = invertPosition && supportsPositionInversion ? 'statePositionInverted' : 'statePosition';
+    var positionActualLabel = invertPosition && supportsPositionInversion ? 'statePositionActualInverted' : 'statePositionActual';
     if (driverType === 'generic-relay') {
         return [
             ['open', 'stateOpen'],
@@ -146,28 +161,28 @@ function getRelevantStateFields(driverType) {
     }
     if (driverType === 'tuya') {
         return [
-            ['position', 'statePosition'],
-            ['positionActual', 'statePositionActual'],
+            ['position', positionLabel],
+            ['positionActual', positionActualLabel],
             ['control', 'stateControl'],
         ];
     }
     if (driverType === 'mqtt') {
         return [
-            ['position', 'statePosition'],
-            ['positionActual', 'statePositionActual'],
+            ['position', positionLabel],
+            ['positionActual', positionActualLabel],
         ];
     }
     if (driverType === 'loxone') {
         return [
             ['up', 'stateUp'],
             ['down', 'stateDown'],
-            ['position', 'statePosition'],
-            ['positionActual', 'statePositionActual'],
+            ['position', positionLabel],
+            ['positionActual', positionActualLabel],
         ];
     }
     return [
-        ['position', 'statePosition'],
-        ['positionActual', 'statePositionActual'],
+        ['position', positionLabel],
+        ['positionActual', positionActualLabel],
         ['stop', 'stateStop'],
     ];
 }
@@ -1179,7 +1194,7 @@ function renderCoveringCard(covering, index) {
     idField.querySelector('input').disabled = true;
     row1.appendChild(idField);
     row1.appendChild(
-        makeText('cov-' + index + '-name', 'name', covering.name, 3, function (v) {
+        makeText('cov-' + index + '-name', 'coveringName', covering.name, 3, function (v) {
             covering.name = v;
             title.innerText = v || covering.id;
             onChangeFired();
@@ -1233,6 +1248,7 @@ function renderCoveringCard(covering, index) {
     row2.appendChild(
         makeCheckbox('cov-' + index + '-invertPosition', 'invertPosition', covering.invertPosition, function (v) {
             covering.invertPosition = v;
+            renderCoverings();
             onChangeFired();
         }),
     );
@@ -1245,7 +1261,7 @@ function renderCoveringCard(covering, index) {
 
     var statesRow = document.createElement('div');
     statesRow.className = 'shutters-row row';
-    getRelevantStateFields(covering.driverType).forEach(function (field) {
+    getRelevantStateFields(covering.driverType, covering.invertPosition).forEach(function (field) {
         var dataKey = field[0];
         var labelKey = field[1];
         statesRow.appendChild(

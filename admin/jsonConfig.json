@@ -31,7 +31,7 @@
             "xl": 12,
             "items": [
                 { "type": "text", "attr": "id", "title": "id", "width": "10%" },
-                { "type": "text", "attr": "name", "title": "name", "width": "20%" },
+                { "type": "text", "attr": "name", "title": "coveringName", "width": "20%" },
                 {
                     "type": "select",
                     "attr": "coveringType",
