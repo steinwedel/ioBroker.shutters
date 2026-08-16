@@ -1,10 +1,10 @@
 # Context
 
 ## Current Task
-- Displayed Coverings automation functions vertically and left-aligned.
+- Forced Coverings automation functions to the left edge of their rows.
 
 ## Key Decisions
-- Each automation checkbox occupies a full-width row.
+- Override Materialize's automatic column margin for automation checkboxes.
 - Primary field order: Bezeichnung, Ausrichtung, Behangtyp, System.
 - Deployment uses the central `../scripts/deploy.sh` process.
 

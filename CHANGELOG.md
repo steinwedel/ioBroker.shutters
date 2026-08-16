@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.32 (2026-08-16)
+
+* (steinwedel) **FIXED**: Force Coverings automation checkboxes to the left edge
+
 ## 0.0.31 (2026-08-16)
 
 * (steinwedel) **ENHANCED**: Display Coverings automation functions vertically and left-aligned
