@@ -1,7 +1,7 @@
 # Context
 
 ## Current Task
-- Positioned maximum cloud cover directly beside Sonnenschutz-Mindesttemperatur.
+- Left-aligned the minimum sun-elevation field in the Coverings Admin UI.
 
 ## Key Decisions
 - The tolerance time-range preview follows the upper bound in the same row.

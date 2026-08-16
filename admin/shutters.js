@@ -1627,7 +1627,7 @@ function renderCoveringCard(covering, index) {
         // time-window fallback above.
         if (covering.orientation !== undefined) {
             var sunOrientationRow = document.createElement('div');
-            sunOrientationRow.className = 'shutters-row row';
+            sunOrientationRow.className = 'shutters-row row shutters-sun-min-elevation-row';
             sunOrientationRow.appendChild(
                 makeText(
                     'cov-' + index + '-sunProtectionMinElevationDeg',

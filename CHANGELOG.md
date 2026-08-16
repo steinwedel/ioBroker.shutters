@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.47 (2026-08-16)
+
+* (steinwedel) **FIXED**: Align the minimum sun-elevation field to the left in the Coverings UI
+
 ## 0.0.46 (2026-08-16)
 
 * (steinwedel) **FIXED**: Align the maximum cloud-cover field directly beside the sun-protection minimum temperature

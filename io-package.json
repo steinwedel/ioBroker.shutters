@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.46",
+    "version": "0.0.47",
     "news": {
+      "0.0.47": {
+        "en": "**FIXED**: Align the minimum sun-elevation field to the left in the Coverings UI",
+        "de": "**BEHOBEN**: Das Feld für den minimalen Sonnenstand wurde in der Benutzeroberfläche für Überdachungen linksbündig ausgerichtet.",
+        "ru": "**ИСПРАВЛЕНО**: Поле минимального положения солнца в пользовательском интерфейсе «Покрытия» теперь выровнено по левому краю.",
+        "pt": "**CORRIGIDO**: Alinhar o campo de elevação solar mínima à esquerda na interface do usuário de Coberturas.",
+        "nl": "**OPGELOST**: Lijn het veld voor de minimale zonshoogte uit naar links in de gebruikersinterface van Coverings.",
+        "fr": "**CORRIGÉ** : Aligner le champ d’élévation solaire minimale à gauche dans l’interface utilisateur de Coverings",
+        "it": "**RISOLTO**: Allineare il campo dell'elevazione minima del sole a sinistra nell'interfaccia utente delle coperture.",
+        "es": "**CORREGIDO**: Alinee el campo de elevación solar mínima a la izquierda en la interfaz de usuario de Cubiertas.",
+        "pl": "**NAPRAWIONO**: Wyrównaj pole minimalnej wysokości słońca do lewej strony w interfejsie użytkownika Pokrycia",
+        "uk": "**ВИПРАВЛЕНО**: Вирівняти поле мінімальної висоти сонця ліворуч у інтерфейсі Coverings.",
+        "zh-cn": "**已修复**：在“覆盖物”用户界面中，将最小太阳高度角字段向左对齐。"
+      },
       "0.0.46": {
         "en": "**FIXED**: Align the maximum cloud-cover field directly beside the sun-protection minimum temperature",
         "de": "**BEHOBEN**: Richten Sie das Feld für die maximale Wolkenbedeckung direkt neben der minimalen Sonnenschutztemperatur aus.",
@@ -80,19 +93,6 @@
         "pl": "**ULEPSZONE**: Ukryj pola kontaktu drzwiowego, gdy opcja Rolladensperre jest wyłączona",
         "uk": "**ПОКРАЩЕНО**: Приховування полів контактів дверей, коли Rolladensperre вимкнено",
         "zh-cn": "**增强功能**：Rolladensperre 禁用时隐藏门触点字段"
-      },
-      "0.0.40": {
-        "en": "**FIXED**: Complete JSDoc documentation required by the project linter",
-        "de": "**BEHOBEN**: Vollständige JSDoc-Dokumentation, die vom Projekt-Linter benötigt wird.",
-        "ru": "**ИСПРАВЛЕНО**: Полная документация JSDoc, необходимая для работы линтера проекта.",
-        "pt": "**CORRIGIDO**: Documentação JSDoc completa exigida pelo linter do projeto.",
-        "nl": "**OPGELOST**: Volledige JSDoc-documentatie vereist door de projectlinter.",
-        "fr": "**CORRIGÉ** : Documentation JSDoc complète requise par l’analyseur de code du projet",
-        "it": "**RISOLTO**: Completata la documentazione JSDoc richiesta dal linter del progetto.",
-        "es": "**CORREGIDO**: Se requiere la documentación JSDoc completa del linter del proyecto.",
-        "pl": "**NAPRAWIONO**: Kompletna dokumentacja JSDoc wymagana przez linter projektu",
-        "uk": "**ВИПРАВЛЕНО**: Повна документація JSDoc, необхідна для лінтеру проекту",
-        "zh-cn": "**已修复**：项目代码检查器所需的完整 JSDoc 文档"
       }
     },
     "titleLang": {
