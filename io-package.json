@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.47",
+    "version": "0.0.48",
     "news": {
+      "0.0.48": {
+        "en": "**ENHANCED**: Disable per-covering sun and rain protection when orientation is missing",
+        "de": "**VERBESSERT**: Deaktivierung des vorabgedeckten Sonnen- und Regenschutzes bei fehlender Ausrichtung",
+        "ru": "**УЛУЧШЕНО**: Отключение защиты от солнца и дождя для каждого слоя покрытия, если отсутствует ориентация.",
+        "pt": "**APRIMORADO**: Desative a proteção contra sol e chuva por cobertura quando a orientação estiver ausente.",
+        "nl": "**VERBETERD**: Schakel zon- en regenbescherming per hoes uit wanneer de oriëntatie ontbreekt.",
+        "fr": "**AMÉLIORÉ** : Désactivation de la protection solaire et anti-pluie intégrée lorsque l’orientation est manquante.",
+        "it": "**MIGLIORATO**: Disattiva la protezione solare e antipioggia per la copertura quando manca l'orientamento",
+        "es": "**MEJORADO**: Desactivar la protección solar y contra la lluvia por cubierta cuando falta la orientación.",
+        "pl": "**ULEPSZONE**: Wyłącz ochronę przed słońcem i deszczem dla każdego pokrycia, gdy brakuje orientacji",
+        "uk": "**ПОКРАЩЕНО**: Вимкнення захисту від сонця та дощу для кожного покриття, якщо відсутня орієнтація",
+        "zh-cn": "**增强功能**：当方向信息缺失时，禁用每个遮盖物的遮阳和防雨功能。"
+      },
       "0.0.47": {
         "en": "**FIXED**: Align the minimum sun-elevation field to the left in the Coverings UI",
         "de": "**BEHOBEN**: Das Feld für den minimalen Sonnenstand wurde in der Benutzeroberfläche für Überdachungen linksbündig ausgerichtet.",
@@ -80,19 +93,6 @@
         "pl": "**ULEPSZONE**: Umieść i wgłęb ustawienia ochrony przeciwsłonecznej osłon pod ich polem wyboru",
         "uk": "**ПОКРАЩЕНО**: Розміщуйте та додавайте відступи до налаштувань захисту від сонця для покриттів під їхнім прапорцем.",
         "zh-cn": "**增强功能**：在复选框下方设置嵌套和凹陷式遮阳罩的防晒设置"
-      },
-      "0.0.41": {
-        "en": "**ENHANCED**: Hide door-contact fields while Rolladensperre is disabled",
-        "de": "**VERBESSERT**: Türkontaktfelder ausblenden, wenn Rolladensperre deaktiviert ist",
-        "ru": "**УЛУЧШЕНО**: Скрытие полей контакта с дверью при отключенном Rolladensperre.",
-        "pt": "**APRIMORADO**: Ocultar campos de contato da porta enquanto o Rolladensperre estiver desativado",
-        "nl": "**VERBETERD**: Verberg de contactvelden voor deuren wanneer Rolladensperre is uitgeschakeld.",
-        "fr": "**AMÉLIORÉ** : Masquer les champs de contact de porte lorsque Rolladensperre est désactivé.",
-        "it": "**MIGLIORATO**: Nascondi i campi di contatto della porta quando Rolladensperre è disabilitato",
-        "es": "**MEJORADO**: Ocultar los campos de contacto de la puerta mientras Rolladensperre está desactivado.",
-        "pl": "**ULEPSZONE**: Ukryj pola kontaktu drzwiowego, gdy opcja Rolladensperre jest wyłączona",
-        "uk": "**ПОКРАЩЕНО**: Приховування полів контактів дверей, коли Rolladensperre вимкнено",
-        "zh-cn": "**增强功能**：Rolladensperre 禁用时隐藏门触点字段"
       }
     },
     "titleLang": {

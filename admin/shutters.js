@@ -227,6 +227,10 @@ function shuttersEnsureDefaults(settings) {
         s.states = s.states || {};
         if (s.automationEnabled === undefined) s.automationEnabled = true;
         if (s.doorProtectionEnabled === undefined) s.doorProtectionEnabled = true;
+        if (s.orientation === undefined) {
+            s.sunProtectionEnabled = false;
+            s.rainProtectionEnabled = false;
+        }
         if (!s.areaId && s.area) {
             var matchingAreas = settings.areas.filter(function (area) {
                 return area.name === s.area;
@@ -1119,7 +1123,7 @@ function makeStateIdField(id, label, value, colWidth, onChangeCb) {
     return outer;
 }
 
-function makeCheckbox(id, label, checked, onChangeCb) {
+function makeCheckbox(id, label, checked, onChangeCb, disabled) {
     var wrap = document.createElement('div');
     wrap.className = 'col s3';
     wrap.style.marginTop = '18px';
@@ -1128,6 +1132,7 @@ function makeCheckbox(id, label, checked, onChangeCb) {
     input.type = 'checkbox';
     input.id = id;
     input.checked = !!checked;
+    input.disabled = !!disabled;
     input.onchange = function () {
         onChangeCb(input.checked);
     };
@@ -1222,7 +1227,11 @@ function renderCoveringCard(covering, index) {
             3,
             function (v) {
                 covering.orientation = v;
-                renderCoverings(); // re-render: sunWindowStart/End fallback fields only relevant without an orientation
+                if (v === undefined) {
+                    covering.sunProtectionEnabled = false;
+                    covering.rainProtectionEnabled = false;
+                }
+                renderCoverings();
                 onChangeFired();
             },
             'number',
@@ -1370,6 +1379,7 @@ function renderCoveringCard(covering, index) {
     schedulePlanField.className += ' shutters-schedule-plan-field';
     scheduleRow.appendChild(schedulePlanField);
     protectionRow1.appendChild(scheduleRow);
+    var orientationConfigured = typeof covering.orientation === 'number' && isFinite(covering.orientation);
     var sunProtectionGroup = document.createElement('div');
     sunProtectionGroup.className = 'shutters-sun-protection-group';
     sunProtectionGroup.appendChild(
@@ -1377,7 +1387,7 @@ function renderCoveringCard(covering, index) {
             covering.sunProtectionEnabled = v;
             renderCoverings(); // re-render: sun window fields only relevant when enabled
             onChangeFired();
-        }),
+        }, !orientationConfigured),
     );
     protectionRow1.appendChild(sunProtectionGroup);
     protectionRow1.appendChild(
@@ -1385,7 +1395,7 @@ function renderCoveringCard(covering, index) {
             covering.rainProtectionEnabled = v;
             renderCoverings(); // re-render: the wind-direction tolerance field only shows while enabled
             onChangeFired();
-        }),
+        }, !orientationConfigured),
     );
     protectionRow1.appendChild(
         makeCheckbox('cov-' + index + '-windProtectionEnabled', 'windProtectionEnabled', covering.windProtectionEnabled, function (v) {

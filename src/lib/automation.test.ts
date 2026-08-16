@@ -156,6 +156,7 @@ function makeConfig(overrides: Partial<IShutterConfig> = {}): IShutterConfig {
         driverType: 'generic-position',
         coveringType: 'rolladen',
         automationEnabled: true,
+        orientation: 180,
         states: {},
         ...overrides,
     };
@@ -483,6 +484,28 @@ describe('AutomationEngine', () => {
 
             expect(controllerHandle.appliedCalls).to.deep.equal([]);
         });
+    });
+
+    it('disables sun and rain protection when orientation is missing', async () => {
+        const weather = createFakeWeather();
+        weather.rain = true;
+        weather.solarRadiation = 500;
+        const controllerHandle = createFakeController(makeConfig({ orientation: undefined }));
+        controllerHandle.currentPercent = 0;
+        const { adapter } = createFakeAdapter();
+        const engine = new AutomationEngine(
+            adapter,
+            new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+            weather.weather,
+            DEFAULT_OPTIONS,
+        );
+
+        await engine.start();
+        engine.setScheduleTarget(controllerHandle.config.id, 0);
+        engine.evaluateNow();
+
+        expect(controllerHandle.appliedCalls).to.deep.equal([{ percent: 0, reason: 'Schedule', bypass: false }]);
+        engine.stop();
     });
 
     describe('re-apply/dedupe behavior', () => {

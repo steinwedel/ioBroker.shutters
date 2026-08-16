@@ -422,7 +422,9 @@ export class AutomationEngine {
             return;
         }
 
-        const rainEnabled = config.rainProtectionEnabled ?? defaultOutdoorProtectionEnabled(config.coveringType);
+        const hasOrientation = this.hasValidOrientation(config.orientation);
+        const rainEnabled =
+            hasOrientation && (config.rainProtectionEnabled ?? defaultOutdoorProtectionEnabled(config.coveringType));
         const rainActive =
             rainEnabled &&
             evaluateRainProtection({
@@ -457,7 +459,7 @@ export class AutomationEngine {
             });
         }
 
-        const sunEnabled = config.sunProtectionEnabled ?? true;
+        const sunEnabled = hasOrientation && (config.sunProtectionEnabled ?? true);
         const sunOverrideActive = state.manualOverrideActive || nowMs < state.sunOverrideUntilMs;
         const scheduleOpen = this.scheduleTargets.get(id) === 0;
         const inWindow = this.isWithinSunWindow(config, now);
@@ -581,17 +583,18 @@ export class AutomationEngine {
         });
     }
 
+    private hasValidOrientation(orientation: number | undefined): orientation is number {
+        return orientation !== undefined && Number.isFinite(orientation) && orientation >= 0 && orientation < 360;
+    }
+
     /**
-     * Resolves whether sun protection may currently apply to a covering, based on the sun's
-     * azimuth relative to the covering's `orientation` (6.2) when both `orientation` and a
-     * location are configured, otherwise falling back to the fixed `sunWindowStart`/`sunWindowEnd`
-     * clock-time window (6.1).
+     * Resolves whether geometry-based sun protection may currently apply to a covering.
      *
-     * @param config - The covering's configuration, providing `orientation`/`orientationToleranceMinusDeg`/`orientationTolerancePlusDeg` or the `sunWindowStart`/`sunWindowEnd` fallback.
+     * @param config - The covering configuration.
      * @param now - Current time.
      */
     private isWithinSunWindow(config: IShutterConfig, now: Date): boolean {
-        if (config.orientation !== undefined && this.options.location) {
+        if (this.hasValidOrientation(config.orientation) && this.options.location) {
             const sun = getSunPosition(now, this.options.location.latitude, this.options.location.longitude);
             return isWithinOrientationBasedSunWindow({
                 sunAzimuthDeg: sun.azimuthDeg,

@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.48 (2026-08-16)
+
+* (steinwedel) **ENHANCED**: Disable per-covering sun and rain protection when orientation is missing
+
 ## 0.0.47 (2026-08-16)
 
 * (steinwedel) **FIXED**: Align the minimum sun-elevation field to the left in the Coverings UI

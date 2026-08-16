@@ -1,11 +1,11 @@
 # Context
 
 ## Current Task
-- Left-aligned the minimum sun-elevation field in the Coverings Admin UI.
+- Disabled sun and rain protection without a configured orientation.
 
 ## Key Decisions
-- The tolerance time-range preview follows the upper bound in the same row.
-- The settings group remains nested and indented below Sonnenschutz.
+- Admin toggles are disabled and values reset when orientation is cleared.
+- Runtime also gates sun and rain protection on a valid 0–359° orientation.
 - Deployment uses the central `../scripts/deploy.sh` process.
 
 ## Next Steps
