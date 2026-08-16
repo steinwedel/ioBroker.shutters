@@ -1,5 +1,7 @@
 # Changelog
-## **WORK IN PROGRESS**
+## 0.0.54 (2026-08-16)
+
+* (steinwedel) **ENHANCED**: Add a custom roller-shutter adapter icon and remove unavailable repository badges
 
 ## 0.0.53 (2026-08-16)
 

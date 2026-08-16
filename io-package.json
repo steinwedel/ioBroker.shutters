@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.53",
+    "version": "0.0.54",
     "news": {
+      "0.0.54": {
+        "en": "**ENHANCED**: Add a custom roller-shutter adapter icon and remove unavailable repository badges",
+        "de": "**VERBESSERT**: Ein benutzerdefiniertes Symbol für einen Rollladenadapter hinzufügen und die Abzeichen für nicht verfügbare Repositorys entfernen.",
+        "ru": "**УЛУЧШЕНО**: Добавлена пользовательская иконка адаптера для рольставней и удалены значки недоступного репозитория.",
+        "pt": "**APRIMORADO**: Adicionado um ícone personalizado para adaptador de persiana e removidos os avisos de repositório indisponível.",
+        "nl": "**VERBETERD**: Voeg een aangepast pictogram voor rolluikadapters toe en verwijder badges voor niet-beschikbare repositories.",
+        "fr": "**AMÉLIORÉ** : Ajout d’une icône personnalisée pour l’adaptateur de volet roulant et suppression des badges de dépôt indisponibles.",
+        "it": "**MIGLIORATO**: Aggiunta un'icona personalizzata per l'adattatore per tapparelle e rimozione dei badge del repository non disponibile.",
+        "es": "**MEJORADO**: Se agregó un ícono personalizado para el adaptador de persiana enrollable y se eliminaron las insignias de repositorio no disponibles.",
+        "pl": "**ULEPSZONE**: Dodaj niestandardową ikonę adaptera rolety i usuń niedostępne odznaki repozytorium",
+        "uk": "**ПОКРАЩЕНО**: Додано власну піктограму адаптера ролет та видалено недоступні значки репозиторію.",
+        "zh-cn": "**增强功能**：添加自定义卷帘适配器图标并移除不可用的存储库徽章"
+      },
       "0.0.53": {
         "en": "**ENHANCED**: Remove all obsolete configuration migration and compatibility code; require canonical covering IDs, plan IDs, and orientation tolerance bounds",
         "de": "**VERBESSERT**: Sämtlicher veralteter Konfigurationsmigrations- und Kompatibilitätscode wurde entfernt; kanonische Abdeckungs-IDs, Plan-IDs und Toleranzgrenzen für die Ausrichtung sind erforderlich.",
@@ -80,19 +93,6 @@
         "pl": "**ULEPSZONE**: Wyłącz ochronę przed słońcem i deszczem dla każdego pokrycia, gdy brakuje orientacji",
         "uk": "**ПОКРАЩЕНО**: Вимкнення захисту від сонця та дощу для кожного покриття, якщо відсутня орієнтація",
         "zh-cn": "**增强功能**：当方向信息缺失时，禁用每个遮盖物的遮阳和防雨功能。"
-      },
-      "0.0.47": {
-        "en": "**FIXED**: Align the minimum sun-elevation field to the left in the Coverings UI",
-        "de": "**BEHOBEN**: Das Feld für den minimalen Sonnenstand wurde in der Benutzeroberfläche für Überdachungen linksbündig ausgerichtet.",
-        "ru": "**ИСПРАВЛЕНО**: Поле минимального положения солнца в пользовательском интерфейсе «Покрытия» теперь выровнено по левому краю.",
-        "pt": "**CORRIGIDO**: Alinhar o campo de elevação solar mínima à esquerda na interface do usuário de Coberturas.",
-        "nl": "**OPGELOST**: Lijn het veld voor de minimale zonshoogte uit naar links in de gebruikersinterface van Coverings.",
-        "fr": "**CORRIGÉ** : Aligner le champ d’élévation solaire minimale à gauche dans l’interface utilisateur de Coverings",
-        "it": "**RISOLTO**: Allineare il campo dell'elevazione minima del sole a sinistra nell'interfaccia utente delle coperture.",
-        "es": "**CORREGIDO**: Alinee el campo de elevación solar mínima a la izquierda en la interfaz de usuario de Cubiertas.",
-        "pl": "**NAPRAWIONO**: Wyrównaj pole minimalnej wysokości słońca do lewej strony w interfejsie użytkownika Pokrycia",
-        "uk": "**ВИПРАВЛЕНО**: Вирівняти поле мінімальної висоти сонця ліворуч у інтерфейсі Coverings.",
-        "zh-cn": "**已修复**：在“覆盖物”用户界面中，将最小太阳高度角字段向左对齐。"
       }
     },
     "titleLang": {
