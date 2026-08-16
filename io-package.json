@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.32",
+    "version": "0.0.33",
     "news": {
+      "0.0.33": {
+        "en": "**ENHANCED**: Move the Coverings plan selector into the automation functions section",
+        "de": "**VERBESSERT**: Verschieben Sie die Planauswahl für die Bedeckungen in den Bereich „Automatisierungsfunktionen“.",
+        "ru": "**УЛУЧШЕНО**: Переместите селектор плана покрытия в раздел функций автоматизации.",
+        "pt": "**MELHORADO**: Mova o seletor de planos de revestimento para a seção de funções de automação.",
+        "nl": "**VERBETERD**: Verplaats de planselector voor bekledingen naar het gedeelte met automatiseringsfuncties.",
+        "fr": "**AMÉLIORÉ** : Déplacez le sélecteur de plan Coverings dans la section des fonctions d’automatisation.",
+        "it": "**MIGLIORATO**: Spostato il selettore del piano di copertura nella sezione delle funzioni di automazione",
+        "es": "**MEJORADO**: Mueva el selector de planes de Revestimientos a la sección de funciones de automatización.",
+        "pl": "**ULEPSZONE**: Przenieś selektor planu pokrycia do sekcji funkcji automatyzacji",
+        "uk": "**ПОКРАЩЕНО**: Переміщено селектор плану покриттів до розділу функцій автоматизації.",
+        "zh-cn": "**增强功能**：将 Coverings 方案选择器移至自动化功能部分"
+      },
       "0.0.32": {
         "en": "**FIXED**: Force Coverings automation checkboxes to the left edge",
         "de": "**BEHOBEN**: Kontrollkästchen für die Automatisierung von Abdeckungen an den linken Rand verschieben",
@@ -80,19 +93,6 @@
         "pl": "**ULEPSZONE**: Zmień nazwę i przenieś opcję automatyzacji harmonogramu dla każdego pokrycia do sekcji funkcji automatyzacji",
         "uk": "**ПОКРАЩЕНО**: Перейменуйте та перемістіть опцію автоматизації розкладу для кожного покриття до розділу функцій автоматизації",
         "zh-cn": "**增强功能**：重命名并将按覆盖范围划分的日程自动化选项移至自动化功能部分。"
-      },
-      "0.0.26": {
-        "en": "**ENHANCED**: Improve Coverings Admin UI terminology and update foreign position-state labels when position mapping is inverted",
-        "de": "**VERBESSERT**: Die Terminologie der Benutzeroberfläche für Coverings-Administration wurde verbessert und die Bezeichnungen für fremde Positionen und Zustände wurden aktualisiert, wenn die Positionszuordnung invertiert wird.",
-        "ru": "**УЛУЧШЕНО**: Улучшена терминология в административном интерфейсе Coverings и обновлены сторонние метки состояния позиции при инвертировании сопоставления позиций.",
-        "pt": "**APRIMORADO**: Melhoria na terminologia da interface administrativa de Coberturas e atualização dos rótulos de estado de posição estrangeira quando o mapeamento de posição for invertido.",
-        "nl": "**VERBETERD**: Verbeter de terminologie in de Coverings Admin UI en werk de labels voor externe posities en statussen bij wanneer de positietoewijzing wordt omgekeerd.",
-        "fr": "**AMÉLIORÉ** : Amélioration de la terminologie de l’interface d’administration de Coverings et mise à jour des étiquettes d’état de position étrangères lorsque le mappage de position est inversé.",
-        "it": "**MIGLIORATO**: Migliorata la terminologia dell'interfaccia utente di amministrazione delle coperture e aggiornate le etichette dello stato della posizione esterna quando la mappatura della posizione è invertita.",
-        "es": "**MEJORADO**: Se mejora la terminología de la interfaz de administración de Coverings y se actualizan las etiquetas de estado de posición externas cuando se invierte la asignación de posiciones.",
-        "pl": "**ULEPSZONE**: Ulepszono terminologię interfejsu użytkownika administratora Coverings i zaktualizowano etykiety pozycji-stanu obcych, gdy mapowanie pozycji jest odwrócone",
-        "uk": "**ПОКРАЩЕНО**: Покращено термінологію інтерфейсу адміністратора Coverings та оновлено мітки станів позицій, коли відображення позицій інвертовано.",
-        "zh-cn": "**增强功能**：改进 Coverings 管理界面术语，并在位置映射反转时更新外文位置状态标签。"
       }
     },
     "titleLang": {

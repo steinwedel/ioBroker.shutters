@@ -1,11 +1,11 @@
 # Context
 
 ## Current Task
-- Forced Coverings automation functions to the left edge of their rows.
+- Moved the Coverings plan selector directly below Zeitautomatik.
 
 ## Key Decisions
-- Override Materialize's automatic column margin for automation checkboxes.
-- Primary field order: Bezeichnung, Ausrichtung, Behangtyp, System.
+- The plan selection behavior and stored `areaId` remain unchanged.
+- Automation functions retain their vertical left-aligned layout.
 - Deployment uses the central `../scripts/deploy.sh` process.
 
 ## Next Steps

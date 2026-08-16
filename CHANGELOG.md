@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.33 (2026-08-16)
+
+* (steinwedel) **ENHANCED**: Move the Coverings plan selector into the automation functions section
+
 ## 0.0.32 (2026-08-16)
 
 * (steinwedel) **FIXED**: Force Coverings automation checkboxes to the left edge

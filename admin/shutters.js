@@ -1235,17 +1235,6 @@ function renderCoveringCard(covering, index) {
     );
     card.appendChild(row2);
 
-    var row3 = document.createElement('div');
-    row3.className = 'shutters-row row';
-    row3.appendChild(
-        makeSelectPlain('cov-' + index + '-area', 'area', covering.areaId, getPlanOptions(), 3, function (v) {
-            covering.areaId = v;
-            delete covering.area;
-            onChangeFired();
-        }),
-    );
-    card.appendChild(row3);
-
     var statesTitle = document.createElement('div');
     statesTitle.className = 'shutters-section-title shutters-states-section-title';
     statesTitle.innerText = _('statesSectionTitle');
@@ -1330,6 +1319,13 @@ function renderCoveringCard(covering, index) {
     protectionRow1.appendChild(
         makeCheckbox('cov-' + index + '-automationEnabled', 'automationEnabled', covering.automationEnabled, function (v) {
             covering.automationEnabled = v;
+            onChangeFired();
+        }),
+    );
+    protectionRow1.appendChild(
+        makeSelectPlain('cov-' + index + '-area', 'area', covering.areaId, getPlanOptions(), 3, function (v) {
+            covering.areaId = v;
+            delete covering.area;
             onChangeFired();
         }),
     );
