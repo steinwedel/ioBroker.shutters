@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.34",
+    "version": "0.0.35",
     "news": {
+      "0.0.35": {
+        "en": "**NEW**: Add a per-covering Rolladensperre switch to enable or disable door-contact protection",
+        "de": "**NEU**: Fügen Sie einen Rolladensperre-Schalter pro Abdeckung hinzu, um den Türkontaktschutz zu aktivieren oder zu deaktivieren.",
+        "ru": "**НОВИНКА**: Добавьте переключатель Rolladensperre для каждого покрытия, позволяющий включать или отключать защиту от случайного нажатия на дверь.",
+        "pt": "**NOVO**: Adicione um interruptor Rolladensperre por cobertura para ativar ou desativar a proteção do contato da porta.",
+        "nl": "**NIEUW**: Voeg een Rolladensperre-schakelaar per afdekking toe om de deurcontactbeveiliging in of uit te schakelen.",
+        "fr": "**NOUVEAU** : Ajout d’un interrupteur Rolladensperre par couvercle pour activer ou désactiver la protection contre les contacts de porte",
+        "it": "**NOVITÀ**: Aggiungi un interruttore Rolladensperre per ogni copertura per attivare o disattivare la protezione del contatto porta",
+        "es": "**NUEVO**: Añada un interruptor Rolladensperre por cubierta para activar o desactivar la protección de contacto de la puerta.",
+        "pl": "**NOWOŚĆ**: Dodaj przełącznik Rolladensperre dla każdego z drzwi, aby włączyć lub wyłączyć ochronę przed kontaktem z drzwiami",
+        "uk": "**НОВИНКА**: Додайте перемикач Rolladensperre для кожного покриття, щоб увімкнути або вимкнути захист від дверного контакту.",
+        "zh-cn": "**新增**：可添加一个用于开启或关闭门触点保护的 Rolladensperre 开关"
+      },
       "0.0.34": {
         "en": "**ENHANCED**: Position the Coverings plan selector beside the schedule automation option",
         "de": "**VERBESSERT**: Platzieren Sie die Planauswahl für die Abdeckungen neben der Option für die Terminautomatisierung.",
@@ -80,19 +93,6 @@
         "pl": "**NAPRAWIONO**: Wyrównanie samodzielnego pola ID okładek do lewej strony",
         "uk": "**ВИПРАВЛЕНО**: Вирівняти окреме поле ідентифікатора покриття ліворуч",
         "zh-cn": "**已修复**：将独立的 Coverings ID 字段左对齐"
-      },
-      "0.0.28": {
-        "en": "**ENHANCED**: Reorganize the Coverings card layout and clarify linked hardware terminology",
-        "de": "**VERBESSERT**: Das Layout der Coverings-Karten wurde neu organisiert und die zugehörige Hardware-Terminologie präzisiert.",
-        "ru": "**УЛУЧШЕНО**: Реорганизована структура карточек с описанием покрытий и уточнена терминология, связанная с используемым оборудованием.",
-        "pt": "**APRIMORADO**: Reorganização do layout do cartão de Coberturas e esclarecimento da terminologia de hardware relacionada.",
-        "nl": "**VERBETERD**: De lay-out van de Coverings-kaart is opnieuw georganiseerd en de terminologie voor gekoppelde hardware is verduidelijkt.",
-        "fr": "**AMÉLIORÉ** : Réorganisation de la mise en page des cartes Coverings et clarification de la terminologie matérielle associée.",
-        "it": "**MIGLIORATO**: Riorganizzato il layout della scheda Rivestimenti e chiarita la terminologia relativa all'hardware collegato.",
-        "es": "**MEJORADO**: Se ha reorganizado el diseño de la tarjeta Coverings y se ha aclarado la terminología del hardware vinculado.",
-        "pl": "**ULEPSZONE**: Zreorganizowano układ karty Coverings i wyjaśniono terminologię dotyczącą powiązanego sprzętu",
-        "uk": "**ПОКРАЩЕНО**: Реорганізовано макет картки «Покриття» та уточнено термінологію, пов’язану з обладнанням.",
-        "zh-cn": "**增强功能**：重新组织 Coverings 卡片布局并明确相关硬件术语"
       }
     },
     "titleLang": {

@@ -165,6 +165,7 @@ export interface IShutterConfig {
      * that, while open, suppresses automated closing actions for this
      * covering (plan section 7e). Undefined disables door protection.
      */
+    doorProtectionEnabled?: boolean;
     doorContactStateId?: string;
     /** Whether a false door-contact value indicates an open door or window. */
     invertDoorContact?: boolean;

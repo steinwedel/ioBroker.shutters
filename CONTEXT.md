@@ -1,11 +1,11 @@
 # Context
 
 ## Current Task
-- Positioned the Coverings plan selector directly to the right of Zeitautomatik.
+- Added a per-covering Rolladensperre switch for door-contact handling.
 
 ## Key Decisions
-- The plan selection behavior and stored `areaId` remain unchanged.
-- Remaining automation functions retain their vertical left-aligned layout.
+- Existing door-contact configurations remain active unless explicitly disabled.
+- Disabling the switch preserves the contact ID but stops subscription, status activation, and automated closing clamps.
 - Deployment uses the central `../scripts/deploy.sh` process.
 
 ## Next Steps

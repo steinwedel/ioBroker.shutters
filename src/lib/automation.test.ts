@@ -112,16 +112,21 @@ function createFakeController(config: IShutterConfig, persistedOverrideUntil = 0
 function createFakeAdapter(): {
     adapter: ioBroker.Adapter;
     foreignStates: Map<string, ioBroker.State>;
+    subscribedStateIds: string[];
     emitForeignStateChange: (id: string, val: ioBroker.StateValue) => void;
 } {
     const foreignStates = new Map<string, ioBroker.State>();
+    const subscribedStateIds: string[] = [];
     const listeners: ((id: string, state: ioBroker.State | null | undefined) => void)[] = [];
 
     const adapter = {
         log: { error: () => {}, warn: () => {} },
         setInterval: () => ({}) as unknown as ioBroker.Interval,
         clearInterval: () => {},
-        subscribeForeignStatesAsync: async () => {},
+        subscribeForeignStatesAsync: (id: string) => {
+            subscribedStateIds.push(id);
+            return Promise.resolve();
+        },
         // eslint-disable-next-line @typescript-eslint/require-await -- intentionally synchronous test double for an async adapter method
         getForeignStateAsync: async (id: string) => foreignStates.get(id),
         on: (event: string, listener: (id: string, state: ioBroker.State | null | undefined) => void) => {
@@ -135,6 +140,7 @@ function createFakeAdapter(): {
     return {
         adapter,
         foreignStates,
+        subscribedStateIds,
         emitForeignStateChange: (id: string, val: ioBroker.StateValue) => {
             for (const listener of listeners) {
                 listener(id, { val, ack: true } as ioBroker.State);
@@ -1133,6 +1139,35 @@ describe('AutomationEngine', () => {
                 { percent: 100, reason: 'Schedule', bypass: false },
             ]);
 
+            engine.stop();
+        });
+
+        it('does not subscribe to or clamp a disabled door contact', async () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(
+                makeConfig({
+                    doorContactStateId: 'foreign.door',
+                    doorProtectionEnabled: false,
+                    sunProtectionEnabled: false,
+                }),
+            );
+            controllerHandle.currentPercent = 20;
+            const { adapter, foreignStates, subscribedStateIds } = createFakeAdapter();
+            foreignStates.set('foreign.door', { val: true, ack: true } as ioBroker.State);
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            await engine.start();
+            engine.setScheduleTarget(controllerHandle.config.id, 100);
+            engine.evaluateNow();
+
+            expect(subscribedStateIds).not.to.include('foreign.door');
+            expect(controllerHandle.appliedCalls).to.deep.equal([{ percent: 100, reason: 'Schedule', bypass: false }]);
+            expect(controllerHandle.doorProtectionActiveCalls).to.deep.equal([false, false]);
             engine.stop();
         });
 

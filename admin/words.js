@@ -124,6 +124,7 @@ systemDictionary = {
     windProtectionEnabled: { en: 'Wind protection', de: 'Windschutz' },
     frostProtectionEnabled: { en: 'Frost protection', de: 'Frostschutz' },
     nightCoolingEnabled: { en: 'Night cooling', de: 'Nachtauskühlung' },
+    doorProtectionEnabled: { en: 'Door contact protection', de: 'Rolladensperre' },
     nightCoolingIndoorTempStateId: { en: 'Indoor temperature state ID', de: 'Innentemperatur-State-ID' },
     doorContactStateId: { en: 'Door contact state ID', de: 'Türkontakt-State-ID' },
     relayOpenRuntimeSecs: { en: 'Relay opening runtime (s)', de: 'Relais-Öffnungslaufzeit (s)' },

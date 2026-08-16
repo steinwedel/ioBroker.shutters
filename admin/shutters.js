@@ -226,6 +226,7 @@ function shuttersEnsureDefaults(settings) {
     settings.shutters.forEach(function (s) {
         s.states = s.states || {};
         if (s.automationEnabled === undefined) s.automationEnabled = true;
+        if (s.doorProtectionEnabled === undefined) s.doorProtectionEnabled = true;
         if (!s.areaId && s.area) {
             var matchingAreas = settings.areas.filter(function (area) {
                 return area.name === s.area;
@@ -267,6 +268,7 @@ function shuttersInitAdmin(settings, onChange) {
             driverType: 'generic-position',
             coveringType: 'rolladen',
             automationEnabled: true,
+            doorProtectionEnabled: true,
             states: {},
         });
         setCardCollapsed('coverings', shuttersConfig.shutters.length - 1, false);
@@ -1362,6 +1364,12 @@ function renderCoveringCard(covering, index) {
         makeCheckbox('cov-' + index + '-nightCoolingEnabled', 'nightCoolingEnabled', covering.nightCoolingEnabled, function (v) {
             covering.nightCoolingEnabled = v;
             renderCoverings(); // re-render: indoor-temperature field only relevant when enabled
+            onChangeFired();
+        }),
+    );
+    protectionRow1.appendChild(
+        makeCheckbox('cov-' + index + '-doorProtectionEnabled', 'doorProtectionEnabled', covering.doorProtectionEnabled, function (v) {
+            covering.doorProtectionEnabled = v;
             onChangeFired();
         }),
     );

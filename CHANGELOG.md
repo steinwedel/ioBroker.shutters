@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.35 (2026-08-16)
+
+* (steinwedel) **NEW**: Add a per-covering Rolladensperre switch to enable or disable door-contact protection
+
 ## 0.0.34 (2026-08-16)
 
 * (steinwedel) **ENHANCED**: Position the Coverings plan selector beside the schedule automation option

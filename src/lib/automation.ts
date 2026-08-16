@@ -190,8 +190,9 @@ export class AutomationEngine {
         const indoorTempStateIds = new Set<string>();
         for (const controller of this.controllers.values()) {
             const config = controller.getConfig();
-            if (config.doorContactStateId) {
-                doorStateIds.add(config.doorContactStateId);
+            const doorContactStateId = this.getEffectiveDoorContactStateId(config);
+            if (doorContactStateId) {
+                doorStateIds.add(doorContactStateId);
             }
             if (config.nightCoolingIndoorTempStateId) {
                 indoorTempStateIds.add(config.nightCoolingIndoorTempStateId);
@@ -369,6 +370,10 @@ export class AutomationEngine {
         }
     }
 
+    private getEffectiveDoorContactStateId(config: IShutterConfig): string | undefined {
+        return (config.doorProtectionEnabled ?? true) ? config.doorContactStateId : undefined;
+    }
+
     private evaluateCovering(id: string, controller: ShutterController, now: Date, nowMs: number): void {
         const config = controller.getConfig();
         const state = this.states.get(id);
@@ -378,8 +383,9 @@ export class AutomationEngine {
 
         // Written unconditionally, independent of which priority branch below ends up applying -
         // see `ShutterController.setDoorProtectionActive()` (plan section 3/7e).
-        const doorOpenNow = config.doorContactStateId
-            ? (this.doorOpenByStateId.get(config.doorContactStateId) ?? false) !== (config.invertDoorContact ?? false)
+        const doorContactStateId = this.getEffectiveDoorContactStateId(config);
+        const doorOpenNow = doorContactStateId
+            ? (this.doorOpenByStateId.get(doorContactStateId) ?? false) !== (config.invertDoorContact ?? false)
             : false;
         controller.setDoorProtectionActive(doorOpenNow).catch(err => {
             this.adapter.log.error(
@@ -412,14 +418,7 @@ export class AutomationEngine {
             state.nightCoolingActive = false;
             state.sunActive = false;
             this.setProtectionActivityStates(id, controller, { windProtection: true });
-            this.applyTarget(
-                id,
-                controller,
-                safePosition(config.coveringType),
-                'Wind protection',
-                config.doorContactStateId,
-                true,
-            );
+            this.applyTarget(id, controller, safePosition(config.coveringType), 'Wind protection', true);
             return;
         }
 
@@ -439,7 +438,7 @@ export class AutomationEngine {
             state.sunActive = false;
             this.setProtectionActivityStates(id, controller, { rainProtection: true });
             const target = config.rainTargetPercent ?? protectedPosition(config.coveringType);
-            this.applyTarget(id, controller, target, 'Rain protection', config.doorContactStateId);
+            this.applyTarget(id, controller, target, 'Rain protection');
             return;
         }
 
@@ -505,7 +504,7 @@ export class AutomationEngine {
             state.nightCoolingActive = false;
             this.setProtectionActivityStates(id, controller, { sunProtection: true });
             const target = config.sunTargetPercent ?? 70;
-            this.applyTarget(id, controller, target, 'Sun protection', config.doorContactStateId);
+            this.applyTarget(id, controller, target, 'Sun protection');
             return;
         }
 
@@ -559,7 +558,7 @@ export class AutomationEngine {
                 });
             if (state.nightCoolingActive) {
                 this.setProtectionActivityStates(id, controller, { nightCooling: true });
-                this.applyTarget(id, controller, 0, 'Night cooling', config.doorContactStateId);
+                this.applyTarget(id, controller, 0, 'Night cooling');
                 return;
             }
         } else {
@@ -567,7 +566,7 @@ export class AutomationEngine {
         }
 
         this.setProtectionActivityStates(id, controller, {});
-        this.applyTarget(id, controller, scheduleTarget, 'Schedule', config.doorContactStateId);
+        this.applyTarget(id, controller, scheduleTarget, 'Schedule');
     }
 
     private setProtectionActivityStates(
@@ -613,7 +612,6 @@ export class AutomationEngine {
      * @param controller - The covering's controller.
      * @param desiredPercent - Target covering height/extension, 0-100, before door-contact clamping.
      * @param reason - Human-readable reason for `statusText`, see `ShutterController.applyAutomatedPosition()`.
-     * @param doorContactStateId - The covering's configured door-contact state ID, if any.
      * @param bypassMotorProtection - Forwarded to `applyAutomatedPosition()`; set for wind protection (7a), which must never wait on the motor-protection cooldown (7d).
      */
     private applyTarget(
@@ -621,13 +619,13 @@ export class AutomationEngine {
         controller: ShutterController,
         desiredPercent: number,
         reason: string,
-        doorContactStateId: string | undefined,
         bypassMotorProtection = false,
     ): void {
         const currentPercent = controller.getCurrentCoveringPercent();
+        const config = controller.getConfig();
+        const doorContactStateId = this.getEffectiveDoorContactStateId(config);
         const doorOpen = doorContactStateId
-            ? (this.doorOpenByStateId.get(doorContactStateId) ?? false) !==
-              (controller.getConfig().invertDoorContact ?? false)
+            ? (this.doorOpenByStateId.get(doorContactStateId) ?? false) !== (config.invertDoorContact ?? false)
             : false;
         const target = clampForDoorProtection(desiredPercent, currentPercent, doorOpen);
 
