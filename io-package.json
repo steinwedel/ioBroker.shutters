@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.44",
+    "version": "0.0.45",
     "news": {
+      "0.0.45": {
+        "en": "**ENHANCED**: Refine the Coverings sun-protection cloud cover and tolerance field layout",
+        "de": "**VERBESSERT**: Verfeinerung des Layouts für Sonnenschutz, Wolkenabdeckung und Toleranzfelder der Abdeckungen.",
+        "ru": "**УЛУЧШЕНО**: Уточнено расположение полей с данными о защите от солнца, облачности и допустимых отклонениях.",
+        "pt": "**APRIMORADO**: Refine o layout do campo de cobertura de nuvens e tolerância à proteção solar do Coverings.",
+        "nl": "**VERBETERD**: Verfijn de lay-out van het veld voor zonwering, bewolking en tolerantie.",
+        "fr": "**AMÉLIORÉ** : Amélioration de la disposition des champs de protection solaire, de couverture nuageuse et de tolérance",
+        "it": "**MIGLIORATO**: Perfezionata la disposizione del campo di copertura, protezione solare, copertura nuvolosa e tolleranza.",
+        "es": "**MEJORADO**: Perfeccionamiento de la cobertura de nubes de protección solar y la disposición del campo de tolerancia de Coverings",
+        "pl": "**ULEPSZONE**: Udoskonalono układ zachmurzenia i pola tolerancji ochrony przeciwsłonecznej Coverings",
+        "uk": "**ПОКРАЩЕНО**: Удосконалено макет поля допуску та хмарності для сонцезахисних покриттів.",
+        "zh-cn": "**增强功能**：优化遮阳云层覆盖和容差字段布局"
+      },
       "0.0.44": {
         "en": "**ENHANCED**: Refine the Coverings sun-protection field labels, alignment, and row layout",
         "de": "**VERBESSERT**: Optimierte Beschriftung der Sonnenschutzfelder, Ausrichtung und Reihenlayout",
@@ -80,19 +93,6 @@
         "pl": "**ULEPSZONE**: Umieść stan zatrzymania obok System i utrzymuj widoczną etykietę System",
         "uk": "**ПОКРАЩЕНО**: Розмістіть Stop-State поруч із System та залиште мітку System видимою.",
         "zh-cn": "**增强功能**：将“停止状态”放在“系统”旁边，并保持“系统”标签可见。"
-      },
-      "0.0.38": {
-        "en": "**ENHANCED**: Align the Coverings system selector and reorder linked position fields",
-        "de": "**VERBESSERT**: Systemauswahl für Abdeckungen ausrichten und verknüpfte Positionsfelder neu anordnen",
-        "ru": "**УЛУЧШЕНО**: Выравнивание селектора системы покрытий и изменение порядка связанных полей позиционирования.",
-        "pt": "**APRIMORADO**: Alinhe o seletor do sistema de revestimentos e reordene os campos de posição vinculados.",
-        "nl": "**VERBETERD**: Lijn de systeemselector voor bekledingen uit en herschik de gekoppelde positievelden.",
-        "fr": "**AMÉLIORÉ** : Alignez le sélecteur du système Coverings et réorganisez les champs de position liés",
-        "it": "**MIGLIORATO**: Allinea il selettore del sistema di coperture e riordina i campi di posizione collegati",
-        "es": "**MEJORADO**: Alinee el selector del sistema Coverings y reordene los campos de posición vinculados.",
-        "pl": "**ULEPSZONE**: Wyrównanie selektora systemu Coverings i zmiana kolejności powiązanych pól pozycji",
-        "uk": "**ПОКРАЩЕНО**: Вирівняйте селектор системи покриттів та змініть порядок пов’язаних полів позицій",
-        "zh-cn": "**增强功能**：调整 Coverings 系统选择器并重新排列关联位置字段"
       }
     },
     "titleLang": {

@@ -1575,7 +1575,7 @@ function renderCoveringCard(covering, index) {
             ),
         );
         var sunDetailsRow = document.createElement('div');
-        sunDetailsRow.className = 'shutters-row row';
+        sunDetailsRow.className = 'shutters-row row shutters-sun-tolerance-row';
         sunDetailsRow.appendChild(
             makeText(
                 'cov-' + index + '-orientationToleranceMinusDeg',
@@ -1641,7 +1641,7 @@ function renderCoveringCard(covering, index) {
                     'number',
                 ),
             );
-            sunOrientationRow.appendChild(
+            sunMinTempRow.appendChild(
                 makeText(
                     'cov-' + index + '-sunProtectionMaxCloudCoverPercent',
                     'sunProtectionMaxCloudCoverPercent',
@@ -1662,8 +1662,8 @@ function renderCoveringCard(covering, index) {
         // orientation is actually set.
         if (covering.orientation !== undefined) {
             var toleranceHint = document.createElement('p');
-            toleranceHint.className = 'shutters-hint';
-            sunProtectionFields.appendChild(toleranceHint);
+            toleranceHint.className = 'shutters-hint shutters-sun-tolerance-hint';
+            sunDetailsRow.appendChild(toleranceHint);
             shuttersToleranceHintElements[index] = toleranceHint;
             updateOrientationToleranceHint(index);
         }

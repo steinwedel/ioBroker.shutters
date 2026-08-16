@@ -1,10 +1,10 @@
 # Context
 
 ## Current Task
-- Placed Sonnenschutz-Mindestemperatur on its own left-aligned line.
+- Aligned the sun-tolerance lower bound and placed its time-range preview beside the upper bound.
 
 ## Key Decisions
-- The remaining sun-protection fields start on subsequent lines.
+- Behanghöhe has its own left-aligned row.
 - The settings group remains nested and indented below Sonnenschutz.
 - Deployment uses the central `../scripts/deploy.sh` process.
 
