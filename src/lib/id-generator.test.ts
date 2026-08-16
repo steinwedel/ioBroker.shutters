@@ -15,7 +15,7 @@ describe('nextAvailableCoveringId', () => {
         expect(nextAvailableCoveringId(['shutter1', 'shutter3'])).to.equal('shutter2');
     });
 
-    it('ignores unrelated, non-matching existing IDs (e.g. legacy Homematic-derived ones)', () => {
+    it('ignores unrelated, non-matching existing IDs', () => {
         expect(nextAvailableCoveringId(['hm-rpc_2_00111BE99280E9_4_LEVEL', 'shutter1'])).to.equal('shutter2');
     });
 

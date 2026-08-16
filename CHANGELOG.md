@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.53 (2026-08-16)
+
+* (steinwedel) **ENHANCED**: Remove all obsolete configuration migration and compatibility code; require canonical covering IDs, plan IDs, and orientation tolerance bounds
+
 ## 0.0.52 (2026-08-16)
 
 * (steinwedel) **ENHANCED**: Remove the unused JSONConfig admin artifact
@@ -9,7 +13,7 @@
 
 ## 0.0.50 (2026-08-16)
 
-* (steinwedel) **ENHANCED**: Migrate covering objects to device → channel → state hierarchy with legacy state compatibility
+* (steinwedel) **ENHANCED**: Migrate covering objects to the canonical device → channel → state hierarchy
 * (steinwedel) **FIXED**: Reset the adapter connection state during unload and refresh calibration documentation
 * (steinwedel) **ENHANCED**: Remove the unused vulnerable development server dependency
 * (steinwedel) **ENHANCED**: Replace the legacy Admin UI with JSONConfig and support the current holiday state model

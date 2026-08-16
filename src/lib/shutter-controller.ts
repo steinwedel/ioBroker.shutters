@@ -86,7 +86,6 @@ export class ShutterController {
     private readonly driver: IShutterDriver;
     private readonly basePath: string;
     private readonly curve: ICalibrationPoint[];
-    private readonly legacyStateNames = new Set<string>();
     private automationEnabled: boolean;
     private pendingMove: { targetPercent: number; issuedAt: number } | undefined;
     private watchdogReported = false;
@@ -121,10 +120,6 @@ export class ShutterController {
 
     private stateId(name: string): string {
         return `${this.basePath}.${STATE_CHANNELS[name]}.${name}`;
-    }
-
-    private legacyStateId(name: string): string {
-        return `${this.basePath}.${name}`;
     }
 
     /** Creates/updates all objects for this covering. Safe to call repeatedly (uses setObjectNotExists). */
@@ -382,7 +377,7 @@ export class ShutterController {
         });
 
         for (const [name] of [
-            ['area', config.areaId ?? config.area ?? ''],
+            ['area', config.areaId ?? ''],
             ['driverType', config.driverType],
             ['coveringType', config.coveringType],
         ]) {
@@ -541,9 +536,7 @@ export class ShutterController {
             native: {},
         });
 
-        await this.registerLegacyStates();
-        await this.migrateLegacyStates();
-        await this.initializeState('area', config.areaId ?? config.area ?? '');
+        await this.initializeState('area', config.areaId ?? '');
         await this.initializeState('driverType', config.driverType);
         await this.initializeState('coveringType', config.coveringType);
         await this.initializeState('automationEnabled', config.automationEnabled);
@@ -557,26 +550,6 @@ export class ShutterController {
         await this.refreshPosition();
     }
 
-    private async registerLegacyStates(): Promise<void> {
-        for (const name of Object.keys(STATE_CHANNELS)) {
-            if (await this.adapter.getObjectAsync(this.legacyStateId(name))) {
-                this.legacyStateNames.add(name);
-            }
-        }
-    }
-
-    private async migrateLegacyStates(): Promise<void> {
-        for (const name of this.legacyStateNames) {
-            if (await this.adapter.getStateAsync(this.stateId(name))) {
-                continue;
-            }
-            const legacy = await this.adapter.getStateAsync(this.legacyStateId(name));
-            if (legacy) {
-                await this.adapter.setStateAsync(this.stateId(name), { val: legacy.val, ack: true });
-            }
-        }
-    }
-
     private async initializeState(name: string, value: ioBroker.StateValue): Promise<void> {
         if (!(await this.adapter.getStateAsync(this.stateId(name)))) {
             await this.writeState(name, value, true);
@@ -585,9 +558,6 @@ export class ShutterController {
 
     private async writeState(name: string, value: ioBroker.StateValue, ack: boolean): Promise<void> {
         await this.adapter.setStateAsync(this.stateId(name), { val: value, ack });
-        if (this.legacyStateNames.has(name)) {
-            await this.adapter.setStateAsync(this.legacyStateId(name), { val: value, ack: true });
-        }
     }
 
     /** IDs of the own states this controller reacts to; use with `adapter.subscribeStates`. */
@@ -606,21 +576,6 @@ export class ShutterController {
         if (this.config.driverType === 'generic-relay') {
             ids.push(this.stateId('calibrationConfirm'), this.stateId('calibrationAbort'));
         }
-        for (const name of [
-            'position',
-            'open',
-            'close',
-            'stop',
-            'calibrate',
-            'automationEnabled',
-            'tilt',
-            'calibrationConfirm',
-            'calibrationAbort',
-        ]) {
-            if (this.legacyStateNames.has(name)) {
-                ids.push(this.legacyStateId(name));
-            }
-        }
         return ids;
     }
 
@@ -632,11 +587,6 @@ export class ShutterController {
     /** @returns The covering's stable area ID (`IShutterConfig.areaId`), or undefined if never assigned to an area. */
     public getAreaId(): string | undefined {
         return this.config.areaId;
-    }
-
-    /** @returns The covering's legacy, name-based area assignment (`IShutterConfig.area`), used only as a fallback for coverings that predate stable area IDs. */
-    public getLegacyAreaName(): string | undefined {
-        return this.config.area;
     }
 
     /** @returns Whether automation (schedule, sun/rain/wind/frost protection) is currently enabled for this covering. */
@@ -697,10 +647,7 @@ export class ShutterController {
             return false;
         }
 
-        const legacyName = [...this.legacyStateNames].find(name => id === this.legacyStateId(name));
-        const canonicalId = legacyName ? this.stateId(legacyName) : id;
-
-        switch (canonicalId) {
+        switch (id) {
             case this.stateId('position'):
                 await this.commandPosition(Number(state.val));
                 return true;

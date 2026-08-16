@@ -1,12 +1,12 @@
 # Context
 
 ## Current Task
-- Removed the unused JSONConfig artifact and restored Materialize as the only Admin UI.
+- Removed all obsolete configuration migration and compatibility code after verifying production uses canonical IDs, plan assignments, and tolerance bounds.
 
 ## Key Decisions
 - `adminUI.config` must remain `materialize`; never activate JSONConfig.
-- `jsonConfig.json` has been removed and is not maintained.
-- Covering state hierarchy preserves legacy direct-state compatibility.
+- Canonical state `shutter1.control.position` exists on the target system.
+- Covering states use only the canonical device → channel → state hierarchy.
 
 ## Next Steps
-- Run a real Compact Mode restart and legacy-object migration test before stable release.
+- Run a real Compact Mode restart before stable release.

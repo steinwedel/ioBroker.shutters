@@ -40,8 +40,6 @@ export interface IShutterConfig {
     coveringType: CoveringType;
     /** Stable ID of the assigned area. */
     areaId?: string;
-    /** Legacy area name, retained only for configuration migration. */
-    area?: string;
     /** Window orientation in degrees (0-359, compass, clockwise from North), used to derive the active sun-protection window (6.2). */
     orientation?: number;
     /** Whether this covering participates in automated control at all. */
@@ -77,9 +75,8 @@ export interface IShutterConfig {
      * relative to it; sun protection may only apply while the sun's azimuth lies within
      * `orientation + orientationToleranceMinusDeg` .. `orientation + orientationTolerancePlusDeg`. The
      * admin UI auto-fills this with -60 whenever a covering with sun protection enabled is shown and it
-     * is still unset, so no runtime default is needed for coverings configured through the UI; a
-     * startup migration additionally converts any covering still using the old, single
-     * `orientationToleranceDeg` field. Only used when `orientation` is set.
+     * is still unset, so no runtime default is needed for coverings configured through the UI. Only
+     * used when `orientation` is set.
      */
     orientationToleranceMinusDeg?: number;
     /** Upper bound (typically positive) of the active sun-azimuth range, see `orientationToleranceMinusDeg`. Auto-filled with +60 under the same conditions. */

@@ -4,7 +4,6 @@
  */
 
 import * as utils from '@iobroker/adapter-core';
-import { normalizeAreaAssignments } from './lib/area-assignment';
 import { AutomationEngine } from './lib/automation';
 import { GroupController } from './lib/group-controller';
 import { type IIcalTableEvent, resolveIcalOverridesForDay } from './lib/ical';
@@ -121,16 +120,6 @@ class Shutters extends utils.Adapter {
             },
             native: {},
         });
-
-        if (await this.migrateLegacyCoveringIds()) {
-            return;
-        }
-        if (await this.migrateAreaAssignments()) {
-            return;
-        }
-        if (await this.migrateOrientationTolerance()) {
-            return;
-        }
 
         await this.createShutterControllers();
         await this.createGroupControllers();
@@ -255,7 +244,7 @@ class Shutters extends utils.Adapter {
                 continue;
             }
             const targetPercent = action === 'open' ? 0 : 100;
-            for (const [id] of this.matchingControllers(area.id, area.name)) {
+            for (const [id] of this.matchingControllers(area.id)) {
                 this.automationEngine.setScheduleTarget(id, targetPercent);
             }
         }
@@ -507,9 +496,9 @@ class Shutters extends utils.Adapter {
         return undefined;
     }
 
-    private onScheduleTrigger(areaId: string, areaName: string, action: 'open' | 'close'): void {
+    private onScheduleTrigger(areaId: string, _areaName: string, action: 'open' | 'close'): void {
         const targetPercent = action === 'open' ? 0 : 100;
-        for (const [id] of this.matchingControllers(areaId, areaName)) {
+        for (const [id] of this.matchingControllers(areaId)) {
             this.automationEngine?.setScheduleTarget(id, targetPercent);
         }
         // Re-evaluate immediately rather than waiting for the next periodic tick, so a covering that
@@ -520,16 +509,12 @@ class Shutters extends utils.Adapter {
 
     /**
      * @param areaId - Stable area ID to match against `ShutterController.getAreaId()`.
-     * @param areaName - Legacy area name, matched only for coverings that predate stable area IDs, see `ShutterController.getLegacyAreaName()`.
      * @returns Every automation-enabled covering assigned to the given area, as `[id, controller]` pairs.
      */
-    private matchingControllers(areaId: string, areaName: string): [string, ShutterController][] {
+    private matchingControllers(areaId: string): [string, ShutterController][] {
         const matches: [string, ShutterController][] = [];
         for (const [id, controller] of this.controllers) {
-            const matchesArea =
-                controller.getAreaId() === areaId ||
-                (!controller.getAreaId() && controller.getLegacyAreaName() === areaName);
-            if (matchesArea && controller.isAutomationEnabled()) {
+            if (controller.getAreaId() === areaId && controller.isAutomationEnabled()) {
                 matches.push([id, controller]);
             }
         }
@@ -618,131 +603,6 @@ class Shutters extends utils.Adapter {
         }
 
         return result;
-    }
-
-    /**
-     * One-time startup migration: renames every covering whose `id` does not already match the
-     * sequential "shutter<N>" scheme (e.g. a legacy ID derived from the source system's state ID,
-     * before `nextAvailableCoveringId` was introduced) to a fresh sequential ID. The old covering's
-     * entire state tree is deleted (a clean one is created under the new ID once this method returns
-     * and the pending config change restarts the instance); every `groups[].memberIds` and
-     * `scenes[].targets[].coveringId` reference to a renamed covering is rewritten to match, so
-     * existing groups/scenes keep working. Coverings already using the new scheme are left completely
-     * untouched (their states/history are not affected).
-     *
-     * @returns True if any covering was renamed (and the config was persisted, which triggers the usual
-     *   adapter restart for a config change - callers should stop the rest of `onReady()` in that case).
-     */
-    private async migrateLegacyCoveringIds(): Promise<boolean> {
-        const shutters = this.config.shutters ?? [];
-        const legacyIdPattern = /^shutter\d+$/;
-        const legacyShutters = shutters.filter(s => !legacyIdPattern.test(s.id));
-        if (legacyShutters.length === 0) {
-            return false;
-        }
-
-        const existingIds = new Set(shutters.map(s => s.id));
-        const idMap = new Map<string, string>();
-        for (const covering of legacyShutters) {
-            const newId = nextAvailableCoveringId(existingIds);
-            existingIds.add(newId);
-            idMap.set(covering.id, newId);
-        }
-
-        this.log.info(
-            `Migrating ${idMap.size} covering(s) to the new sequential ID scheme: ${Array.from(idMap.entries())
-                .map(([oldId, newId]) => `"${oldId}" -> "${newId}"`)
-                .join(', ')}`,
-        );
-
-        for (const oldId of idMap.keys()) {
-            try {
-                await this.delObjectAsync(`shutters.${oldId}`, { recursive: true });
-            } catch (err) {
-                this.log.warn(`Could not delete the old state tree for covering "${oldId}": ${(err as Error).message}`);
-            }
-        }
-
-        const updatedShutters = shutters.map(s => ({ ...s, id: idMap.get(s.id) ?? s.id }));
-        const updatedGroups = (this.config.groups ?? []).map(group => ({
-            ...group,
-            memberIds: group.memberIds.map(id => idMap.get(id) ?? id),
-        }));
-        const updatedScenes = (this.config.scenes ?? []).map(scene => ({
-            ...scene,
-            targets: scene.targets.map(target => ({
-                ...target,
-                coveringId: idMap.get(target.coveringId) ?? target.coveringId,
-            })),
-        }));
-
-        await this.extendForeignObjectAsync(`system.adapter.${this.namespace}`, {
-            native: { shutters: updatedShutters, groups: updatedGroups, scenes: updatedScenes },
-        });
-        return true;
-    }
-
-    private async migrateAreaAssignments(): Promise<boolean> {
-        const result = normalizeAreaAssignments(this.config.areas ?? [], this.config.shutters ?? []);
-        if (!result.changed) {
-            return false;
-        }
-
-        for (const name of result.ambiguousAreaNames) {
-            this.log.warn(`Could not migrate covering assignment for duplicate area name "${name}".`);
-        }
-        await this.extendForeignObjectAsync(`system.adapter.${this.namespace}`, {
-            native: { areas: result.areas, shutters: result.shutters },
-        });
-        return true;
-    }
-
-    /**
-     * One-time startup migration: replaces the old, single `orientationToleranceDeg` field (a
-     * symmetric ± half-width) with the separate `orientationToleranceMinusDeg`/`orientationTolerancePlusDeg`
-     * bounds it was superseded by (plan section 6.2), on every covering that still has the old field
-     * set to a number. The previously configured tolerance is preserved symmetrically on both sides
-     * (`-orientationToleranceDeg`/`+orientationToleranceDeg`) so existing behavior does not change.
-     *
-     * The legacy field is explicitly overwritten with `null` (not simply omitted) in the persisted
-     * patch: `extendForeignObjectAsync` deep-merges the patch into the stored object and never deletes
-     * a key just because it is absent from the patch, so omitting it here would silently leave the old
-     * value in storage and make this migration re-trigger (and the adapter restart) forever.
-     *
-     * @returns True if any covering was migrated (and the config was persisted, which triggers the
-     *   usual adapter restart for a config change - callers should stop the rest of `onReady()` in that
-     *   case).
-     */
-    private async migrateOrientationTolerance(): Promise<boolean> {
-        const shutters = this.config.shutters ?? [];
-        let changed = false;
-        const updatedShutters = shutters.map(shutter => {
-            const legacyShutter = shutter as IShutterConfig & { orientationToleranceDeg?: number | null };
-            const legacy = legacyShutter.orientationToleranceDeg;
-            if (typeof legacy !== 'number') {
-                // Either never set, or already migrated in a previous pass (left behind as `null`, see
-                // above) - nothing to do either way.
-                return shutter;
-            }
-            changed = true;
-            return {
-                ...legacyShutter,
-                orientationToleranceDeg: null,
-                orientationToleranceMinusDeg: legacyShutter.orientationToleranceMinusDeg ?? -legacy,
-                orientationTolerancePlusDeg: legacyShutter.orientationTolerancePlusDeg ?? legacy,
-            };
-        });
-        if (!changed) {
-            return false;
-        }
-
-        this.log.info(
-            'Migrating covering(s) from the old, single "orientationToleranceDeg" field to separate minus/plus tolerance bounds.',
-        );
-        await this.extendForeignObjectAsync(`system.adapter.${this.namespace}`, {
-            native: { shutters: updatedShutters },
-        });
-        return true;
     }
 
     /**

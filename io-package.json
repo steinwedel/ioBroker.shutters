@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.52",
+    "version": "0.0.53",
     "news": {
+      "0.0.53": {
+        "en": "**ENHANCED**: Remove all obsolete configuration migration and compatibility code; require canonical covering IDs, plan IDs, and orientation tolerance bounds",
+        "de": "**VERBESSERT**: Sämtlicher veralteter Konfigurationsmigrations- und Kompatibilitätscode wurde entfernt; kanonische Abdeckungs-IDs, Plan-IDs und Toleranzgrenzen für die Ausrichtung sind erforderlich.",
+        "ru": "**УЛУЧШЕНО**: Удален весь устаревший код миграции конфигурации и обеспечения совместимости; требуется использование канонических идентификаторов покрытий, идентификаторов планов и границ допуска ориентации.",
+        "pt": "**APRIMORADO**: Remove todo o código obsoleto de migração de configuração e compatibilidade; exige IDs de cobertura canônicos, IDs de plano e limites de tolerância de orientação.",
+        "nl": "**VERBETERD**: Verwijder alle verouderde configuratiemigratie- en compatibiliteitscode; vereis canonieke dekkings-ID's, plan-ID's en oriëntatietolerantiegrenzen.",
+        "fr": "**AMÉLIORÉ** : Suppression de tout le code obsolète de migration de configuration et de compatibilité ; exigence d’identifiants de couverture canoniques, d’identifiants de plan et de limites de tolérance d’orientation.",
+        "it": "**MIGLIORATO**: Rimossi tutti i codici obsoleti di migrazione e compatibilità della configurazione; richiesti ID di copertura canonici, ID di piano e limiti di tolleranza dell'orientamento",
+        "es": "**MEJORADO**: Eliminar todo el código obsoleto de migración y compatibilidad de configuraciones; requerir identificadores de cobertura canónicos, identificadores de plan y límites de tolerancia de orientación.",
+        "pl": "**ULEPSZONE**: Usuń cały przestarzały kod migracji konfiguracji i zgodności; wymagaj kanonicznych identyfikatorów obejmujących, identyfikatorów planów i ograniczeń tolerancji orientacji",
+        "uk": "**ПОКРАЩЕНО**: Видалено весь застарілий код міграції конфігурації та сумісності; потрібні канонічні ідентифікатори покриття, ідентифікатори плану та межі допуску орієнтації.",
+        "zh-cn": "**增强功能**：移除所有过时的配置迁移和兼容性代码；要求使用规范的覆盖 ID、计划 ID 和方向容差范围。"
+      },
       "0.0.52": {
         "en": "**ENHANCED**: Remove the unused JSONConfig admin artifact",
         "de": "**VERBESSERT**: Entfernt das nicht verwendete JSONConfig-Admin-Artefakt.",
@@ -80,19 +93,6 @@
         "pl": "**NAPRAWIONO**: Wyrównaj pole minimalnej wysokości słońca do lewej strony w interfejsie użytkownika Pokrycia",
         "uk": "**ВИПРАВЛЕНО**: Вирівняти поле мінімальної висоти сонця ліворуч у інтерфейсі Coverings.",
         "zh-cn": "**已修复**：在“覆盖物”用户界面中，将最小太阳高度角字段向左对齐。"
-      },
-      "0.0.46": {
-        "en": "**FIXED**: Align the maximum cloud-cover field directly beside the sun-protection minimum temperature",
-        "de": "**BEHOBEN**: Richten Sie das Feld für die maximale Wolkenbedeckung direkt neben der minimalen Sonnenschutztemperatur aus.",
-        "ru": "**ИСПРАВЛЕНО**: Поле максимальной облачности теперь располагается непосредственно рядом с минимальной температурой для защиты от солнца.",
-        "pt": "**CORRIGIDO**: Alinhe o campo de cobertura máxima de nuvens diretamente ao lado da temperatura mínima de proteção solar.",
-        "nl": "**OPGELOST**: Lijn het veld voor maximale bewolking direct uit met de minimale temperatuur voor zonbescherming.",
-        "fr": "**CORRIGÉ** : Aligner le champ de couverture nuageuse maximale directement à côté de la température minimale de protection solaire",
-        "it": "**CORRETTO**: Allineare il campo della massima copertura nuvolosa direttamente accanto alla temperatura minima di protezione solare",
-        "es": "**CORREGIDO**: Alinear el campo de máxima cobertura nubosa directamente junto a la temperatura mínima de protección solar.",
-        "pl": "**NAPRAWIONO**: Wyrównaj pole maksymalnego zachmurzenia bezpośrednio obok minimalnej temperatury chroniącej przed słońcem",
-        "uk": "**ВИПРАВЛЕНО**: Вирівняйте поле максимальної хмарності безпосередньо поруч із мінімальною температурою для захисту від сонця",
-        "zh-cn": "**已修复**：将最大云量覆盖率字段与防晒最低温度字段直接对齐"
       }
     },
     "titleLang": {

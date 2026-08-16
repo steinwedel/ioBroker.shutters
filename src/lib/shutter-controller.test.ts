@@ -33,12 +33,8 @@ interface IFakeAdapterHandle {
  * Minimal fake adapter exposing only what `ShutterController` and its `PositionStopDriverBase`-derived driver need.
  *
  * @param states - Existing state store to reuse (see `IFakeAdapterHandle.states`); defaults to a fresh, empty one.
- * @param legacyObjects - Legacy direct state IDs that should appear as existing objects.
  */
-function createFakeAdapter(
-    states: Map<string, IFakeState> = new Map(),
-    legacyObjects: Set<string> = new Set(),
-): IFakeAdapterHandle {
+function createFakeAdapter(states: Map<string, IFakeState> = new Map()): IFakeAdapterHandle {
     const setForeignStateCalls: { id: string; val: ioBroker.StateValue }[] = [];
     const listeners: ((id: string, state: ioBroker.State | null | undefined) => void)[] = [];
     const timers: IFakeTimer[] = [];
@@ -59,8 +55,6 @@ function createFakeAdapter(
         log: { warn: () => {}, error: () => {}, info: () => {} },
 
         setObjectNotExistsAsync: async () => {},
-        getObjectAsync: (id: string) =>
-            Promise.resolve(legacyObjects.has(id) ? ({ type: 'state' } as ioBroker.Object) : undefined),
         // eslint-disable-next-line @typescript-eslint/require-await -- intentionally synchronous test double for an async adapter method
         setStateAsync: async (
             id: string,
@@ -201,21 +195,20 @@ describe('ShutterController', () => {
             });
         });
 
-        it('migrates and accepts an existing legacy command state without creating one for fresh installations', async () => {
-            const states = new Map<string, IFakeState>([['shutters.shutter1.position', { val: 25, ack: true }]]);
-            const { adapter, getOwnState, setForeignStateCalls } = createFakeAdapter(
-                states,
-                new Set(['shutters.shutter1.position']),
-            );
+        it('uses canonical state IDs only', async () => {
+            const { adapter } = createFakeAdapter();
             const controller = new ShutterController(adapter, makeConfig());
 
             await controller.createObjects();
-            expect(getOwnState('shutters.shutter1.control.position')).to.deep.equal({ val: 25, ack: true });
-            expect(controller.getOwnStateIds()).to.include('shutters.shutter1.position');
 
-            await controller.handleStateChange('shutters.shutter1.position', { val: 40, ack: false } as ioBroker.State);
-            expect(setForeignStateCalls).to.deep.include({ id: 'foreign.position', val: 40 });
-            expect(getOwnState('shutters.shutter1.position')).to.deep.equal({ val: 40, ack: true });
+            expect(controller.getOwnStateIds()).to.include('shutters.shutter1.control.position');
+            expect(controller.getOwnStateIds()).to.not.include('shutters.shutter1.position');
+            expect(
+                await controller.handleStateChange('shutters.shutter1.position', {
+                    val: 40,
+                    ack: false,
+                } as ioBroker.State),
+            ).to.equal(false);
         });
 
         it('sets state to moving while a command is pending', async () => {
@@ -749,12 +742,11 @@ describe('ShutterController', () => {
     describe('getConfig/isAutomationEnabled/getAreaId', () => {
         it('exposes the configuration and derived accessors', () => {
             const { adapter } = createFakeAdapter();
-            const config = makeConfig({ areaId: 'area1', area: 'Legacy', automationEnabled: false });
+            const config = makeConfig({ areaId: 'area1', automationEnabled: false });
             const controller = new ShutterController(adapter, config);
 
             expect(controller.getConfig()).to.equal(config);
             expect(controller.getAreaId()).to.equal('area1');
-            expect(controller.getLegacyAreaName()).to.equal('Legacy');
             expect(controller.isAutomationEnabled()).to.equal(false);
         });
     });

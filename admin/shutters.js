@@ -231,16 +231,6 @@ function shuttersEnsureDefaults(settings) {
             s.sunProtectionEnabled = false;
             s.rainProtectionEnabled = false;
         }
-        if (!s.areaId && s.area) {
-            var matchingAreas = settings.areas.filter(function (area) {
-                return area.name === s.area;
-            });
-            var targetArea = matchingAreas.length === 1 ? matchingAreas[0] : settings.areas.length === 1 ? settings.areas[0] : undefined;
-            if (targetArea) {
-                s.areaId = targetArea.id;
-                delete s.area;
-            }
-        }
     });
 }
 
@@ -1373,7 +1363,6 @@ function renderCoveringCard(covering, index) {
     scheduleRow.appendChild(schedulePlanTitle);
     var schedulePlanField = makeSelectPlain('cov-' + index + '-area', 'area', covering.areaId, getPlanOptions(), 3, function (v) {
         covering.areaId = v;
-        delete covering.area;
         onChangeFired();
     });
     schedulePlanField.className += ' shutters-schedule-plan-field';
