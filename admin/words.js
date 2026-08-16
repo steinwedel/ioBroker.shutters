@@ -42,7 +42,7 @@ systemDictionary = {
     driverTypeGenericRelay: { en: 'Generic (open/close relay)', de: 'Generisch (Auf/Zu-Relais)' },
     area: { en: 'Plan', de: 'Plan' },
     orientation: { en: 'Orientation (°, compass, 0=N/90=E/180=S/270=W)', de: 'Ausrichtung (°, Kompass, 0=N/90=O/180=S/270=W)' },
-    automationEnabled: { en: 'Automation enabled', de: 'Automatik aktiviert' },
+    automationEnabled: { en: 'Scheduled automation', de: 'Zeitautomatik' },
     invertPosition: {
         en: 'Invert position mapping (use when the actuator reports 0% closed/lowered and 100% open/raised)',
         de: 'Positionszuordnung umkehren (verwenden, wenn der Aktor 0 % geschlossen/abgesenkt und 100 % geöffnet/angehoben meldet)',

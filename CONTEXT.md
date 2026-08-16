@@ -1,11 +1,11 @@
 # Context
 
 ## Current Task
-- Renamed the Coverings protection section to Automatikfunktionen.
+- Moved and renamed the per-covering schedule automation option in the Admin UI.
 
 ## Key Decisions
-- The heading retains its existing translation key and behavior.
-- Position-state labels reflect supported inverted mappings.
+- `automationEnabled` behavior and storage remain unchanged.
+- The checkbox now appears in Automatikfunktionen as Zeitautomatik.
 - Deployment uses the central `../scripts/deploy.sh` process.
 
 ## Next Steps

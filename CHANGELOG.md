@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.27 (2026-08-16)
+
+* (steinwedel) **ENHANCED**: Rename and move the per-covering schedule automation option into the automation functions section
+
 ## 0.0.26 (2026-08-16)
 
 * (steinwedel) **ENHANCED**: Improve Coverings Admin UI terminology and update foreign position-state labels when position mapping is inverted

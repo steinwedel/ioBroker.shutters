@@ -1240,12 +1240,6 @@ function renderCoveringCard(covering, index) {
         ),
     );
     row2.appendChild(
-        makeCheckbox('cov-' + index + '-automationEnabled', 'automationEnabled', covering.automationEnabled, function (v) {
-            covering.automationEnabled = v;
-            onChangeFired();
-        }),
-    );
-    row2.appendChild(
         makeCheckbox('cov-' + index + '-invertPosition', 'invertPosition', covering.invertPosition, function (v) {
             covering.invertPosition = v;
             renderCoverings();
@@ -1328,6 +1322,12 @@ function renderCoveringCard(covering, index) {
 
     var protectionRow1 = document.createElement('div');
     protectionRow1.className = 'shutters-row row';
+    protectionRow1.appendChild(
+        makeCheckbox('cov-' + index + '-automationEnabled', 'automationEnabled', covering.automationEnabled, function (v) {
+            covering.automationEnabled = v;
+            onChangeFired();
+        }),
+    );
     protectionRow1.appendChild(
         makeCheckbox('cov-' + index + '-sunProtectionEnabled', 'sunProtectionEnabled', covering.sunProtectionEnabled, function (v) {
             covering.sunProtectionEnabled = v;

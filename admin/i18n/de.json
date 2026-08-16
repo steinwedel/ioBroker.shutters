@@ -3,7 +3,7 @@
     "areaName": "Bereichsname",
     "areas": "Zeitpläne",
     "areasHintText": "Hier wird der tägliche Öffnen-/Schließen-Zeitplan pro Bereich konfiguriert. Zeiten im Format \"HH:MM\" (24h); leer lassen, um diese Aktion für diese Tageskategorie zu überspringen. An Feiertagen gilt ohne eigenen Feiertagsplan automatisch der Wochenendplan.",
-    "automationEnabled": "Automatik aktiviert",
+    "automationEnabled": "Zeitautomatik",
     "coveringType": "Behangtyp",
     "coveringTypeLamellen": "Lamellenvorhang",
     "coveringTypeMarkise": "Markise",
