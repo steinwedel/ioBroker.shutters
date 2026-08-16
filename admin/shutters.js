@@ -1206,20 +1206,6 @@ function renderCoveringCard(covering, index) {
         }),
     );
     row2.appendChild(
-        makeSelect('cov-' + index + '-coveringType', 'coveringType', covering.coveringType, COVERING_TYPES, function (v) {
-            covering.coveringType = v;
-            renderCoverings();
-            onChangeFired();
-        }),
-    );
-    row2.appendChild(
-        makeSelect('cov-' + index + '-driverType', 'driverType', covering.driverType, DRIVER_TYPES, function (v) {
-            covering.driverType = v;
-            renderCoverings();
-            onChangeFired();
-        }),
-    );
-    row2.appendChild(
         makeText(
             'cov-' + index + '-orientation',
             'orientation',
@@ -1232,6 +1218,20 @@ function renderCoveringCard(covering, index) {
             },
             'number',
         ),
+    );
+    row2.appendChild(
+        makeSelect('cov-' + index + '-coveringType', 'coveringType', covering.coveringType, COVERING_TYPES, function (v) {
+            covering.coveringType = v;
+            renderCoverings();
+            onChangeFired();
+        }),
+    );
+    row2.appendChild(
+        makeSelect('cov-' + index + '-driverType', 'driverType', covering.driverType, DRIVER_TYPES, function (v) {
+            covering.driverType = v;
+            renderCoverings();
+            onChangeFired();
+        }),
     );
     card.appendChild(row2);
 

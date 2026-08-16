@@ -1,7 +1,7 @@
 # Context
 
 ## Current Task
-- Aligned the standalone Coverings ID field to the left and prepared deployment.
+- Reordered the primary Coverings fields to Bezeichnung, Ausrichtung, Behangtyp, System.
 
 ## Key Decisions
 - Reset the Materialize auto margin only on the standalone ID field.

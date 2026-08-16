@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.30 (2026-08-16)
+
+* (steinwedel) **ENHANCED**: Reorder the primary fields in each Coverings card
+
 ## 0.0.29 (2026-08-16)
 
 * (steinwedel) **FIXED**: Align the standalone Coverings ID field to the left
