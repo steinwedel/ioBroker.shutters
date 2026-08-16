@@ -1,10 +1,10 @@
 # Context
 
 ## Current Task
-- Aligned the sun-tolerance lower bound and placed its time-range preview beside the upper bound.
+- Positioned maximum cloud cover directly beside Sonnenschutz-Mindesttemperatur.
 
 ## Key Decisions
-- Behanghöhe has its own left-aligned row.
+- The tolerance time-range preview follows the upper bound in the same row.
 - The settings group remains nested and indented below Sonnenschutz.
 - Deployment uses the central `../scripts/deploy.sh` process.
 

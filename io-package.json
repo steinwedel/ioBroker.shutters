@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.45",
+    "version": "0.0.46",
     "news": {
+      "0.0.46": {
+        "en": "**FIXED**: Align the maximum cloud-cover field directly beside the sun-protection minimum temperature",
+        "de": "**BEHOBEN**: Richten Sie das Feld für die maximale Wolkenbedeckung direkt neben der minimalen Sonnenschutztemperatur aus.",
+        "ru": "**ИСПРАВЛЕНО**: Поле максимальной облачности теперь располагается непосредственно рядом с минимальной температурой для защиты от солнца.",
+        "pt": "**CORRIGIDO**: Alinhe o campo de cobertura máxima de nuvens diretamente ao lado da temperatura mínima de proteção solar.",
+        "nl": "**OPGELOST**: Lijn het veld voor maximale bewolking direct uit met de minimale temperatuur voor zonbescherming.",
+        "fr": "**CORRIGÉ** : Aligner le champ de couverture nuageuse maximale directement à côté de la température minimale de protection solaire",
+        "it": "**CORRETTO**: Allineare il campo della massima copertura nuvolosa direttamente accanto alla temperatura minima di protezione solare",
+        "es": "**CORREGIDO**: Alinear el campo de máxima cobertura nubosa directamente junto a la temperatura mínima de protección solar.",
+        "pl": "**NAPRAWIONO**: Wyrównaj pole maksymalnego zachmurzenia bezpośrednio obok minimalnej temperatury chroniącej przed słońcem",
+        "uk": "**ВИПРАВЛЕНО**: Вирівняйте поле максимальної хмарності безпосередньо поруч із мінімальною температурою для захисту від сонця",
+        "zh-cn": "**已修复**：将最大云量覆盖率字段与防晒最低温度字段直接对齐"
+      },
       "0.0.45": {
         "en": "**ENHANCED**: Refine the Coverings sun-protection cloud cover and tolerance field layout",
         "de": "**VERBESSERT**: Verfeinerung des Layouts für Sonnenschutz, Wolkenabdeckung und Toleranzfelder der Abdeckungen.",
@@ -80,19 +93,6 @@
         "pl": "**NAPRAWIONO**: Kompletna dokumentacja JSDoc wymagana przez linter projektu",
         "uk": "**ВИПРАВЛЕНО**: Повна документація JSDoc, необхідна для лінтеру проекту",
         "zh-cn": "**已修复**：项目代码检查器所需的完整 JSDoc 文档"
-      },
-      "0.0.39": {
-        "en": "**ENHANCED**: Place the Stop-State beside System and keep the System label visible",
-        "de": "**VERBESSERT**: Platzieren Sie den Stoppzustand neben System und lassen Sie die Systembezeichnung sichtbar.",
-        "ru": "**УЛУЧШЕННАЯ ВЕРСИЯ**: Разместите индикатор состояния остановки рядом с индикатором системы и оставьте надпись «Система» видимой.",
-        "pt": "**APRIMORADO**: Coloque o indicador de parada ao lado do sistema e mantenha a etiqueta do sistema visível.",
-        "nl": "**VERBETERD**: Plaats de Stop-State naast System en zorg ervoor dat het label System zichtbaar blijft.",
-        "fr": "**AMÉLIORÉ** : Placez l’état d’arrêt à côté du système et laissez l’étiquette « Système » visible.",
-        "it": "**MIGLIORATO**: Posizionare lo Stato di arresto accanto al Sistema e mantenere visibile l'etichetta Sistema",
-        "es": "**MEJORADO**: Coloque el estado de parada junto a Sistema y mantenga visible la etiqueta Sistema.",
-        "pl": "**ULEPSZONE**: Umieść stan zatrzymania obok System i utrzymuj widoczną etykietę System",
-        "uk": "**ПОКРАЩЕНО**: Розмістіть Stop-State поруч із System та залиште мітку System видимою.",
-        "zh-cn": "**增强功能**：将“停止状态”放在“系统”旁边，并保持“系统”标签可见。"
       }
     },
     "titleLang": {

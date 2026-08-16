@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.46 (2026-08-16)
+
+* (steinwedel) **FIXED**: Align the maximum cloud-cover field directly beside the sun-protection minimum temperature
+
 ## 0.0.45 (2026-08-16)
 
 * (steinwedel) **ENHANCED**: Refine the Coverings sun-protection cloud cover and tolerance field layout
