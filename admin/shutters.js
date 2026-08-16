@@ -1235,6 +1235,7 @@ function renderCoveringCard(covering, index) {
     statesTitle.innerText = _('statesSectionTitle');
     card.appendChild(statesTitle);
 
+    var relevantStateFields = getRelevantStateFields(covering.driverType, covering.invertPosition);
     var systemRow = document.createElement('div');
     systemRow.className = 'shutters-row row shutters-system-row';
     systemRow.appendChild(
@@ -1244,6 +1245,15 @@ function renderCoveringCard(covering, index) {
             onChangeFired();
         }),
     );
+    var stopStateField = relevantStateFields.filter(function (field) { return field[0] === 'stop'; })[0];
+    if (stopStateField) {
+        systemRow.appendChild(
+            makeStateIdField('cov-' + index + '-state-stop', stopStateField[1], covering.states.stop, 4, function (v) {
+                covering.states.stop = v;
+                onChangeFired();
+            }),
+        );
+    }
     card.appendChild(systemRow);
 
     var statesRow = document.createElement('div');
@@ -1259,8 +1269,11 @@ function renderCoveringCard(covering, index) {
         },
     );
     var positionMappingInserted = false;
-    getRelevantStateFields(covering.driverType, covering.invertPosition).forEach(function (field) {
+    relevantStateFields.forEach(function (field) {
         var dataKey = field[0];
+        if (dataKey === 'stop') {
+            return;
+        }
         var labelKey = field[1];
         statesRow.appendChild(
             makeStateIdField('cov-' + index + '-state-' + dataKey, labelKey, covering.states[dataKey], 4, function (v) {

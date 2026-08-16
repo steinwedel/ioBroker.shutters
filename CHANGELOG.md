@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.39 (2026-08-16)
+
+* (steinwedel) **ENHANCED**: Place the Stop-State beside System and keep the System label visible
+
 ## 0.0.38 (2026-08-16)
 
 * (steinwedel) **ENHANCED**: Align the Coverings system selector and reorder linked position fields

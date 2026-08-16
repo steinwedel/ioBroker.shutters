@@ -1,11 +1,11 @@
 # Context
 
 ## Current Task
-- Reordered the linked position fields to target, actual state, then position mapping.
+- Placed the Stop-State right of System and forced the System label visible.
 
 ## Key Decisions
 - Primary field order: Bezeichnung, Behangtyp, Ausrichtung.
-- System appears before the position-mapping and linked state fields.
+- Linked position order: target, actual state, then position mapping.
 - Deployment uses the central `../scripts/deploy.sh` process.
 
 ## Next Steps

@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.38",
+    "version": "0.0.39",
     "news": {
+      "0.0.39": {
+        "en": "**ENHANCED**: Place the Stop-State beside System and keep the System label visible",
+        "de": "**VERBESSERT**: Platzieren Sie den Stoppzustand neben System und lassen Sie die Systembezeichnung sichtbar.",
+        "ru": "**УЛУЧШЕННАЯ ВЕРСИЯ**: Разместите индикатор состояния остановки рядом с индикатором системы и оставьте надпись «Система» видимой.",
+        "pt": "**APRIMORADO**: Coloque o indicador de parada ao lado do sistema e mantenha a etiqueta do sistema visível.",
+        "nl": "**VERBETERD**: Plaats de Stop-State naast System en zorg ervoor dat het label System zichtbaar blijft.",
+        "fr": "**AMÉLIORÉ** : Placez l’état d’arrêt à côté du système et laissez l’étiquette « Système » visible.",
+        "it": "**MIGLIORATO**: Posizionare lo Stato di arresto accanto al Sistema e mantenere visibile l'etichetta Sistema",
+        "es": "**MEJORADO**: Coloque el estado de parada junto a Sistema y mantenga visible la etiqueta Sistema.",
+        "pl": "**ULEPSZONE**: Umieść stan zatrzymania obok System i utrzymuj widoczną etykietę System",
+        "uk": "**ПОКРАЩЕНО**: Розмістіть Stop-State поруч із System та залиште мітку System видимою.",
+        "zh-cn": "**增强功能**：将“停止状态”放在“系统”旁边，并保持“系统”标签可见。"
+      },
       "0.0.38": {
         "en": "**ENHANCED**: Align the Coverings system selector and reorder linked position fields",
         "de": "**VERBESSERT**: Systemauswahl für Abdeckungen ausrichten und verknüpfte Positionsfelder neu anordnen",
@@ -80,19 +93,6 @@
         "pl": "**ULEPSZONE**: Przenieś selektor planu pokrycia do sekcji funkcji automatyzacji",
         "uk": "**ПОКРАЩЕНО**: Переміщено селектор плану покриттів до розділу функцій автоматизації.",
         "zh-cn": "**增强功能**：将 Coverings 方案选择器移至自动化功能部分"
-      },
-      "0.0.32": {
-        "en": "**FIXED**: Force Coverings automation checkboxes to the left edge",
-        "de": "**BEHOBEN**: Kontrollkästchen für die Automatisierung von Abdeckungen an den linken Rand verschieben",
-        "ru": "**ИСПРАВЛЕНО**: Флажки автоматизации «Принудительное покрытие» сместились к левому краю.",
-        "pt": "**CORRIGIDO**: Forçar as caixas de seleção de automação de Revestimentos para a borda esquerda",
-        "nl": "**OPGELOST**: De selectievakjes voor automatische afdekkingen naar de linkerkant geduwd.",
-        "fr": "**CORRIGÉ** : Les cases à cocher d’automatisation des revêtements forcés sont désormais alignées sur le bord gauche.",
-        "it": "**CORRETTO**: Spostare le caselle di controllo dell'automazione dei rivestimenti sul bordo sinistro",
-        "es": "**CORREGIDO**: Las casillas de verificación de automatización de Revestimientos se desplazan al borde izquierdo.",
-        "pl": "**NAPRAWIONO**: Wymuś przesunięcie pól wyboru automatyzacji pokrycia na lewą krawędź",
-        "uk": "**ВИПРАВЛЕНО**: Примусово розміщувати прапорці автоматизації покриттів до лівого краю",
-        "zh-cn": "**已修复**：强制覆盖自动化复选框移至左边缘"
       }
     },
     "titleLang": {
