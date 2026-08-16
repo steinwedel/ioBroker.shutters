@@ -1,11 +1,12 @@
 # Context
 
 ## Current Task
-- Prevented long Admin UI labels in Behänge and Wetterdaten from overlapping input fields.
+- Renamed the German Admin UI Plan tab to Zeitpläne and prepared the UI fixes for deployment.
 
 ## Key Decisions
 - Constrained floating labels to their field width and truncate visual overflow.
-- Preserved the existing compact responsive field layout.
+- Applied the spacing adjustment only to the Fremd-States section.
+- Deployment uses the central `../scripts/deploy.sh` process.
 
 ## Next Steps
 - Run the public Adapter Checker before releasing to stable.

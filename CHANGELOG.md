@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.25 (2026-08-16)
+
+* (steinwedel) **ENHANCED**: Rename the Admin UI Plan tab to Zeitpläne and improve the spacing in the Coverings form
+
 ## 0.0.24 (2026-08-16)
 
 * (steinwedel) **FIXED**: Prevent long field labels in the Coverings and Weather Data Admin UI tabs from overlapping their input fields

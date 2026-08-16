@@ -1239,7 +1239,7 @@ function renderCoveringCard(covering, index) {
     card.appendChild(row2);
 
     var statesTitle = document.createElement('div');
-    statesTitle.className = 'shutters-section-title';
+    statesTitle.className = 'shutters-section-title shutters-states-section-title';
     statesTitle.innerText = _('statesSectionTitle');
     card.appendChild(statesTitle);
 

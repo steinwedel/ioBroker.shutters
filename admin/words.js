@@ -154,7 +154,7 @@ systemDictionary = {
         en: 'Optionally send a notification via an existing `pushover`/`telegram` adapter instance (e.g. "pushover.0") when a covering\'s watchdog reports it is not responding, or when storm/frost protection engages or clears for at least one covering (one combined notification, not one per covering). Configure the recipient/chat directly on that instance, not here. Both fields can be left empty to disable notifications entirely; either or both can be set at once.',
         de: 'Optional kann eine Benachrichtigung über eine vorhandene `pushover`-/`telegram`-Adapterinstanz (z.B. "pushover.0") gesendet werden, wenn der Watchdog eines Rolladens meldet, dass er nicht reagiert, oder wenn Sturm-/Frostschutz für mindestens einen Rolladen aktiv wird bzw. endet (eine gesammelte Benachrichtigung, nicht eine je Rolladen). Empfänger/Chat wird direkt auf dieser Instanz konfiguriert, nicht hier. Beide Felder können leer gelassen werden, um Benachrichtigungen komplett zu deaktivieren; es kann auch nur eines oder beide gesetzt werden.',
     },
-    areas: { en: 'Plans', de: 'Plan' },
+    areas: { en: 'Plans', de: 'Zeitpläne' },
     areaName: { en: 'Plan name', de: 'Planname' },
     scheduleMode: { en: 'Schedule mode', de: 'Zeitplan-Modus' },
     scheduleModeUniform: { en: 'All days the same', de: 'Alle Tage gleich' },
