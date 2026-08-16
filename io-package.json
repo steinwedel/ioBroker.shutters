@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.37",
+    "version": "0.0.38",
     "news": {
+      "0.0.38": {
+        "en": "**ENHANCED**: Align the Coverings system selector and reorder linked position fields",
+        "de": "**VERBESSERT**: Systemauswahl für Abdeckungen ausrichten und verknüpfte Positionsfelder neu anordnen",
+        "ru": "**УЛУЧШЕНО**: Выравнивание селектора системы покрытий и изменение порядка связанных полей позиционирования.",
+        "pt": "**APRIMORADO**: Alinhe o seletor do sistema de revestimentos e reordene os campos de posição vinculados.",
+        "nl": "**VERBETERD**: Lijn de systeemselector voor bekledingen uit en herschik de gekoppelde positievelden.",
+        "fr": "**AMÉLIORÉ** : Alignez le sélecteur du système Coverings et réorganisez les champs de position liés",
+        "it": "**MIGLIORATO**: Allinea il selettore del sistema di coperture e riordina i campi di posizione collegati",
+        "es": "**MEJORADO**: Alinee el selector del sistema Coverings y reordene los campos de posición vinculados.",
+        "pl": "**ULEPSZONE**: Wyrównanie selektora systemu Coverings i zmiana kolejności powiązanych pól pozycji",
+        "uk": "**ПОКРАЩЕНО**: Вирівняйте селектор системи покриттів та змініть порядок пов’язаних полів позицій",
+        "zh-cn": "**增强功能**：调整 Coverings 系统选择器并重新排列关联位置字段"
+      },
       "0.0.37": {
         "en": "**ENHANCED**: Move the Coverings system selector into the linked hardware section",
         "de": "**VERBESSERT**: Verschieben Sie die Systemauswahl für die Abdeckungen in den verknüpften Hardwarebereich.",
@@ -80,19 +93,6 @@
         "pl": "**NAPRAWIONO**: Wymuś przesunięcie pól wyboru automatyzacji pokrycia na lewą krawędź",
         "uk": "**ВИПРАВЛЕНО**: Примусово розміщувати прапорці автоматизації покриттів до лівого краю",
         "zh-cn": "**已修复**：强制覆盖自动化复选框移至左边缘"
-      },
-      "0.0.31": {
-        "en": "**ENHANCED**: Display Coverings automation functions vertically and left-aligned",
-        "de": "**VERBESSERT**: Die Automatisierungsfunktionen für Displayabdeckungen sind vertikal und linksbündig.",
-        "ru": "**УЛУЧШЕНО**: Функции автоматизации отображения защитных покрытий выравниваются по вертикали и левому краю.",
-        "pt": "**APRIMORADO**: Funções de automação de revestimentos de exibição alinhadas verticalmente e à esquerda.",
-        "nl": "**VERBETERD**: Automatische weergave van afdekkingen, verticaal en links uitgelijnd.",
-        "fr": "**AMÉLIORÉ** : Fonctions d’automatisation des écrans alignées verticalement et à gauche",
-        "it": "**MIGLIORATO**: Funzioni di automazione dei rivestimenti del display in verticale e allineate a sinistra",
-        "es": "**MEJORADO**: Las funciones de automatización de las cubiertas de la pantalla se ejecutan verticalmente y alineadas a la izquierda.",
-        "pl": "**ULEPSZONE**: Funkcje automatyzacji wyświetlania pokryć w pionie i w poziomie",
-        "uk": "**ПОКРАЩЕНО**: Автоматизація відображення покриттів функціонує вертикально та з вирівнюванням по лівому краю.",
-        "zh-cn": "**增强功能**：显示屏盖板自动化功能可垂直左对齐"
       }
     },
     "titleLang": {

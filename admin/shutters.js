@@ -1236,7 +1236,7 @@ function renderCoveringCard(covering, index) {
     card.appendChild(statesTitle);
 
     var systemRow = document.createElement('div');
-    systemRow.className = 'shutters-row row';
+    systemRow.className = 'shutters-row row shutters-system-row';
     systemRow.appendChild(
         makeSelect('cov-' + index + '-driverType', 'driverType', covering.driverType, DRIVER_TYPES, function (v) {
             covering.driverType = v;
@@ -1248,13 +1248,17 @@ function renderCoveringCard(covering, index) {
 
     var statesRow = document.createElement('div');
     statesRow.className = 'shutters-row row';
-    statesRow.appendChild(
-        makeCheckbox('cov-' + index + '-invertPosition', 'invertPosition', covering.invertPosition, function (v) {
+    var positionMappingField = makeCheckbox(
+        'cov-' + index + '-invertPosition',
+        'invertPosition',
+        covering.invertPosition,
+        function (v) {
             covering.invertPosition = v;
             renderCoverings();
             onChangeFired();
-        }),
+        },
     );
+    var positionMappingInserted = false;
     getRelevantStateFields(covering.driverType, covering.invertPosition).forEach(function (field) {
         var dataKey = field[0];
         var labelKey = field[1];
@@ -1264,7 +1268,14 @@ function renderCoveringCard(covering, index) {
                 onChangeFired();
             }),
         );
+        if (dataKey === 'positionActual') {
+            statesRow.appendChild(positionMappingField);
+            positionMappingInserted = true;
+        }
     });
+    if (!positionMappingInserted) {
+        statesRow.appendChild(positionMappingField);
+    }
     // Slat tilt (plan section 2a.5): only relevant for raffstore/lamellen, and entirely optional even
     // then (many raffstore/lamellen installations have no separate tilt control at all).
     if (covering.coveringType === 'raffstore' || covering.coveringType === 'lamellen') {

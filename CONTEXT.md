@@ -1,7 +1,7 @@
 # Context
 
 ## Current Task
-- Moved the System field to the start of Verknüpfte Hardware in each Coverings card.
+- Reordered the linked position fields to target, actual state, then position mapping.
 
 ## Key Decisions
 - Primary field order: Bezeichnung, Behangtyp, Ausrichtung.

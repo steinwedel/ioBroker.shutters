@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.38 (2026-08-16)
+
+* (steinwedel) **ENHANCED**: Align the Coverings system selector and reorder linked position fields
+
 ## 0.0.37 (2026-08-16)
 
 * (steinwedel) **ENHANCED**: Move the Coverings system selector into the linked hardware section
