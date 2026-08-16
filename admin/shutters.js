@@ -1370,13 +1370,16 @@ function renderCoveringCard(covering, index) {
     schedulePlanField.className += ' shutters-schedule-plan-field';
     scheduleRow.appendChild(schedulePlanField);
     protectionRow1.appendChild(scheduleRow);
-    protectionRow1.appendChild(
+    var sunProtectionGroup = document.createElement('div');
+    sunProtectionGroup.className = 'shutters-sun-protection-group';
+    sunProtectionGroup.appendChild(
         makeCheckbox('cov-' + index + '-sunProtectionEnabled', 'sunProtectionEnabled', covering.sunProtectionEnabled, function (v) {
             covering.sunProtectionEnabled = v;
             renderCoverings(); // re-render: sun window fields only relevant when enabled
             onChangeFired();
         }),
     );
+    protectionRow1.appendChild(sunProtectionGroup);
     protectionRow1.appendChild(
         makeCheckbox('cov-' + index + '-rainProtectionEnabled', 'rainProtectionEnabled', covering.rainProtectionEnabled, function (v) {
             covering.rainProtectionEnabled = v;
@@ -1528,6 +1531,9 @@ function renderCoveringCard(covering, index) {
 
     // Only show sun-window fields when sun protection is actually enabled for this covering.
     if (covering.sunProtectionEnabled) {
+        var sunProtectionFields = document.createElement('div');
+        sunProtectionFields.className = 'shutters-sun-protection-fields';
+        sunProtectionGroup.appendChild(sunProtectionFields);
         // Auto-fill the tolerance bounds the moment sun protection is shown as enabled, so every saved
         // covering always has an explicit value and no separate runtime default is needed to interpret
         // an unset field.
@@ -1608,7 +1614,7 @@ function renderCoveringCard(covering, index) {
                 }),
             );
         }
-        card.appendChild(sunRow);
+        sunProtectionFields.appendChild(sunRow);
 
         // 6.2-specific fields (elevation minimum, cloud-cover ceiling): only meaningful once an
         // orientation is actually set, since they refine the orientation-based window, not the plain
@@ -1642,7 +1648,7 @@ function renderCoveringCard(covering, index) {
                     'number',
                 ),
             );
-            card.appendChild(sunOrientationRow);
+            sunProtectionFields.appendChild(sunOrientationRow);
         }
 
         // Live preview of which clock time the two tolerance bounds correspond to today, given the
@@ -1651,7 +1657,7 @@ function renderCoveringCard(covering, index) {
         if (covering.orientation !== undefined) {
             var toleranceHint = document.createElement('p');
             toleranceHint.className = 'shutters-hint';
-            card.appendChild(toleranceHint);
+            sunProtectionFields.appendChild(toleranceHint);
             shuttersToleranceHintElements[index] = toleranceHint;
             updateOrientationToleranceHint(index);
         }

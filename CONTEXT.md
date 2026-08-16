@@ -1,11 +1,11 @@
 # Context
 
 ## Current Task
-- Hide door-contact configuration fields when Rolladensperre is disabled.
+- Nested and indented all sun-protection settings beneath their checkbox.
 
 ## Key Decisions
-- Switching Rolladensperre immediately re-renders its configuration row.
-- Disabled fields retain their saved values for later reactivation.
+- Sun-protection settings retain their existing conditional behavior and values.
+- The settings group is indented by 16 pixels below Sonnenschutz.
 - Deployment uses the central `../scripts/deploy.sh` process.
 
 ## Next Steps

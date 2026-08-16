@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.41",
+    "version": "0.0.42",
     "news": {
+      "0.0.42": {
+        "en": "**ENHANCED**: Nest and indent Coverings sun-protection settings beneath their checkbox",
+        "de": "**VERBESSERT**: Die Sonnenschutzeinstellungen für Nest- und Einzugsabdeckungen befinden sich unterhalb der jeweiligen Checkbox.",
+        "ru": "**УЛУЧШЕНО**: Настройки защиты от солнца для чехлов Nest и Indent отображаются под соответствующим флажком.",
+        "pt": "**APRIMORADO**: Configurações de proteção solar para coberturas tipo ninho e nicho abaixo da caixa de seleção.",
+        "nl": "**VERBETERD**: Instellingen voor zonwering van Nest en Indent Covers onder het selectievakje",
+        "fr": "**AMÉLIORÉ** : Paramètres de protection solaire Nest et Indent Coverings sous leur case à cocher",
+        "it": "**MIGLIORATO**: Impostazioni di protezione solare per coperture nidificate e rientranti sotto la relativa casella di controllo",
+        "es": "**MEJORADO**: Ajustes de protección solar de las cubiertas que aparecen debajo de su casilla de verificación.",
+        "pl": "**ULEPSZONE**: Umieść i wgłęb ustawienia ochrony przeciwsłonecznej osłon pod ich polem wyboru",
+        "uk": "**ПОКРАЩЕНО**: Розміщуйте та додавайте відступи до налаштувань захисту від сонця для покриттів під їхнім прапорцем.",
+        "zh-cn": "**增强功能**：在复选框下方设置嵌套和凹陷式遮阳罩的防晒设置"
+      },
       "0.0.41": {
         "en": "**ENHANCED**: Hide door-contact fields while Rolladensperre is disabled",
         "de": "**VERBESSERT**: Türkontaktfelder ausblenden, wenn Rolladensperre deaktiviert ist",
@@ -80,19 +93,6 @@
         "pl": "**ULEPSZONE**: Umieść ustawienia styku drzwiowego obok opcji Rolladensperre",
         "uk": "**ПОКРАЩЕНО**: Розташуйте налаштування дверного контакту поруч із опцією Rolladensperre",
         "zh-cn": "**增强功能**：将门接触设置置于 Rolladensperre 选项旁边"
-      },
-      "0.0.35": {
-        "en": "**NEW**: Add a per-covering Rolladensperre switch to enable or disable door-contact protection",
-        "de": "**NEU**: Fügen Sie einen Rolladensperre-Schalter pro Abdeckung hinzu, um den Türkontaktschutz zu aktivieren oder zu deaktivieren.",
-        "ru": "**НОВИНКА**: Добавьте переключатель Rolladensperre для каждого покрытия, позволяющий включать или отключать защиту от случайного нажатия на дверь.",
-        "pt": "**NOVO**: Adicione um interruptor Rolladensperre por cobertura para ativar ou desativar a proteção do contato da porta.",
-        "nl": "**NIEUW**: Voeg een Rolladensperre-schakelaar per afdekking toe om de deurcontactbeveiliging in of uit te schakelen.",
-        "fr": "**NOUVEAU** : Ajout d’un interrupteur Rolladensperre par couvercle pour activer ou désactiver la protection contre les contacts de porte",
-        "it": "**NOVITÀ**: Aggiungi un interruttore Rolladensperre per ogni copertura per attivare o disattivare la protezione del contatto porta",
-        "es": "**NUEVO**: Añada un interruptor Rolladensperre por cubierta para activar o desactivar la protección de contacto de la puerta.",
-        "pl": "**NOWOŚĆ**: Dodaj przełącznik Rolladensperre dla każdego z drzwi, aby włączyć lub wyłączyć ochronę przed kontaktem z drzwiami",
-        "uk": "**НОВИНКА**: Додайте перемикач Rolladensperre для кожного покриття, щоб увімкнути або вимкнути захист від дверного контакту.",
-        "zh-cn": "**新增**：可添加一个用于开启或关闭门触点保护的 Rolladensperre 开关"
       }
     },
     "titleLang": {

@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.42 (2026-08-16)
+
+* (steinwedel) **ENHANCED**: Nest and indent Coverings sun-protection settings beneath their checkbox
+
 ## 0.0.41 (2026-08-16)
 
 * (steinwedel) **ENHANCED**: Hide door-contact fields while Rolladensperre is disabled
