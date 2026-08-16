@@ -76,10 +76,7 @@ systemDictionary = {
         de: 'Wenn oben eine "Ausrichtung" gesetzt ist, wird das Sonnenschutz-Zeitfenster daraus abgeleitet: aktiv, solange der aktuelle Sonnenazimut innerhalb der unten stehenden Toleranz beidseitig der Ausrichtung liegt, z.B. ist ein nach Süden (180°) ausgerichtetes Fenster mit der Standardtoleranz von 70° für Sonnenazimute von 110-250° aktiv. Zusätzlich muss die Sonnenhöhe die unten stehende Mindesthöhe erreichen (Standard 0° = über dem Horizont), und, falls ein maximaler Bewölkungsgrad gesetzt ist, der Himmel entsprechend klar sein (benötigt die Bewölkungsgrad-State-ID unter Wetterdaten). Die Felder Sonnenschutz-Fenster Start/Ende werden nur als Fallback verwendet, wenn keine Ausrichtung gesetzt ist.',
     },
     sunProtectionEnabled: { en: 'Sun protection', de: 'Sonnenschutz' },
-    sunTargetPercent: {
-        en: 'Sun-protection target position (0% open/raised; 100% closed/lowered)',
-        de: 'Sonnenschutz-Zielposition (0 % geöffnet/angehoben; 100 % geschlossen/abgesenkt)',
-    },
+    sunTargetPercent: { en: 'Covering height', de: 'Behanghöhe' },
     sunProtectionMinTemp: {
         en: 'Sun protection min. temp. (°C, optional)',
         de: 'Sonnenschutz Mindesttemperatur (°C, optional)',

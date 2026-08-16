@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.43",
+    "version": "0.0.44",
     "news": {
+      "0.0.44": {
+        "en": "**ENHANCED**: Refine the Coverings sun-protection field labels, alignment, and row layout",
+        "de": "**VERBESSERT**: Optimierte Beschriftung der Sonnenschutzfelder, Ausrichtung und Reihenlayout",
+        "ru": "**УЛУЧШЕНО**: Улучшены обозначения полей, выравнивание и расположение строк в разделе «Защита от солнца» в разделе «Защитные покрытия».",
+        "pt": "**APRIMORADO**: Refinamos os rótulos, o alinhamento e o layout das linhas dos campos de proteção solar das coberturas.",
+        "nl": "**VERBETERD**: Verfijn de veldlabels, uitlijning en rijindeling van de zonwerende folie.",
+        "fr": "**AMÉLIORÉ** : Amélioration de l’étiquetage, de l’alignement et de la disposition des rangées des panneaux de protection solaire Coverings",
+        "it": "**MIGLIORATO**: Perfezionate le etichette, l'allineamento e il layout delle righe dei campi di protezione solare per le coperture.",
+        "es": "**MEJORADO**: Perfeccione las etiquetas de campo, la alineación y el diseño de filas de la protección solar de Coverings.",
+        "pl": "**ULEPSZONE**: Udoskonalono etykiety pól ochrony przeciwsłonecznej Coverings, wyrównanie i układ rzędów",
+        "uk": "**ПОКРАЩЕНО**: Удосконалено підписи полів сонцезахисних покриттів, вирівнювання та розташування рядків",
+        "zh-cn": "**增强功能**：优化遮阳篷田间标签、对齐方式和行布局"
+      },
       "0.0.43": {
         "en": "**ENHANCED**: Start remaining sun-protection settings on a new line after the target position",
         "de": "**VERBESSERT**: Die restlichen Sonnenschutzeinstellungen werden nach der Zielposition in einer neuen Zeile neu eingestellt.",
@@ -80,19 +93,6 @@
         "pl": "**ULEPSZONE**: Wyrównanie selektora systemu Coverings i zmiana kolejności powiązanych pól pozycji",
         "uk": "**ПОКРАЩЕНО**: Вирівняйте селектор системи покриттів та змініть порядок пов’язаних полів позицій",
         "zh-cn": "**增强功能**：调整 Coverings 系统选择器并重新排列关联位置字段"
-      },
-      "0.0.37": {
-        "en": "**ENHANCED**: Move the Coverings system selector into the linked hardware section",
-        "de": "**VERBESSERT**: Verschieben Sie die Systemauswahl für die Abdeckungen in den verknüpften Hardwarebereich.",
-        "ru": "**УЛУЧШЕНО**: Переместите селектор системы покрытий в связанный раздел фурнитуры.",
-        "pt": "**APRIMORADO**: Mova o seletor do sistema de revestimentos para a seção de hardware vinculado.",
-        "nl": "**VERBETERD**: Verplaats de systeemselector voor bekledingen naar het gedeelte voor gekoppelde hardware.",
-        "fr": "**AMÉLIORÉ** : Déplacez le sélecteur de système Coverings dans la section matériel associée.",
-        "it": "**MIGLIORATO**: Spostare il selettore del sistema di rivestimento nella sezione hardware collegata",
-        "es": "**MEJORADO**: Mueva el selector del sistema Coverings a la sección de hardware vinculada.",
-        "pl": "**ULEPSZONE**: Przenieś selektor systemów pokryć do powiązanej sekcji sprzętu",
-        "uk": "**ПОКРАЩЕНО**: Переміщено селектор системи покриттів до розділу пов’язаної фурнітури.",
-        "zh-cn": "**增强功能**：将 Coverings 系统选择器移至关联的硬件部分"
       }
     },
     "titleLang": {

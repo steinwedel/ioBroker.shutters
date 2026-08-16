@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.44 (2026-08-16)
+
+* (steinwedel) **ENHANCED**: Refine the Coverings sun-protection field labels, alignment, and row layout
+
 ## 0.0.43 (2026-08-16)
 
 * (steinwedel) **ENHANCED**: Start remaining sun-protection settings on a new line after the target position

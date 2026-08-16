@@ -1545,7 +1545,7 @@ function renderCoveringCard(covering, index) {
         }
 
         var sunRow = document.createElement('div');
-        sunRow.className = 'shutters-row row';
+        sunRow.className = 'shutters-row row shutters-sun-target-row';
         sunRow.appendChild(
             makeText(
                 'cov-' + index + '-sunTargetPercent',
@@ -1559,9 +1559,9 @@ function renderCoveringCard(covering, index) {
                 'number',
             ),
         );
-        var sunDetailsRow = document.createElement('div');
-        sunDetailsRow.className = 'shutters-row row';
-        sunDetailsRow.appendChild(
+        var sunMinTempRow = document.createElement('div');
+        sunMinTempRow.className = 'shutters-row row shutters-sun-min-temp-row';
+        sunMinTempRow.appendChild(
             makeText(
                 'cov-' + index + '-sunProtectionMinTemp',
                 'sunProtectionMinTemp',
@@ -1574,6 +1574,8 @@ function renderCoveringCard(covering, index) {
                 'number',
             ),
         );
+        var sunDetailsRow = document.createElement('div');
+        sunDetailsRow.className = 'shutters-row row';
         sunDetailsRow.appendChild(
             makeText(
                 'cov-' + index + '-orientationToleranceMinusDeg',
@@ -1617,6 +1619,7 @@ function renderCoveringCard(covering, index) {
             );
         }
         sunProtectionFields.appendChild(sunRow);
+        sunProtectionFields.appendChild(sunMinTempRow);
         sunProtectionFields.appendChild(sunDetailsRow);
 
         // 6.2-specific fields (elevation minimum, cloud-cover ceiling): only meaningful once an
