@@ -1208,6 +1208,13 @@ function renderCoveringCard(covering, index) {
         }),
     );
     row2.appendChild(
+        makeSelect('cov-' + index + '-coveringType', 'coveringType', covering.coveringType, COVERING_TYPES, function (v) {
+            covering.coveringType = v;
+            renderCoverings();
+            onChangeFired();
+        }),
+    );
+    row2.appendChild(
         makeText(
             'cov-' + index + '-orientation',
             'orientation',
@@ -1221,26 +1228,23 @@ function renderCoveringCard(covering, index) {
             'number',
         ),
     );
-    row2.appendChild(
-        makeSelect('cov-' + index + '-coveringType', 'coveringType', covering.coveringType, COVERING_TYPES, function (v) {
-            covering.coveringType = v;
-            renderCoverings();
-            onChangeFired();
-        }),
-    );
-    row2.appendChild(
-        makeSelect('cov-' + index + '-driverType', 'driverType', covering.driverType, DRIVER_TYPES, function (v) {
-            covering.driverType = v;
-            renderCoverings();
-            onChangeFired();
-        }),
-    );
     card.appendChild(row2);
 
     var statesTitle = document.createElement('div');
     statesTitle.className = 'shutters-section-title shutters-states-section-title';
     statesTitle.innerText = _('statesSectionTitle');
     card.appendChild(statesTitle);
+
+    var systemRow = document.createElement('div');
+    systemRow.className = 'shutters-row row';
+    systemRow.appendChild(
+        makeSelect('cov-' + index + '-driverType', 'driverType', covering.driverType, DRIVER_TYPES, function (v) {
+            covering.driverType = v;
+            renderCoverings();
+            onChangeFired();
+        }),
+    );
+    card.appendChild(systemRow);
 
     var statesRow = document.createElement('div');
     statesRow.className = 'shutters-row row';

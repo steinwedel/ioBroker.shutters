@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.37 (2026-08-16)
+
+* (steinwedel) **ENHANCED**: Move the Coverings system selector into the linked hardware section
+
 ## 0.0.36 (2026-08-16)
 
 * (steinwedel) **ENHANCED**: Position door-contact settings beside the Rolladensperre option

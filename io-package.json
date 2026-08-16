@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.36",
+    "version": "0.0.37",
     "news": {
+      "0.0.37": {
+        "en": "**ENHANCED**: Move the Coverings system selector into the linked hardware section",
+        "de": "**VERBESSERT**: Verschieben Sie die Systemauswahl für die Abdeckungen in den verknüpften Hardwarebereich.",
+        "ru": "**УЛУЧШЕНО**: Переместите селектор системы покрытий в связанный раздел фурнитуры.",
+        "pt": "**APRIMORADO**: Mova o seletor do sistema de revestimentos para a seção de hardware vinculado.",
+        "nl": "**VERBETERD**: Verplaats de systeemselector voor bekledingen naar het gedeelte voor gekoppelde hardware.",
+        "fr": "**AMÉLIORÉ** : Déplacez le sélecteur de système Coverings dans la section matériel associée.",
+        "it": "**MIGLIORATO**: Spostare il selettore del sistema di rivestimento nella sezione hardware collegata",
+        "es": "**MEJORADO**: Mueva el selector del sistema Coverings a la sección de hardware vinculada.",
+        "pl": "**ULEPSZONE**: Przenieś selektor systemów pokryć do powiązanej sekcji sprzętu",
+        "uk": "**ПОКРАЩЕНО**: Переміщено селектор системи покриттів до розділу пов’язаної фурнітури.",
+        "zh-cn": "**增强功能**：将 Coverings 系统选择器移至关联的硬件部分"
+      },
       "0.0.36": {
         "en": "**ENHANCED**: Position door-contact settings beside the Rolladensperre option",
         "de": "**VERBESSERT**: Positionieren Sie die Türkontakteinstellungen neben der Option „Rolladensperre“.",
@@ -80,19 +93,6 @@
         "pl": "**ULEPSZONE**: Funkcje automatyzacji wyświetlania pokryć w pionie i w poziomie",
         "uk": "**ПОКРАЩЕНО**: Автоматизація відображення покриттів функціонує вертикально та з вирівнюванням по лівому краю.",
         "zh-cn": "**增强功能**：显示屏盖板自动化功能可垂直左对齐"
-      },
-      "0.0.30": {
-        "en": "**ENHANCED**: Reorder the primary fields in each Coverings card",
-        "de": "**VERBESSERT**: Ordnen Sie die primären Felder in jeder Coverings-Karte neu an.",
-        "ru": "**УЛУЧШЕНО**: Изменен порядок основных полей в каждой карточке покрытия.",
-        "pt": "**APRIMORADO**: Reordene os campos principais em cada cartão de Coberturas.",
-        "nl": "**VERBETERD**: Herschik de primaire velden in elke Coverings-kaart.",
-        "fr": "**AMÉLIORÉ** : Réorganiser les champs principaux de chaque carte Coverings",
-        "it": "**MIGLIORATO**: Riordina i campi principali in ogni scheda Coperture",
-        "es": "**MEJORADO**: Reordena los campos principales en cada tarjeta de Coverings.",
-        "pl": "**ULEPSZONE**: Zmień kolejność pól podstawowych na każdej karcie Pokrycia",
-        "uk": "**ПОКРАЩЕНО**: Змінено порядок основних полів у кожній картці «Покриття»",
-        "zh-cn": "**增强功能**：重新排列每张封面卡片中的主要字段。"
       }
     },
     "titleLang": {

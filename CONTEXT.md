@@ -1,11 +1,11 @@
 # Context
 
 ## Current Task
-- Positioned the door-contact fields directly beside Rolladensperre in the Coverings Admin UI.
+- Moved the System field to the start of Verknüpfte Hardware in each Coverings card.
 
 ## Key Decisions
-- Existing door-contact configurations remain active unless explicitly disabled.
-- Disabling the switch preserves the contact ID but stops subscription, status activation, and automated closing clamps.
+- Primary field order: Bezeichnung, Behangtyp, Ausrichtung.
+- System appears before the position-mapping and linked state fields.
 - Deployment uses the central `../scripts/deploy.sh` process.
 
 ## Next Steps
