@@ -1,11 +1,11 @@
 # Context
 
 ## Current Task
-- Reordered the primary Coverings fields to Bezeichnung, Ausrichtung, Behangtyp, System.
+- Displayed Coverings automation functions vertically and left-aligned.
 
 ## Key Decisions
-- Reset the Materialize auto margin only on the standalone ID field.
-- Positionszuordnung umkehren precedes the linked position-state fields.
+- Each automation checkbox occupies a full-width row.
+- Primary field order: Bezeichnung, Ausrichtung, Behangtyp, System.
 - Deployment uses the central `../scripts/deploy.sh` process.
 
 ## Next Steps

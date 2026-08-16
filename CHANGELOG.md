@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.31 (2026-08-16)
+
+* (steinwedel) **ENHANCED**: Display Coverings automation functions vertically and left-aligned
+
 ## 0.0.30 (2026-08-16)
 
 * (steinwedel) **ENHANCED**: Reorder the primary fields in each Coverings card

@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.30",
+    "version": "0.0.31",
     "news": {
+      "0.0.31": {
+        "en": "**ENHANCED**: Display Coverings automation functions vertically and left-aligned",
+        "de": "**VERBESSERT**: Die Automatisierungsfunktionen für Displayabdeckungen sind vertikal und linksbündig.",
+        "ru": "**УЛУЧШЕНО**: Функции автоматизации отображения защитных покрытий выравниваются по вертикали и левому краю.",
+        "pt": "**APRIMORADO**: Funções de automação de revestimentos de exibição alinhadas verticalmente e à esquerda.",
+        "nl": "**VERBETERD**: Automatische weergave van afdekkingen, verticaal en links uitgelijnd.",
+        "fr": "**AMÉLIORÉ** : Fonctions d’automatisation des écrans alignées verticalement et à gauche",
+        "it": "**MIGLIORATO**: Funzioni di automazione dei rivestimenti del display in verticale e allineate a sinistra",
+        "es": "**MEJORADO**: Las funciones de automatización de las cubiertas de la pantalla se ejecutan verticalmente y alineadas a la izquierda.",
+        "pl": "**ULEPSZONE**: Funkcje automatyzacji wyświetlania pokryć w pionie i w poziomie",
+        "uk": "**ПОКРАЩЕНО**: Автоматизація відображення покриттів функціонує вертикально та з вирівнюванням по лівому краю.",
+        "zh-cn": "**增强功能**：显示屏盖板自动化功能可垂直左对齐"
+      },
       "0.0.30": {
         "en": "**ENHANCED**: Reorder the primary fields in each Coverings card",
         "de": "**VERBESSERT**: Ordnen Sie die primären Felder in jeder Coverings-Karte neu an.",
@@ -80,19 +93,6 @@
         "pl": "**ULEPSZONE**: Zmień nazwę karty Plan interfejsu użytkownika administratora na Zeitpläne i popraw odstępy w formularzu Okładki",
         "uk": "**ПОКРАЩЕНО**: Перейменуйте вкладку «План» в інтерфейсі адміністратора на «Цінові шкали» та покращте інтервали у формі «Покриття».",
         "zh-cn": "**增强功能**：将管理界面“计划”选项卡重命名为“Zeitpläne”（时间规划），并优化“覆盖范围”表单中的间距。"
-      },
-      "0.0.24": {
-        "en": "**FIXED**: Prevent long field labels in the Coverings and Weather Data Admin UI tabs from overlapping their input fields",
-        "de": "**BEHOBEN**: Lange Feldbezeichnungen in den Verwaltungs-UI-Registerkarten „Bedeckungen“ und „Wetterdaten“ überlappen nun nicht mehr die Eingabefelder.",
-        "ru": "**ИСПРАВЛЕНО**: Предотвращается перекрытие длинных меток полей во вкладках «Покрытия» и «Данные о погоде» в административном интерфейсе.",
-        "pt": "**CORRIGIDO**: Impede que rótulos de campos longos nas guias da interface de administração de Coberturas e Dados Meteorológicos se sobreponham aos seus campos de entrada.",
-        "nl": "**OPGELOST**: Voorkomt dat lange veldlabels in de tabbladen 'Bedekkingen' en 'Weergaven' in de beheerdersinterface de invoervelden overlappen.",
-        "fr": "**CORRIGÉ** : Empêche les étiquettes de champ longues des onglets « Couvertures » et « Données météorologiques » de l’interface d’administration de chevaucher leurs champs de saisie.",
-        "it": "**RISOLTO**: Impedisce alle etichette dei campi lunghi nelle schede dell'interfaccia utente di amministrazione di Coperture e Dati meteorologici di sovrapporsi ai relativi campi di input.",
-        "es": "**CORREGIDO**: Se evita que las etiquetas de campo largas en las pestañas de la interfaz de administración de datos meteorológicos y de coberturas se superpongan a sus campos de entrada.",
-        "pl": "**NAPRAWIONO**: Zapobiegaj nakładaniu się długich etykiet pól na kartach interfejsu administratora danych pogodowych i pokrycia na pola wprowadzania danych",
-        "uk": "**ВИПРАВЛЕНО**: Запобігання перекриванню полів введення довгими підписами полів на вкладках інтерфейсу адміністратора «Покриття» та «Дані про погоду».",
-        "zh-cn": "**已修复**：防止覆盖区域和天气数据管理界面选项卡中的长字段标签与其输入字段重叠。"
       }
     },
     "titleLang": {

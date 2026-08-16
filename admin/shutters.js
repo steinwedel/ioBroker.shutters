@@ -1326,7 +1326,7 @@ function renderCoveringCard(covering, index) {
     card.appendChild(sunHint);
 
     var protectionRow1 = document.createElement('div');
-    protectionRow1.className = 'shutters-row row';
+    protectionRow1.className = 'shutters-row row shutters-automation-functions';
     protectionRow1.appendChild(
         makeCheckbox('cov-' + index + '-automationEnabled', 'automationEnabled', covering.automationEnabled, function (v) {
             covering.automationEnabled = v;
