@@ -41,12 +41,10 @@ systemDictionary = {
     driverTypeGenericPosition: { en: 'Generic (position state)', de: 'Generisch (Positions-State)' },
     driverTypeGenericRelay: { en: 'Generic (open/close relay)', de: 'Generisch (Auf/Zu-Relais)' },
     area: { en: 'Plan', de: 'Plan' },
+    schedulePlan: { en: 'Schedule', de: 'Zeitplan' },
     orientation: { en: 'Orientation (°, compass, 0=N/90=E/180=S/270=W)', de: 'Ausrichtung (°, Kompass, 0=N/90=O/180=S/270=W)' },
     automationEnabled: { en: 'Scheduled automation', de: 'Zeitautomatik' },
-    invertPosition: {
-        en: 'Invert position mapping (use when the actuator reports 0% closed/lowered and 100% open/raised)',
-        de: 'Positionszuordnung umkehren (verwenden, wenn der Aktor 0 % geschlossen/abgesenkt und 100 % geöffnet/angehoben meldet)',
-    },
+    invertPosition: { en: 'Invert position mapping', de: 'Positionszuordnung umkehren' },
     statePosition: {
         en: 'Position command state ID (0% open/raised; 100% closed/lowered)',
         de: 'Positions-Sollwert-State-ID (0 % geöffnet/angehoben; 100 % geschlossen/abgesenkt)',

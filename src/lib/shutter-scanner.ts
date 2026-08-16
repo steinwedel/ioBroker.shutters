@@ -57,6 +57,7 @@ export interface IScannedShutter {
     coveringType: CoveringType;
     /** Always `true`; the user can disable automation after reviewing the candidate. */
     automationEnabled: boolean;
+    /** Whether detected Homematic levels use the normalized 0-1 range. */
     homematicLevelNormalized?: boolean;
     /** Foreign state IDs found for this candidate, matching the shape `IShutterConfig.states` expects for `driverType`. */
     states: Record<string, string>;

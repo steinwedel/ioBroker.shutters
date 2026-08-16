@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.40 (2026-08-16)
+
+* (steinwedel) **FIXED**: Complete JSDoc documentation required by the project linter
+
 ## 0.0.39 (2026-08-16)
 
 * (steinwedel) **ENHANCED**: Place the Stop-State beside System and keep the System label visible

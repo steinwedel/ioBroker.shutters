@@ -7,7 +7,18 @@ import { PositionStopDriverBase } from './position-stop-driver-base';
 export class HomematicDriver extends PositionStopDriverBase {
     public readonly type = 'homematic';
 
-    /** Creates a Homematic driver with optional normalized HmIP receiver levels. */
+    /**
+     * Creates a Homematic driver with optional normalized HmIP receiver levels.
+     *
+     * @param adapter ioBroker adapter instance.
+     * @param positionStateId Foreign state ID for position commands.
+     * @param positionActualStateId Foreign state ID for actual position feedback.
+     * @param stopStateId Optional foreign state ID for stopping movement.
+     * @param tiltStateId Optional foreign state ID for tilt commands.
+     * @param tiltActualStateId Optional foreign state ID for actual tilt feedback.
+     * @param invertPosition Whether to invert the covering position mapping.
+     * @param normalizedLevel Whether foreign position values use the 0-1 range.
+     */
     public constructor(
         adapter: ioBroker.Adapter,
         positionStateId: string,

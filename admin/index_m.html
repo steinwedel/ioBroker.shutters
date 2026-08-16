@@ -84,12 +84,27 @@
             margin-left: 0 !important;
             padding-left: 0;
         }
+        .shutters-schedule-plan-title { margin-left: 8px; white-space: nowrap; }
+        .shutters-schedule-plan-field > label { display: none; }
         .shutters-door-protection { display: flex; align-items: center; width: 100%; }
         .shutters-door-protection > .col { margin-left: 0 !important; padding-left: 0; }
         .shutters-door-protection > .s3 { flex: 0 0 25%; width: 25%; }
         .shutters-door-protection > .s6 { flex: 0 0 50%; width: 50%; }
+        .shutters-door-contact-field .input-field { display: flex; align-items: center; gap: 8px; }
+        .shutters-door-contact-field .input-field > input { flex: 1; margin: 0; }
+        .shutters-door-contact-field .input-field > label {
+            position: static;
+            flex: 0 0 auto;
+            order: -1;
+            transform: none;
+            white-space: nowrap;
+        }
+        .shutters-system-row { position: relative; padding-top: 18px; }
         .shutters-system-row > .col { margin-left: 0 !important; }
-        .shutters-system-row .input-field > label { opacity: 1; visibility: visible; }
+        .shutters-system-row .shutters-system-selector > label { display: none; }
+        .shutters-system-title { position: absolute; top: 0; left: 0; font-size: 12px; color: #555; }
+        .shutters-covering-primary-row > .col:first-child { margin-left: 0 !important; }
+        .shutters-position-state-row > .col:first-child { margin-left: 0 !important; }
         .shutters-row .input-field { padding: 0 8px; box-sizing: border-box; min-width: 0; }
         .shutters-row .input-field > label {
             max-width: 100%;

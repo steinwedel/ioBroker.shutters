@@ -1,11 +1,11 @@
 # Context
 
 ## Current Task
-- Placed the Stop-State right of System and forced the System label visible.
+- Completed project JSDoc documentation and prepared the Admin UI updates for deployment.
 
 ## Key Decisions
-- Primary field order: Bezeichnung, Behangtyp, Ausrichtung.
-- Linked position order: target, actual state, then position mapping.
+- All existing JSDoc lint warnings are addressed without changing runtime behavior.
+- Admin UI changes include explicit System, Zeitplan, and Türkontakt-State-ID labels.
 - Deployment uses the central `../scripts/deploy.sh` process.
 
 ## Next Steps

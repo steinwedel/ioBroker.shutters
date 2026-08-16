@@ -1199,7 +1199,7 @@ function renderCoveringCard(covering, index) {
     card.appendChild(row1);
 
     var row2 = document.createElement('div');
-    row2.className = 'shutters-row row';
+    row2.className = 'shutters-row row shutters-covering-primary-row';
     row2.appendChild(
         makeText('cov-' + index + '-name', 'coveringName', covering.name, 3, function (v) {
             covering.name = v;
@@ -1238,13 +1238,17 @@ function renderCoveringCard(covering, index) {
     var relevantStateFields = getRelevantStateFields(covering.driverType, covering.invertPosition);
     var systemRow = document.createElement('div');
     systemRow.className = 'shutters-row row shutters-system-row';
-    systemRow.appendChild(
-        makeSelect('cov-' + index + '-driverType', 'driverType', covering.driverType, DRIVER_TYPES, function (v) {
-            covering.driverType = v;
-            renderCoverings();
-            onChangeFired();
-        }),
-    );
+    var systemTitle = document.createElement('div');
+    systemTitle.className = 'shutters-system-title';
+    systemTitle.innerText = _('driverType');
+    systemRow.appendChild(systemTitle);
+    var systemField = makeSelect('cov-' + index + '-driverType', 'driverType', covering.driverType, DRIVER_TYPES, function (v) {
+        covering.driverType = v;
+        renderCoverings();
+        onChangeFired();
+    });
+    systemField.className += ' shutters-system-selector';
+    systemRow.appendChild(systemField);
     var stopStateField = relevantStateFields.filter(function (field) { return field[0] === 'stop'; })[0];
     if (stopStateField) {
         systemRow.appendChild(
@@ -1257,7 +1261,7 @@ function renderCoveringCard(covering, index) {
     card.appendChild(systemRow);
 
     var statesRow = document.createElement('div');
-    statesRow.className = 'shutters-row row';
+    statesRow.className = 'shutters-row row shutters-position-state-row';
     var positionMappingField = makeCheckbox(
         'cov-' + index + '-invertPosition',
         'invertPosition',
@@ -1354,13 +1358,17 @@ function renderCoveringCard(covering, index) {
             onChangeFired();
         }),
     );
-    scheduleRow.appendChild(
-        makeSelectPlain('cov-' + index + '-area', 'area', covering.areaId, getPlanOptions(), 3, function (v) {
-            covering.areaId = v;
-            delete covering.area;
-            onChangeFired();
-        }),
-    );
+    var schedulePlanTitle = document.createElement('div');
+    schedulePlanTitle.className = 'shutters-schedule-plan-title';
+    schedulePlanTitle.innerText = _('schedulePlan');
+    scheduleRow.appendChild(schedulePlanTitle);
+    var schedulePlanField = makeSelectPlain('cov-' + index + '-area', 'area', covering.areaId, getPlanOptions(), 3, function (v) {
+        covering.areaId = v;
+        delete covering.area;
+        onChangeFired();
+    });
+    schedulePlanField.className += ' shutters-schedule-plan-field';
+    scheduleRow.appendChild(schedulePlanField);
     protectionRow1.appendChild(scheduleRow);
     protectionRow1.appendChild(
         makeCheckbox('cov-' + index + '-sunProtectionEnabled', 'sunProtectionEnabled', covering.sunProtectionEnabled, function (v) {
@@ -1403,12 +1411,18 @@ function renderCoveringCard(covering, index) {
             onChangeFired();
         }),
     );
-    doorProtectionRow.appendChild(
-        makeStateIdField('cov-' + index + '-doorContactStateId', 'doorContactStateId', covering.doorContactStateId, 6, function (v) {
+    var doorContactField = makeStateIdField(
+        'cov-' + index + '-doorContactStateId',
+        'doorContactStateId',
+        covering.doorContactStateId,
+        6,
+        function (v) {
             covering.doorContactStateId = v;
             onChangeFired();
-        }),
+        },
     );
+    doorContactField.className += ' shutters-door-contact-field';
+    doorProtectionRow.appendChild(doorContactField);
     doorProtectionRow.appendChild(
         makeCheckbox('cov-' + index + '-invertDoorContact', 'invertDoorContact', covering.invertDoorContact, function (v) {
             covering.invertDoorContact = v;

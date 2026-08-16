@@ -65,6 +65,7 @@ export interface IShutterConfig {
      * Ignored by drivers outside `POSITION_STOP_DRIVERS`. Default: `false`.
      */
     invertPosition?: boolean;
+    /** Whether Homematic position states use normalized 0-1 levels instead of 0-100. */
     homematicLevelNormalized?: boolean;
 
     /** Whether sun protection (plan section 6) is enabled for this covering. Default: true. */
@@ -160,12 +161,13 @@ export interface IShutterConfig {
      */
     frostProtectionEnabled?: boolean;
 
+    /** Whether door-contact protection is active for this covering. Default: true. */
+    doorProtectionEnabled?: boolean;
     /**
      * Foreign boolean state of a door/window contact (e.g. a terrace door)
      * that, while open, suppresses automated closing actions for this
      * covering (plan section 7e). Undefined disables door protection.
      */
-    doorProtectionEnabled?: boolean;
     doorContactStateId?: string;
     /** Whether a false door-contact value indicates an open door or window. */
     invertDoorContact?: boolean;
