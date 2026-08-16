@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.50",
+    "version": "0.0.51",
     "news": {
+      "0.0.51": {
+        "en": "**FIXED**: Restore the Materialize Admin UI",
+        "de": "**BEHOBEN**: Die Materialize-Admin-Benutzeroberfläche wurde wiederhergestellt.",
+        "ru": "**ИСПРАВЛЕНО**: Восстановлен административный интерфейс Materialize.",
+        "pt": "**CORRIGIDO**: Restauração da interface administrativa do Materialize",
+        "nl": "**OPGELOST**: De Materialize-beheerinterface is hersteld.",
+        "fr": "**CORRIGÉ** : Restauration de l’interface d’administration de Materialize",
+        "it": "**RISOLTO**: Ripristinata l'interfaccia utente di amministrazione di Materialize",
+        "es": "**CORREGIDO**: Restaurar la interfaz de usuario de administración de Materialize",
+        "pl": "**NAPRAWIONO**: Przywrócono interfejs administratora Materialize",
+        "uk": "**ВИПРАВЛЕНО**: Відновлено інтерфейс адміністратора Materialize",
+        "zh-cn": "**已修复**：恢复 Materialize 管理界面"
+      },
       "0.0.50": {
         "en": "**ENHANCED**: Migrate covering objects to device → channel → state hierarchy with legacy state compatibility\n**FIXED**: Reset the adapter connection state during unload and refresh calibration documentation\n**ENHANCED**: Remove the unused vulnerable development server dependency\n**ENHANCED**: Replace the legacy Admin UI with JSONConfig and support the current holiday state model",
         "de": "**VERBESSERT**: Migration von Covering-Objekten zur Geräte-→-Kanal-→-Zustands-Hierarchie mit Legacy-Zustandskompatibilität\n**BEHOBEN**: Zurücksetzen des Adapterverbindungsstatus beim Entladen und Aktualisieren der Kalibrierungsdokumentation\n**VERBESSERT**: Entfernt die ungenutzte, anfällige Abhängigkeit vom Entwicklungsserver.\n**VERBESSERT**: Die veraltete Admin-Benutzeroberfläche wird durch JSONConfig ersetzt und das aktuelle Feiertagsstatusmodell wird unterstützt.",
@@ -80,19 +93,6 @@
         "pl": "**ULEPSZONE**: Udoskonalono układ zachmurzenia i pola tolerancji ochrony przeciwsłonecznej Coverings",
         "uk": "**ПОКРАЩЕНО**: Удосконалено макет поля допуску та хмарності для сонцезахисних покриттів.",
         "zh-cn": "**增强功能**：优化遮阳云层覆盖和容差字段布局"
-      },
-      "0.0.44": {
-        "en": "**ENHANCED**: Refine the Coverings sun-protection field labels, alignment, and row layout",
-        "de": "**VERBESSERT**: Optimierte Beschriftung der Sonnenschutzfelder, Ausrichtung und Reihenlayout",
-        "ru": "**УЛУЧШЕНО**: Улучшены обозначения полей, выравнивание и расположение строк в разделе «Защита от солнца» в разделе «Защитные покрытия».",
-        "pt": "**APRIMORADO**: Refinamos os rótulos, o alinhamento e o layout das linhas dos campos de proteção solar das coberturas.",
-        "nl": "**VERBETERD**: Verfijn de veldlabels, uitlijning en rijindeling van de zonwerende folie.",
-        "fr": "**AMÉLIORÉ** : Amélioration de l’étiquetage, de l’alignement et de la disposition des rangées des panneaux de protection solaire Coverings",
-        "it": "**MIGLIORATO**: Perfezionate le etichette, l'allineamento e il layout delle righe dei campi di protezione solare per le coperture.",
-        "es": "**MEJORADO**: Perfeccione las etiquetas de campo, la alineación y el diseño de filas de la protección solar de Coverings.",
-        "pl": "**ULEPSZONE**: Udoskonalono etykiety pól ochrony przeciwsłonecznej Coverings, wyrównanie i układ rzędów",
-        "uk": "**ПОКРАЩЕНО**: Удосконалено підписи полів сонцезахисних покриттів, вирівнювання та розташування рядків",
-        "zh-cn": "**增强功能**：优化遮阳篷田间标签、对齐方式和行布局"
       }
     },
     "titleLang": {
@@ -155,7 +155,7 @@
       "custom": true
     },
     "adminUI": {
-      "config": "json"
+      "config": "materialize"
     },
     "dependencies": [
       {

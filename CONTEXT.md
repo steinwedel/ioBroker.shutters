@@ -1,11 +1,11 @@
 # Context
 
 ## Current Task
-- Migrated Admin configuration to JSONConfig and the current holiday-state model.
+- Restoring the Materialize Admin UI after an incorrect JSONConfig activation.
 
 ## Key Decisions
-- JSONConfig uses a boolean external `holidayStateId` and updates schedules on holiday-state changes.
-- All JSONConfig labels are present in every generated i18n file.
+- `adminUI.config` must remain `materialize`; never activate JSONConfig.
+- `jsonConfig.json` remains inactive and does not control the Admin UI.
 - Covering state hierarchy preserves legacy direct-state compatibility.
 
 ## Next Steps

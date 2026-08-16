@@ -160,7 +160,7 @@ Diese Felder MÜSSEN in `io-package.json` korrekt gesetzt sein (KI macht hier h�
 |---|---|
 | `dataSource` | `"poll"` (Adapter fragt Sensoren/APIs aktiv ab) |
 | `mode` | `"daemon"` (Adapter läuft dauerhaft) |
-| `adminUI.config` | `"json"` (JSONConfig, nicht `"html"`!) |
+| `adminUI.config` | `"materialize"` (die bestehende Materialize-Admin-Oberfläche ist verbindlich; JSONConfig nicht aktivieren) |
 | `type` | `"climate-control"` oder `"garden"` |
 | `connectionType` | `"local"` (oder `"cloud"` bei Wetter-API) |
 | `supportedMessages` | `{ "custom": true }` |

@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.51 (2026-08-16)
+
+* (steinwedel) **FIXED**: Restore the Materialize Admin UI
+
 ## 0.0.50 (2026-08-16)
 
 * (steinwedel) **ENHANCED**: Migrate covering objects to device → channel → state hierarchy with legacy state compatibility
