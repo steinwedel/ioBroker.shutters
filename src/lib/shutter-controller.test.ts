@@ -153,14 +153,60 @@ describe('ShutterController', () => {
             expect(getOwnState('shutters.shutter1.sunProtectionOverrideUntil')).to.be.undefined;
         });
 
-        it('initializes automationEnabled and statusText', async () => {
+        it('initializes observability and configuration mirror states', async () => {
             const { adapter, getOwnState } = createFakeAdapter();
-            const controller = new ShutterController(adapter, makeConfig({ automationEnabled: true }));
+            const controller = new ShutterController(
+                adapter,
+                makeConfig({ automationEnabled: true, orientation: 180, areaId: 'living-room' }),
+            );
 
             await controller.createObjects();
 
             expect(getOwnState('shutters.shutter1.automationEnabled')).to.deep.equal({ val: true, ack: true });
             expect(getOwnState('shutters.shutter1.statusText')?.val).to.equal('Idle');
+            expect(getOwnState('shutters.shutter1.state')).to.deep.equal({ val: 1, ack: true });
+            expect(getOwnState('shutters.shutter1.orientation')).to.deep.equal({ val: 180, ack: true });
+            expect(getOwnState('shutters.shutter1.area')).to.deep.equal({ val: 'living-room', ack: true });
+            expect(getOwnState('shutters.shutter1.driverType')).to.deep.equal({ val: 'shelly', ack: true });
+            expect(getOwnState('shutters.shutter1.coveringType')).to.deep.equal({ val: 'rolladen', ack: true });
+            expect(getOwnState('shutters.shutter1.sunProtectionEnabled')).to.deep.equal({ val: true, ack: true });
+            expect(getOwnState('shutters.shutter1.rainProtectionEnabled')).to.deep.equal({ val: true, ack: true });
+            expect(getOwnState('shutters.shutter1.nightCoolingEnabled')).to.deep.equal({ val: false, ack: true });
+        });
+
+        it('sets state to moving while a command is pending', async () => {
+            const { adapter, getOwnState } = createFakeAdapter();
+            const controller = new ShutterController(adapter, makeConfig());
+
+            await controller.commandPosition(50);
+
+            expect(getOwnState('shutters.shutter1.state')).to.deep.equal({ val: 2, ack: true });
+        });
+    });
+
+    describe('setDoorProtectionActive (plan section 3/7e)', () => {
+        it('writes the doorProtectionActive state', async () => {
+            const { adapter, getOwnState } = createFakeAdapter();
+            const controller = new ShutterController(adapter, makeConfig());
+
+            await controller.setDoorProtectionActive(true);
+            expect(getOwnState('shutters.shutter1.doorProtectionActive')).to.deep.equal({ val: true, ack: true });
+
+            await controller.setDoorProtectionActive(false);
+            expect(getOwnState('shutters.shutter1.doorProtectionActive')).to.deep.equal({ val: false, ack: true });
+        });
+    });
+
+    describe('protection activity states', () => {
+        it('sets all activity states false except active protections', async () => {
+            const { adapter, getOwnState } = createFakeAdapter();
+            const controller = new ShutterController(adapter, makeConfig());
+
+            await controller.setProtectionActivityStates({ rainProtection: true, nightCooling: true });
+
+            expect(getOwnState('shutters.shutter1.sunProtectionActive')).to.deep.equal({ val: false, ack: true });
+            expect(getOwnState('shutters.shutter1.rainProtectionActive')).to.deep.equal({ val: true, ack: true });
+            expect(getOwnState('shutters.shutter1.nightCoolingActive')).to.deep.equal({ val: true, ack: true });
         });
     });
 

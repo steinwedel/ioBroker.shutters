@@ -21,6 +21,15 @@ export class BestEffortPositionEstimate {
         this.value = 100;
     }
 
+    /**
+     * Sets the current best-effort position estimate.
+     *
+     * @param value - Position estimate, 0-100.
+     */
+    public setValue(value: number): void {
+        this.value = value;
+    }
+
     /** Discards the current estimate, e.g. because movement was stopped before reaching either end. */
     public invalidate(): void {
         this.value = undefined;

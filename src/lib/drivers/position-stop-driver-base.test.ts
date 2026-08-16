@@ -222,7 +222,7 @@ describe('PositionStopDriverBase (via HomematicDriver)', () => {
 });
 
 describe('invertPosition (IShutterConfig.invertPosition - a single actuator wired opposite from its siblings)', () => {
-    it('flips the covering percentage on top of a driver with its own external convention (Homematic)', async () => {
+    it('flips the covering percentage on top of a driver with its own external convention', async () => {
         const { adapter, setForeignStateCalls } = createFakeAdapter();
         const driver = new HomematicDriver(
             adapter,
@@ -234,10 +234,6 @@ describe('invertPosition (IShutterConfig.invertPosition - a single actuator wire
             true,
         );
 
-        // Without invertPosition, HomematicDriver.setPosition(85) would write 100-85=15 (see the plain
-        // "converts normalized positions to Homematic LEVEL values" test above). With invertPosition,
-        // the covering percentage is flipped once more before that, so it writes 100-(100-85)=85 -
-        // i.e. this specific actuator's LEVEL runs the opposite way from every other Homematic covering.
         await driver.setPosition(85);
 
         expect(setForeignStateCalls).to.deep.equal([{ id: 'hm-rpc.0.ABC.1.LEVEL', val: 85 }]);

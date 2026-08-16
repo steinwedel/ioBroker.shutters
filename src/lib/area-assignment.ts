@@ -1,13 +1,25 @@
 import { nextAvailableAreaId } from './id-generator';
 import type { IAreaScheduleConfig, IShutterConfig } from './types';
 
+/** Normalized area and covering assignments, including migration diagnostics. */
 export interface IAreaAssignmentNormalization {
+    /** Areas with unique stable IDs. */
     areas: IAreaScheduleConfig[];
+    /** Coverings migrated from legacy area names where unambiguous. */
     shutters: IShutterConfig[];
+    /** Whether normalization changed an area ID or covering assignment. */
     changed: boolean;
+    /** Legacy area names that map to multiple area IDs. */
     ambiguousAreaNames: string[];
 }
 
+/**
+ * Assigns unique area IDs and migrates unambiguous legacy covering area names.
+ *
+ * @param areas - Configured areas to normalize.
+ * @param shutters - Configured coverings to normalize.
+ * @returns The normalized configuration and migration details.
+ */
 export function normalizeAreaAssignments(
     areas: IAreaScheduleConfig[],
     shutters: IShutterConfig[],

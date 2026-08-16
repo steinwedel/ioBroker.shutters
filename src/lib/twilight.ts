@@ -46,7 +46,9 @@ export function computeSunEventTime(
 
 /** Current sun position, degrees; matches `SunCalc.getPosition()`'s convention (azimuth clockwise from North, altitude 0=horizon/90=zenith). */
 export interface ISunPosition {
+    /** Azimuth in degrees, clockwise from North. */
     azimuthDeg: number;
+    /** Elevation in degrees above the horizon. */
     elevationDeg: number;
 }
 

@@ -38,7 +38,9 @@ export interface IShutterConfig {
     driverType: DriverType;
     /** Kind of covering; determines position/tilt semantics, see covering-types.ts. */
     coveringType: CoveringType;
+    /** Stable ID of the assigned area. */
     areaId?: string;
+    /** Legacy area name, retained only for configuration migration. */
     area?: string;
     /** Window orientation in degrees (0-359, compass, clockwise from North), used to derive the active sun-protection window (6.2). */
     orientation?: number;
@@ -63,6 +65,7 @@ export interface IShutterConfig {
      * Ignored by drivers outside `POSITION_STOP_DRIVERS`. Default: `false`.
      */
     invertPosition?: boolean;
+    homematicLevelNormalized?: boolean;
 
     /** Whether sun protection (plan section 6) is enabled for this covering. Default: true. */
     sunProtectionEnabled?: boolean;
@@ -80,6 +83,25 @@ export interface IShutterConfig {
     orientationToleranceMinusDeg?: number;
     /** Upper bound (typically positive) of the active sun-azimuth range, see `orientationToleranceMinusDeg`. Auto-filled with +60 under the same conditions. */
     orientationTolerancePlusDeg?: number;
+    /**
+     * Minimum sun elevation, degrees, for the orientation-based sun window (plan section 6.2, part
+     * a) to count as active - only used together with `orientation`. Default: 0 (sun at/above the
+     * horizon), a permissive default that changes nothing for existing configurations; raise it (e.g.
+     * to 10-15°) to also ignore a grazing, low sun whose azimuth happens to match but that delivers
+     * little real heat/glare.
+     */
+    sunProtectionMinElevationDeg?: number;
+    /**
+     * Maximum cloud cover, % (plan section 6.2, part c), for the orientation-based sun window to
+     * count as active - only used together with `orientation`; requires `IWeatherConfig.cloudCoverStateId`
+     * to be configured to have any effect. Undefined (default) disables this check entirely, i.e. the
+     * orientation-based window ignores cloud cover, same as before this field existed. Distinct from
+     * `IAutomationOptions.sunProtectionClearSkyCloudCoverMaxPercent` (plan section 6.3): that one is an
+     * independent global trigger regardless of orientation; this one narrows this specific covering's
+     * own orientation-based window on top of its azimuth/elevation match, and does not force sun
+     * protection active on its own.
+     */
+    sunProtectionMaxCloudCoverPercent?: number;
     /** Start of the daily time window sun protection may apply in, "HH:MM". Fallback used only when `orientation` is not set. */
     sunWindowStart?: string;
     /** End of the daily time window sun protection may apply in, "HH:MM". Fallback used only when `orientation` is not set. */
@@ -144,6 +166,12 @@ export interface IShutterConfig {
      * covering (plan section 7e). Undefined disables door protection.
      */
     doorContactStateId?: string;
+    /** Whether a false door-contact value indicates an open door or window. */
+    invertDoorContact?: boolean;
+    /** Calibrated full opening time for generic relays, in seconds. */
+    relayOpenRuntimeSecs?: number;
+    /** Calibrated full closing time for generic relays, in seconds. */
+    relayCloseRuntimeSecs?: number;
 
     /**
      * Whether summer night cooling (plan section 7c) is enabled for this covering. Unlike
@@ -198,7 +226,21 @@ export interface IWeatherConfig {
     outdoorTempStateId?: string;
     /** Foreign state, relative humidity in %, used together with `outdoorTempStateId` by frost protection (7b). */
     humidityStateId?: string;
+    /** Foreign boolean state indicating summer operation. */
     isSummerStateId?: string;
+    /**
+     * Calendar-based heating-period fallback for `WeatherSource.getIsSummer()` (plan section 6.2/2),
+     * used only while `isSummerStateId` is not configured - once it is, the foreign state always
+     * takes precedence, exactly like `holidayStateId` vs. a computed holiday. Format `"MM-DD"` (e.g.
+     * `"10-15"` for October 15th). Wraps across the New Year if `heatingPeriodStart` is later in the
+     * year than `heatingPeriodEnd` (the normal case, e.g. October to April) - see
+     * `isDateWithinMonthDayRange()`. Both must be set together to have any effect; if either is
+     * missing/invalid, the heating period is treated as never active (i.e. always summer), the same
+     * as today's zero-config default.
+     */
+    heatingPeriodStart?: string;
+    /** See `heatingPeriodStart`; the day the heating period ends (inclusive). */
+    heatingPeriodEnd?: string;
     /**
      * Foreign state, cloud cover in % (0 = clear sky, 100 = fully overcast), used by the optional
      * cloud-cover-only sun-protection trigger (plan section 6.3, see
@@ -281,6 +323,7 @@ export interface IShuttersNativeConfig {
 
     /** Solar radiation (W/m²) at/above which sun protection closes. Default: 200. */
     sunCloseThreshold?: number;
+    /** Whether sun protection is enabled globally. */
     sunProtectionGlobalEnabled?: boolean;
     /** Solar radiation (W/m²) below which sun protection may open again, after `sunOpenMinDurationMs`. Default: 150. */
     sunOpenThreshold?: number;
@@ -351,6 +394,7 @@ export type ScheduleMode = 'uniform' | 'weekdayWeekend' | 'perWeekday';
 
 /** Daily open/close schedule for one area/zone (plan section 5). */
 export interface IAreaScheduleConfig {
+    /** Stable identifier used to derive the area object ID. */
     id?: string;
     /** Area/zone name shown in the admin UI. */
     name: string;

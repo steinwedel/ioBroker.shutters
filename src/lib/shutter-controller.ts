@@ -13,6 +13,14 @@ const DEFAULT_MIN_COMMAND_INTERVAL_MS = 8_000;
 const NO_PENDING_MOVE = -1;
 /** Maximum number of entries kept in `activityLog` (plan section 10a.8) - a short, rolling history, not a full audit log. */
 const MAX_ACTIVITY_LOG_ENTRIES = 10;
+const PROTECTION_NAMES = [
+    'sunProtection',
+    'rainProtection',
+    'windProtection',
+    'frostProtection',
+    'nightCooling',
+] as const;
+type IProtectionName = (typeof PROTECTION_NAMES)[number];
 
 /** One entry of `IShutterConfig`'s `activityLog` state (plan section 10a.8), most recent first. */
 export interface IActivityLogEntry {
@@ -44,6 +52,9 @@ export class ShutterController {
     private pendingBufferedCommand:
         { targetPercent: number; invokeDriver: () => Promise<void>; afterDrive: () => Promise<void> } | undefined;
     private bufferFlushTimer: ioBroker.Timeout | undefined;
+    private calibration:
+        | { phase: 'closing' | 'opening'; startedAt: number; closeRuntimeSecs?: number; timer?: ioBroker.Timeout }
+        | undefined;
 
     /** Called whenever a manual (user-issued) command is processed; used by `automation.ts` to apply the sun-protection override (plan section 6.4). */
     public onManualCommand: (() => void) | undefined;
@@ -202,6 +213,71 @@ export class ShutterController {
             native: {},
         });
 
+        if (config.driverType === 'generic-relay') {
+            await adapter.setObjectNotExistsAsync(`${basePath}.calibrationStatus`, {
+                type: 'state',
+                common: {
+                    name: `${config.name} - calibration status`,
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: false,
+                    expert: true,
+                },
+                native: {},
+            });
+            await adapter.setObjectNotExistsAsync(`${basePath}.calibrationConfirm`, {
+                type: 'state',
+                common: {
+                    name: `${config.name} - confirm calibration travel end`,
+                    type: 'boolean',
+                    role: 'button',
+                    read: true,
+                    write: true,
+                    expert: true,
+                },
+                native: {},
+            });
+            await adapter.setObjectNotExistsAsync(`${basePath}.calibrationAbort`, {
+                type: 'state',
+                common: {
+                    name: `${config.name} - abort calibration`,
+                    type: 'boolean',
+                    role: 'button',
+                    read: true,
+                    write: true,
+                    expert: true,
+                },
+                native: {},
+            });
+            await adapter.setObjectNotExistsAsync(`${basePath}.calibrationOpenRuntimeSecs`, {
+                type: 'state',
+                common: {
+                    name: `${config.name} - measured opening runtime`,
+                    type: 'number',
+                    role: 'value',
+                    unit: 's',
+                    read: true,
+                    write: false,
+                    expert: true,
+                },
+                native: {},
+            });
+            await adapter.setObjectNotExistsAsync(`${basePath}.calibrationCloseRuntimeSecs`, {
+                type: 'state',
+                common: {
+                    name: `${config.name} - measured closing runtime`,
+                    type: 'number',
+                    role: 'value',
+                    unit: 's',
+                    read: true,
+                    write: false,
+                    expert: true,
+                },
+                native: {},
+            });
+        }
+
         await adapter.setObjectNotExistsAsync(`${basePath}.automationEnabled`, {
             type: 'state',
             common: {
@@ -214,6 +290,55 @@ export class ShutterController {
             native: {},
         });
 
+        await adapter.setObjectNotExistsAsync(`${basePath}.state`, {
+            type: 'state',
+            common: {
+                name: `${config.name} - state`,
+                type: 'number',
+                role: 'indicator',
+                states: { 0: 'open', 1: 'closed', 2: 'moving' },
+                min: 0,
+                max: 2,
+                read: true,
+                write: false,
+            },
+            native: {},
+        });
+
+        await adapter.setObjectNotExistsAsync(`${basePath}.orientation`, {
+            type: 'state',
+            common: {
+                name: `${config.name} - configured orientation`,
+                type: 'number',
+                role: 'value.direction',
+                unit: '°',
+                min: 0,
+                max: 359,
+                read: true,
+                write: false,
+            },
+            native: {},
+        });
+
+        for (const [name, value] of [
+            ['area', config.areaId ?? config.area ?? ''],
+            ['driverType', config.driverType],
+            ['coveringType', config.coveringType],
+        ]) {
+            await adapter.setObjectNotExistsAsync(`${basePath}.${name}`, {
+                type: 'state',
+                common: {
+                    name: `${config.name} - configured ${name}`,
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: false,
+                },
+                native: {},
+            });
+            await adapter.setStateAsync(`${basePath}.${name}`, value, true);
+        }
+
         await adapter.setObjectNotExistsAsync(`${basePath}.statusText`, {
             type: 'state',
             common: {
@@ -225,6 +350,59 @@ export class ShutterController {
             },
             native: {},
         });
+
+        await adapter.setObjectNotExistsAsync(`${basePath}.doorProtectionActive`, {
+            type: 'state',
+            common: {
+                name: `${config.name} - door protection active (plan section 7e)`,
+                type: 'boolean',
+                role: 'indicator',
+                read: true,
+                write: false,
+                def: false,
+            },
+            native: {},
+        });
+
+        for (const name of [
+            'sunProtectionEnabled',
+            'rainProtectionEnabled',
+            'windProtectionEnabled',
+            'frostProtectionEnabled',
+            'nightCoolingEnabled',
+        ]) {
+            await adapter.setObjectNotExistsAsync(`${basePath}.${name}`, {
+                type: 'state',
+                common: {
+                    name: `${config.name} - ${name}`,
+                    type: 'boolean',
+                    role: 'indicator',
+                    read: true,
+                    write: false,
+                },
+                native: {},
+            });
+        }
+        for (const name of [
+            'sunProtectionActive',
+            'rainProtectionActive',
+            'windProtectionActive',
+            'frostProtectionActive',
+            'nightCoolingActive',
+        ]) {
+            await adapter.setObjectNotExistsAsync(`${basePath}.${name}`, {
+                type: 'state',
+                common: {
+                    name: `${config.name} - ${name}`,
+                    type: 'boolean',
+                    role: 'indicator',
+                    read: true,
+                    write: false,
+                    def: false,
+                },
+                native: {},
+            });
+        }
 
         await adapter.setObjectNotExistsAsync(`${basePath}.activityLog`, {
             type: 'state',
@@ -304,6 +482,10 @@ export class ShutterController {
         });
 
         await adapter.setStateAsync(`${basePath}.automationEnabled`, config.automationEnabled, true);
+        await adapter.setStateAsync(`${basePath}.orientation`, config.orientation ?? 0, true);
+        await this.setProtectionConfigurationStates();
+        await this.setProtectionActivityStates();
+        await adapter.setStateAsync(`${basePath}.state`, 1, true);
         await adapter.setStateAsync(`${basePath}.statusText`, 'Idle', true);
 
         await this.recoverPendingMove();
@@ -322,6 +504,9 @@ export class ShutterController {
         ];
         if (this.config.states.tilt) {
             ids.push(`${this.basePath}.tilt`);
+        }
+        if (this.config.driverType === 'generic-relay') {
+            ids.push(`${this.basePath}.calibrationConfirm`, `${this.basePath}.calibrationAbort`);
         }
         return ids;
     }
@@ -365,6 +550,32 @@ export class ShutterController {
     }
 
     /**
+     * Writes `doorProtectionActive` (plan section 3/7e) - called once per automation tick from
+     * `automation.ts`, regardless of which priority branch ultimately applies, since whether the
+     * covering's door contact is currently open is independent of that. Modeled as "the configured
+     * door contact currently reports open" rather than "door protection clamped something just this
+     * tick", so it does not flicker based on which specific target happened to be requested at any
+     * given instant - see `clampForDoorProtection()` in `door-protection.ts` for the actual clamping.
+     *
+     * @param active - Whether this covering's door contact is currently open.
+     */
+    public async setDoorProtectionActive(active: boolean): Promise<void> {
+        await this.adapter.setStateAsync(`${this.basePath}.doorProtectionActive`, { val: active, ack: true });
+    }
+
+    /**
+     * @param active - Protection(s) that currently win the automation decision.
+     */
+    public async setProtectionActivityStates(active: Partial<Record<IProtectionName, boolean>> = {}): Promise<void> {
+        for (const name of PROTECTION_NAMES) {
+            await this.adapter.setStateAsync(`${this.basePath}.${name}Active`, {
+                val: active[name] ?? false,
+                ack: true,
+            });
+        }
+    }
+
+    /**
      * Handles a state change for one of this covering's own states, if it
      * matches. Returns true if the change was handled.
      *
@@ -391,9 +602,15 @@ export class ShutterController {
                 return true;
             case `${this.basePath}.calibrate`:
                 await this.acknowledge('calibrate', false);
-                this.adapter.log.warn(
-                    `Covering "${this.config.id}": guided calibration run is not implemented yet - configure calibrationCurve manually for now.`,
-                );
+                await this.startCalibration();
+                return true;
+            case `${this.basePath}.calibrationConfirm`:
+                await this.acknowledge('calibrationConfirm', false);
+                await this.confirmCalibration();
+                return true;
+            case `${this.basePath}.calibrationAbort`:
+                await this.acknowledge('calibrationAbort', false);
+                await this.finishCalibration('Calibration aborted.');
                 return true;
             case `${this.basePath}.automationEnabled`:
                 this.automationEnabled = Boolean(state.val);
@@ -404,6 +621,82 @@ export class ShutterController {
                 return true;
             default:
                 return false;
+        }
+    }
+
+    private async startCalibration(): Promise<void> {
+        if (this.config.driverType !== 'generic-relay' || !this.config.states.stop) {
+            await this.setCalibrationStatus('Guided calibration requires a generic relay with a stop state.');
+            return;
+        }
+        if (this.calibration) {
+            await this.setCalibrationStatus('Calibration is already running.');
+            return;
+        }
+        const startedAt = Date.now();
+        const timer = this.adapter.setTimeout(
+            () => {
+                this.finishCalibration('Calibration timed out.').catch(error => {
+                    this.adapter.log.error(
+                        `Calibration timeout for covering "${this.config.id}" failed: ${(error as Error).message}`,
+                    );
+                });
+            },
+            (this.config.maxRuntimeSecs ?? 60) * 1000 + WATCHDOG_GRACE_MS,
+        );
+        this.calibration = { phase: 'closing', startedAt, timer };
+        await this.driver.close();
+        await this.setCalibrationStatus('Closing: confirm when the covering is fully closed.');
+    }
+
+    private async confirmCalibration(): Promise<void> {
+        if (!this.calibration) {
+            await this.setCalibrationStatus('No calibration is running.');
+            return;
+        }
+        const durationSecs = (Date.now() - this.calibration.startedAt) / 1000;
+        await this.driver.stop();
+        if (this.calibration.phase === 'closing') {
+            this.calibration.phase = 'opening';
+            this.calibration.closeRuntimeSecs = durationSecs;
+            this.calibration.startedAt = Date.now();
+            await this.driver.open();
+            await this.setCalibrationStatus('Opening: confirm when the covering is fully open.');
+            return;
+        }
+        const closeRuntimeSecs = this.calibration.closeRuntimeSecs;
+        if (this.calibration.timer) {
+            this.adapter.clearTimeout(this.calibration.timer);
+        }
+        this.calibration = undefined;
+        await this.adapter.setStateAsync(`${this.basePath}.calibrationCloseRuntimeSecs`, {
+            val: closeRuntimeSecs,
+            ack: true,
+        });
+        await this.adapter.setStateAsync(`${this.basePath}.calibrationOpenRuntimeSecs`, {
+            val: durationSecs,
+            ack: true,
+        });
+        await this.setCalibrationStatus(
+            'Calibration completed. Copy the measured runtimes into the covering configuration.',
+        );
+        await this.refreshPosition();
+    }
+
+    private async finishCalibration(status: string): Promise<void> {
+        if (this.calibration) {
+            if (this.calibration.timer) {
+                this.adapter.clearTimeout(this.calibration.timer);
+            }
+            this.calibration = undefined;
+            await this.driver.stop();
+        }
+        await this.setCalibrationStatus(status);
+    }
+
+    private async setCalibrationStatus(status: string): Promise<void> {
+        if (this.config.driverType === 'generic-relay') {
+            await this.adapter.setStateAsync(`${this.basePath}.calibrationStatus`, { val: status, ack: true });
         }
     }
 
@@ -461,6 +754,7 @@ export class ShutterController {
         await this.driver.stop();
         await this.acknowledge('stop', false);
         await this.clearPersistedPendingMove();
+        await this.updateState();
         this.onManualCommand?.();
     }
 
@@ -568,6 +862,33 @@ export class ShutterController {
         await this.adapter.setStateAsync(`${this.basePath}.sunProtectionOverrideUntil`, { val: untilMs, ack: true });
     }
 
+    private async setProtectionConfigurationStates(): Promise<void> {
+        const outdoorProtectionEnabled = this.config.coveringType !== 'lamellen';
+        const enabled: Record<IProtectionName, boolean> = {
+            sunProtection: this.config.sunProtectionEnabled ?? true,
+            rainProtection: this.config.rainProtectionEnabled ?? outdoorProtectionEnabled,
+            windProtection: this.config.windProtectionEnabled ?? outdoorProtectionEnabled,
+            frostProtection: this.config.frostProtectionEnabled ?? outdoorProtectionEnabled,
+            nightCooling: this.config.nightCoolingEnabled ?? false,
+        };
+        for (const name of PROTECTION_NAMES) {
+            await this.adapter.setStateAsync(`${this.basePath}.${name}Enabled`, {
+                val: enabled[name],
+                ack: true,
+            });
+        }
+    }
+
+    private async updateState(): Promise<void> {
+        const currentPercent = this.getCurrentCoveringPercent();
+        const state = this.pendingMove
+            ? 2
+            : currentPercent !== undefined && currentPercent <= WATCHDOG_TOLERANCE_PERCENT
+              ? 0
+              : 1;
+        await this.adapter.setStateAsync(`${this.basePath}.state`, { val: state, ack: true });
+    }
+
     /**
      * Central motor-protection gate (plan section 7d): every actual movement command - manual,
      * schedule, or protection-module driven - goes through here. If less than `minCommandIntervalMs`
@@ -640,6 +961,7 @@ export class ShutterController {
             ack: true,
         });
         await this.adapter.setStateAsync(`${this.basePath}.pendingMoveIssuedAt`, { val: issuedAt, ack: true });
+        await this.updateState();
         await invokeDriver();
         await afterDrive();
         await this.refreshPosition();
@@ -704,11 +1026,18 @@ export class ShutterController {
             true,
         );
         await this.checkWatchdog(runtimePercent);
+        await this.updateState();
     }
 
     /** Releases the driver's subscriptions and cancels any pending motor-protection buffer timer. Call on adapter unload. */
     public destroy(): void {
         this.cancelBufferedCommand();
+        if (this.calibration) {
+            if (this.calibration.timer) {
+                this.adapter.clearTimeout(this.calibration.timer);
+            }
+            this.calibration = undefined;
+        }
         this.driver.destroy();
     }
 

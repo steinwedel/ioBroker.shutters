@@ -43,11 +43,17 @@ systemDictionary = {
     orientation: { en: 'Orientation (°, compass, 0=N/90=E/180=S/270=W)', de: 'Ausrichtung (°, Kompass, 0=N/90=O/180=S/270=W)' },
     automationEnabled: { en: 'Automation enabled', de: 'Automatik aktiviert' },
     invertPosition: {
-        en: 'Invert position (this actuator runs the opposite direction)',
-        de: 'Position invertieren (dieser Aktor läuft in entgegengesetzter Richtung)',
+        en: 'Invert position mapping (use when the actuator reports 0% closed/lowered and 100% open/raised)',
+        de: 'Positionszuordnung umkehren (verwenden, wenn der Aktor 0 % geschlossen/abgesenkt und 100 % geöffnet/angehoben meldet)',
     },
-    statePosition: { en: 'Position state ID', de: 'Positions-State-ID' },
-    statePositionActual: { en: 'Actual position state ID', de: 'Ist-Positions-State-ID' },
+    statePosition: {
+        en: 'Position command state ID (0% open/raised; 100% closed/lowered)',
+        de: 'Positions-Sollwert-State-ID (0 % geöffnet/angehoben; 100 % geschlossen/abgesenkt)',
+    },
+    statePositionActual: {
+        en: 'Actual position state ID (0% open/raised; 100% closed/lowered)',
+        de: 'Ist-Positions-State-ID (0 % geöffnet/angehoben; 100 % geschlossen/abgesenkt)',
+    },
     stateOpen: { en: 'Open state ID', de: 'Auf-State-ID' },
     stateClose: { en: 'Close state ID', de: 'Zu-State-ID' },
     stateStop: { en: 'Stop state ID', de: 'Stopp-State-ID' },
@@ -59,11 +65,14 @@ systemDictionary = {
     statesSectionTitle: { en: 'Foreign states', de: 'Fremd-States' },
     protectionSectionTitle: { en: 'Protection settings', de: 'Schutzfunktionen' },
     sunProtectionHintText: {
-        en: 'When "Orientation" above is set, the sun-window (when sun protection may apply) is derived from it: active whenever the current sun azimuth is within the tolerance below on either side of the orientation, e.g. a south-facing window (180°) with the default 70° tolerance is active for sun azimuths 110-250°. The sun window start/end fields are only used as a fallback when no orientation is set.',
-        de: 'Wenn oben eine "Ausrichtung" gesetzt ist, wird das Sonnenschutz-Zeitfenster daraus abgeleitet: aktiv, solange der aktuelle Sonnenazimut innerhalb der unten stehenden Toleranz beidseitig der Ausrichtung liegt, z.B. ist ein nach Süden (180°) ausgerichtetes Fenster mit der Standardtoleranz von 70° für Sonnenazimute von 110-250° aktiv. Die Felder Sonnenschutz-Fenster Start/Ende werden nur als Fallback verwendet, wenn keine Ausrichtung gesetzt ist.',
+        en: 'When "Orientation" above is set, the sun-window (when sun protection may apply) is derived from it: active whenever the current sun azimuth is within the tolerance below on either side of the orientation, e.g. a south-facing window (180°) with the default 70° tolerance is active for sun azimuths 110-250°. The window additionally requires the sun elevation to reach the minimum below (default 0° = above the horizon), and, if a maximum cloud cover is set, the sky to be clear enough (requires the cloud-cover state ID under Weather data). The sun window start/end fields are only used as a fallback when no orientation is set.',
+        de: 'Wenn oben eine "Ausrichtung" gesetzt ist, wird das Sonnenschutz-Zeitfenster daraus abgeleitet: aktiv, solange der aktuelle Sonnenazimut innerhalb der unten stehenden Toleranz beidseitig der Ausrichtung liegt, z.B. ist ein nach Süden (180°) ausgerichtetes Fenster mit der Standardtoleranz von 70° für Sonnenazimute von 110-250° aktiv. Zusätzlich muss die Sonnenhöhe die unten stehende Mindesthöhe erreichen (Standard 0° = über dem Horizont), und, falls ein maximaler Bewölkungsgrad gesetzt ist, der Himmel entsprechend klar sein (benötigt die Bewölkungsgrad-State-ID unter Wetterdaten). Die Felder Sonnenschutz-Fenster Start/Ende werden nur als Fallback verwendet, wenn keine Ausrichtung gesetzt ist.',
     },
     sunProtectionEnabled: { en: 'Sun protection', de: 'Sonnenschutz' },
-    sunTargetPercent: { en: 'Sun target %', de: 'Sonnenschutz-Ziel %' },
+    sunTargetPercent: {
+        en: 'Sun-protection target position (0% open/raised; 100% closed/lowered)',
+        de: 'Sonnenschutz-Zielposition (0 % geöffnet/angehoben; 100 % geschlossen/abgesenkt)',
+    },
     sunProtectionMinTemp: {
         en: 'Sun protection min. temp. (°C, optional)',
         de: 'Sonnenschutz Mindesttemperatur (°C, optional)',
@@ -75,6 +84,14 @@ systemDictionary = {
     orientationTolerancePlusDeg: {
         en: 'Sun window tolerance, upper bound (°, relative to orientation)',
         de: 'Sonnenschutz-Toleranz, Obergrenze (°, relativ zur Ausrichtung)',
+    },
+    sunProtectionMinElevationDeg: {
+        en: 'Sun window: minimum sun elevation (°, default 0)',
+        de: 'Sonnenschutz-Fenster: minimale Sonnenhöhe (°, Standard 0)',
+    },
+    sunProtectionMaxCloudCoverPercent: {
+        en: 'Sun window: maximum cloud cover (%, empty = ignore)',
+        de: 'Sonnenschutz-Fenster: maximaler Bewölkungsgrad (%, leer = ignorieren)',
     },
     orientationToleranceTimeHintLabel: {
         en: 'Corresponds to about',
@@ -100,6 +117,9 @@ systemDictionary = {
     nightCoolingEnabled: { en: 'Night cooling', de: 'Nachtauskühlung' },
     nightCoolingIndoorTempStateId: { en: 'Indoor temperature state ID', de: 'Innentemperatur-State-ID' },
     doorContactStateId: { en: 'Door contact state ID', de: 'Türkontakt-State-ID' },
+    relayOpenRuntimeSecs: { en: 'Relay opening runtime (s)', de: 'Relais-Öffnungslaufzeit (s)' },
+    relayCloseRuntimeSecs: { en: 'Relay closing runtime (s)', de: 'Relais-Schließlaufzeit (s)' },
+    invertDoorContact: { en: 'Invert door contact', de: 'Türkontakt invertieren' },
     addCoveringButton: { en: '+ Add covering', de: '+ Rolladen hinzufügen' },
     removeButton: { en: 'Remove', de: 'Entfernen' },
     areasHintText: {
@@ -160,8 +180,8 @@ systemDictionary = {
     addAreaButton: { en: '+ Add plan', de: '+ Plan hinzufügen' },
     weather: { en: 'Weather data', de: 'Wetterdaten' },
     weatherHintText: {
-        en: 'Configure the foreign state IDs of your own weather station here. Any value left empty disables the protection functions that need it (an external weather-service fallback is not implemented yet). Cloud cover is optional and only used by the "trigger by cloud cover alone" option under Global thresholds. Wind direction is optional and only used by a covering\'s own "Rain: wind-direction tolerance" field (shown once rain protection is enabled and an orientation is set for that covering).',
-        de: 'Hier werden die Fremd-State-IDs der eigenen Wetterstation eingetragen. Ein leer gelassener Wert deaktiviert die davon abhängigen Schutzfunktionen (ein externer Wetterdienst-Fallback ist noch nicht umgesetzt). Der Grad der Bewölkung ist optional und wird nur von der Option "Auslösung nur vom Grad der Bewölkung abhängig machen" unter Globale Schwellwerte verwendet. Die Windrichtung ist optional und wird nur vom Feld "Regenschutz: Windrichtungs-Toleranz" einer einzelnen Rolladen-Karte verwendet (erscheint, sobald Regenschutz aktiviert und eine Ausrichtung gesetzt ist).',
+        en: 'Configure the foreign state IDs of your own weather station here. Any value left empty disables the protection functions that need it (an external weather-service fallback is not implemented yet). Cloud cover is optional and only used by the "trigger by cloud cover alone" option under Global thresholds. Wind direction is optional and only used by a covering\'s own "Rain: wind-direction tolerance" field (shown once rain protection is enabled and an orientation is set for that covering). "Summer" state ID left empty: sun protection instead uses the heating-period dates below (both empty too = always summer, the original default).',
+        de: 'Hier werden die Fremd-State-IDs der eigenen Wetterstation eingetragen. Ein leer gelassener Wert deaktiviert die davon abhängigen Schutzfunktionen (ein externer Wetterdienst-Fallback ist noch nicht umgesetzt). Der Grad der Bewölkung ist optional und wird nur von der Option "Auslösung nur vom Grad der Bewölkung abhängig machen" unter Globale Schwellwerte verwendet. Die Windrichtung ist optional und wird nur vom Feld "Regenschutz: Windrichtungs-Toleranz" einer einzelnen Rolladen-Karte verwendet (erscheint, sobald Regenschutz aktiviert und eine Ausrichtung gesetzt ist). "Sommer"-State-ID leer gelassen: der Sonnenschutz nutzt dann stattdessen die Heizperioden-Daten unten (auch beide leer = immer Sommer, der ursprüngliche Standard).',
     },
     weatherSolarRadiation: { en: 'Solar radiation (W/m²) state ID', de: 'Solarstrahlung (W/m²) State-ID' },
     weatherWindSpeed: { en: 'Wind speed (km/h) state ID', de: 'Windgeschwindigkeit (km/h) State-ID' },
@@ -171,6 +191,14 @@ systemDictionary = {
     weatherIsSummer: { en: 'Summer mode (boolean) state ID', de: 'Sommermodus (boolean) State-ID' },
     weatherCloudCover: { en: 'Cloud cover (%) state ID', de: 'Grad der Bewölkung (%) State-ID' },
     weatherWindDirection: { en: 'Wind direction (°) state ID', de: 'Windrichtung (°) State-ID' },
+    heatingPeriodStart: {
+        en: 'Heating period start (MM-DD, e.g. 10-15) - fallback if summer state ID above is empty',
+        de: 'Heizperiode Beginn (MM-TT, z.B. 10-15) - Fallback, wenn obige Sommer-State-ID leer ist',
+    },
+    heatingPeriodEnd: {
+        en: 'Heating period end (MM-DD, e.g. 04-15)',
+        de: 'Heizperiode Ende (MM-TT, z.B. 04-15)',
+    },
     thresholds: { en: 'Global thresholds', de: 'Globale Schwellwerte' },
     sunProtectionGlobalEnabled: { en: 'Sun protection globally enabled', de: 'Sonnenschutz global aktiviert' },
     sunCloseThreshold: { en: 'Sun close threshold (W/m²)', de: 'Sonnenschutz-Schließschwelle (W/m²)' },
@@ -190,16 +218,23 @@ systemDictionary = {
     nightCoolingMinDelta: { en: 'Night cooling min. indoor/outdoor delta (°C)', de: 'Nachtauskühlung Min.-Differenz innen/außen (°C)' },
     groups: { en: 'Groups', de: 'Gruppen' },
     groupsHintText: {
-        en: 'Combine multiple coverings for joint control. Member IDs are entered as a comma-separated list of covering IDs.',
-        de: 'Fasst mehrere Rolläden für eine gemeinsame Steuerung zusammen. Mitglieder-IDs werden als kommagetrennte Liste von Rolladen-IDs eingetragen.',
+        en: 'Combine configured coverings for joint control. Select all members of the group below.',
+        de: 'Fasst konfigurierte Rolläden für eine gemeinsame Steuerung zusammen. Unten alle Mitglieder der Gruppe auswählen.',
     },
-    groupMemberIds: { en: 'Member covering IDs (comma-separated)', de: 'Mitglieder-Rolladen-IDs (kommagetrennt)' },
+    groupMemberIds: { en: 'Member coverings', de: 'Mitglieder-Rolläden' },
     addGroupButton: { en: '+ Add group', de: '+ Gruppe hinzufügen' },
     scenes: { en: 'Scenes', de: 'Szenen' },
     scenesHintText: {
-        en: 'Named presets that drive one or more coverings to specific positions at once. Targets are entered as "coveringId:percent" pairs, comma-separated.',
-        de: 'Benannte Vorgabepositionen, die mehrere Rolläden gleichzeitig auf bestimmte Positionen fahren. Ziele werden als kommagetrennte "coveringId:percent"-Paare eingetragen.',
+        en: 'Named presets that drive one or more coverings to specific positions at once. Position values use 0% = fully open/raised and 100% = fully closed/lowered. Add one target row for each covering.',
+        de: 'Benannte Vorgabepositionen, die mehrere Rolläden gleichzeitig auf bestimmte Positionen fahren. Positionswerte verwenden 0 % = vollständig geöffnet/angehoben und 100 % = vollständig geschlossen/abgesenkt. Für jeden Rolladen eine Zielzeile hinzufügen.',
     },
-    sceneTargets: { en: 'Targets ("id:percent", comma-separated)', de: 'Ziele ("id:percent", kommagetrennt)' },
+    sceneTargetCovering: { en: 'Covering', de: 'Rolladen' },
+    sceneTargetPosition: {
+        en: 'Target position (0% open/raised; 100% closed/lowered)',
+        de: 'Zielposition (0 % geöffnet/angehoben; 100 % geschlossen/abgesenkt)',
+    },
+    addSceneTargetButton: { en: '+ Add target', de: '+ Ziel hinzufügen' },
+    removeSceneTargetButton: { en: 'Remove target', de: 'Ziel entfernen' },
+    missingCovering: { en: 'Missing covering', de: 'Fehlender Rolladen' },
     addSceneButton: { en: '+ Add scene', de: '+ Szene hinzufügen' },
 };

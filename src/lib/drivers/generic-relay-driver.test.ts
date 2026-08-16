@@ -78,7 +78,7 @@ describe('GenericRelayDriver', () => {
         expect(setForeignStateCalls).to.deep.equal([]);
     });
 
-    it('invalidates the best-effort position estimate on stop()', async () => {
+    it('preserves the best-effort position estimate on stop()', async () => {
         const { adapter } = createFakeAdapter();
         const driver = new GenericRelayDriver(adapter, 'foreign.open', 'foreign.close', 'foreign.stop');
 
@@ -87,16 +87,16 @@ describe('GenericRelayDriver', () => {
 
         await driver.stop();
 
-        expect(driver.getCurrentPosition()).to.be.undefined;
+        expect(driver.getCurrentPosition()).to.equal(100);
     });
 
-    it('reports its type, undefined getCurrentPosition() before any command, and undefined isMoving()', () => {
+    it('reports its type, undefined getCurrentPosition() before any command, and false isMoving()', () => {
         const { adapter } = createFakeAdapter();
         const driver = new GenericRelayDriver(adapter, 'foreign.open', 'foreign.close', undefined);
 
         expect(driver.type).to.equal('generic-relay');
         expect(driver.getCurrentPosition()).to.be.undefined;
-        expect(driver.isMoving()).to.be.undefined;
+        expect(driver.isMoving()).to.equal(false);
     });
 
     it('destroy() does not throw (no subscriptions held)', () => {

@@ -116,6 +116,69 @@ export function isWithinOrientationWindow(
     return diff >= toleranceMinusDeg && diff <= tolerancePlusDeg;
 }
 
+/** Evaluation inputs for `isWithinOrientationBasedSunWindow()`. */
+export interface IOrientationBasedSunWindowInputs {
+    /** Current sun azimuth, degrees. */
+    sunAzimuthDeg: number;
+    /** Current sun elevation, degrees (negative = below the horizon). */
+    sunElevationDeg: number;
+    /** `IShutterConfig.orientation`. */
+    orientationDeg: number;
+    /** `IShutterConfig.orientationToleranceMinusDeg`. */
+    toleranceMinusDeg: number;
+    /** `IShutterConfig.orientationTolerancePlusDeg`. */
+    tolerancePlusDeg: number;
+    /**
+     * `IShutterConfig.sunProtectionMinElevationDeg`: the sun must be at/above this elevation for the
+     * window to count as active - a low sun grazing the horizon rarely delivers meaningful heat/glare
+     * even while its azimuth matches the window's orientation (plan section 6.2, part a).
+     */
+    minElevationDeg: number;
+    /** Current cloud cover, % (0 = clear sky, 100 = fully overcast), or undefined if not measured. */
+    cloudCoverPercent: number | undefined;
+    /**
+     * `IShutterConfig.sunProtectionMaxCloudCoverPercent` (plan section 6.2, part c): the sky must be
+     * at/below this cloud cover for the window to count as active. Undefined disables this
+     * particular check entirely (the default - not every user has a cloud-cover sensor, and this is a
+     * per-covering opt-in, unlike the unconditional azimuth/elevation checks above). Distinct from,
+     * and independent of, the global cloud-cover-only trigger in `isSunProtectionTriggeredByCloudCover()`
+     * (6.3) - that one is an alternative *trigger* regardless of orientation; this one is a *gate*
+     * that narrows this specific window, on top of the azimuth/elevation match.
+     */
+    maxCloudCoverPercent: number | undefined;
+}
+
+/**
+ * Full combined rule for the orientation-based sun-protection approach (plan section 6.2): the
+ * window is active only while the sun's azimuth matches the covering's orientation *and* its
+ * elevation is high enough *and* (if a `maxCloudCoverPercent` is configured) the sky is clear enough.
+ * A missing cloud-cover reading while `maxCloudCoverPercent` is configured is *not* the same as a
+ * clear sky - it fails closed (window inactive) rather than assuming the best, unlike the plain
+ * azimuth-only check in `isWithinOrientationWindow()` which this builds on.
+ *
+ * @param inputs - See `IOrientationBasedSunWindowInputs`.
+ * @returns Whether the orientation-based sun window is currently active for this covering.
+ */
+export function isWithinOrientationBasedSunWindow(inputs: IOrientationBasedSunWindowInputs): boolean {
+    if (
+        !isWithinOrientationWindow(
+            inputs.sunAzimuthDeg,
+            inputs.orientationDeg,
+            inputs.toleranceMinusDeg,
+            inputs.tolerancePlusDeg,
+        )
+    ) {
+        return false;
+    }
+    if (inputs.sunElevationDeg < inputs.minElevationDeg) {
+        return false;
+    }
+    if (inputs.maxCloudCoverPercent === undefined) {
+        return true;
+    }
+    return inputs.cloudCoverPercent !== undefined && inputs.cloudCoverPercent <= inputs.maxCloudCoverPercent;
+}
+
 /** Evaluation inputs for `evaluateSunProtection()`. */
 export interface ISunProtectionEvaluation {
     /** Whether sun protection currently applies to this covering (inside its time window). */

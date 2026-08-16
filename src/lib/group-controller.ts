@@ -33,6 +33,35 @@ export class GroupController {
             native: {},
         });
 
+        // Diagnostic mirrors of this group's own config (plan section 3) - static per config, so
+        // written once here rather than kept up to date on every tick like the coverings' own
+        // per-tick diagnostic states.
+        await adapter.setObjectNotExistsAsync(`${basePath}.name`, {
+            type: 'state',
+            common: {
+                name: `${config.name} - name`,
+                type: 'string',
+                role: 'text',
+                read: true,
+                write: false,
+            },
+            native: {},
+        });
+        await adapter.setStateAsync(`${basePath}.name`, { val: config.name, ack: true });
+
+        await adapter.setObjectNotExistsAsync(`${basePath}.members`, {
+            type: 'state',
+            common: {
+                name: `${config.name} - member covering IDs (JSON array)`,
+                type: 'string',
+                role: 'json',
+                read: true,
+                write: false,
+            },
+            native: {},
+        });
+        await adapter.setStateAsync(`${basePath}.members`, { val: JSON.stringify(config.memberIds), ack: true });
+
         await adapter.setObjectNotExistsAsync(`${basePath}.position`, {
             type: 'state',
             common: {

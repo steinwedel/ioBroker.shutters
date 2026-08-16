@@ -61,6 +61,20 @@ function makeGroupConfig(overrides: Partial<IGroupConfig> = {}): IGroupConfig {
 }
 
 describe('GroupController', () => {
+    describe('createObjects (plan section 3: name/members diagnostic states)', () => {
+        it('writes the name and member-IDs-as-JSON diagnostic states', async () => {
+            const { adapter, setStateCalls } = createFakeAdapter();
+            const group = new GroupController(adapter, makeGroupConfig(), []);
+
+            await group.createObjects();
+
+            expect(setStateCalls).to.deep.equal([
+                { id: 'groups.group1.name', val: 'Test Group', ack: true },
+                { id: 'groups.group1.members', val: JSON.stringify(['shutter1', 'shutter2']), ack: true },
+            ]);
+        });
+    });
+
     describe('getOwnStateIds', () => {
         it('returns position/openAll/closeAll relative to the group base path', () => {
             const { adapter } = createFakeAdapter();

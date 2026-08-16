@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { WeatherSource } from './weather-source';
+import { isDateWithinMonthDayRange, WeatherSource } from './weather-source';
 import type { IWeatherConfig } from './types';
 
 /**
@@ -50,6 +50,37 @@ function createFakeAdapter(initialStates: Record<string, ioBroker.StateValue> = 
         listenerCount: () => listeners.length,
     };
 }
+
+describe('isDateWithinMonthDayRange (plan section 6.2/2, calendar-based heating period)', () => {
+    it('is inside a same-year range on the boundaries and in between', () => {
+        expect(isDateWithinMonthDayRange(new Date(2026, 5, 1), '06-01', '08-31')).to.equal(true); // June 1st, start
+        expect(isDateWithinMonthDayRange(new Date(2026, 6, 15), '06-01', '08-31')).to.equal(true); // July 15th, middle
+        expect(isDateWithinMonthDayRange(new Date(2026, 7, 31), '06-01', '08-31')).to.equal(true); // August 31st, end
+    });
+
+    it('is outside a same-year range just before/after it', () => {
+        expect(isDateWithinMonthDayRange(new Date(2026, 4, 31), '06-01', '08-31')).to.equal(false); // May 31st
+        expect(isDateWithinMonthDayRange(new Date(2026, 8, 1), '06-01', '08-31')).to.equal(false); // September 1st
+    });
+
+    it('handles a range wrapping across the New Year (the typical heating-period case)', () => {
+        expect(isDateWithinMonthDayRange(new Date(2026, 10, 1), '10-15', '04-15')).to.equal(true); // November 1st
+        expect(isDateWithinMonthDayRange(new Date(2027, 0, 1), '10-15', '04-15')).to.equal(true); // January 1st
+        expect(isDateWithinMonthDayRange(new Date(2027, 3, 15), '10-15', '04-15')).to.equal(true); // April 15th, end boundary
+        expect(isDateWithinMonthDayRange(new Date(2026, 9, 15), '10-15', '04-15')).to.equal(true); // October 15th, start boundary
+    });
+
+    it('is outside a wrapping range in the middle of the year', () => {
+        expect(isDateWithinMonthDayRange(new Date(2027, 5, 1), '10-15', '04-15')).to.equal(false); // June 1st
+    });
+
+    it('treats a missing or unparseable boundary as never in the heating period', () => {
+        expect(isDateWithinMonthDayRange(new Date(2026, 10, 1), undefined, '04-15')).to.equal(false);
+        expect(isDateWithinMonthDayRange(new Date(2026, 10, 1), '10-15', undefined)).to.equal(false);
+        expect(isDateWithinMonthDayRange(new Date(2026, 10, 1), 'not-a-date', '04-15')).to.equal(false);
+        expect(isDateWithinMonthDayRange(new Date(2026, 10, 1), '13-01', '04-15')).to.equal(false); // month 13 invalid
+    });
+});
 
 describe('WeatherSource', () => {
     describe('before start()', () => {
@@ -130,6 +161,41 @@ describe('WeatherSource', () => {
             await weather.start();
 
             expect(weather.getIsSummer()).to.equal(false);
+        });
+
+        it('getIsSummer() falls back to the calendar-based heating period when isSummerStateId is not configured', () => {
+            const { adapter } = createFakeAdapter();
+            const weather = new WeatherSource(adapter, { heatingPeriodStart: '10-15', heatingPeriodEnd: '04-15' });
+
+            expect(weather.getIsSummer(new Date(2026, 10, 1))).to.equal(false); // November, within heating period
+            expect(weather.getIsSummer(new Date(2027, 5, 1))).to.equal(true); // June, outside heating period
+        });
+
+        it('getIsSummer() ignores the calendar fallback once isSummerStateId is configured, even while unset (undefined => not true)', async () => {
+            const { adapter } = createFakeAdapter();
+            const weather = new WeatherSource(adapter, {
+                isSummerStateId: 'foreign.isSummer',
+                heatingPeriodStart: '10-15',
+                heatingPeriodEnd: '04-15',
+            });
+            await weather.start();
+
+            // June, i.e. outside the calendar heating period - but isSummerStateId takes precedence
+            // and its value is unknown, so this must not fall back to the calendar and say "true".
+            expect(weather.getIsSummer(new Date(2027, 5, 1))).to.equal(false);
+        });
+
+        it('getIsHeatingPeriod() reports the calendar-based value independent of isSummerStateId', async () => {
+            const { adapter } = createFakeAdapter({ 'foreign.isSummer': true });
+            const weather = new WeatherSource(adapter, {
+                isSummerStateId: 'foreign.isSummer',
+                heatingPeriodStart: '10-15',
+                heatingPeriodEnd: '04-15',
+            });
+            await weather.start();
+
+            expect(weather.getIsHeatingPeriod(new Date(2026, 10, 1))).to.equal(true); // November
+            expect(weather.getIsHeatingPeriod(new Date(2027, 5, 1))).to.equal(false); // June
         });
     });
 

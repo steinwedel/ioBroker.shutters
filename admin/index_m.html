@@ -69,7 +69,13 @@
         .shutters-card-body { padding-top: 8px; }
         .shutters-weekday-label { margin-top: 18px; font-size: 13px; }
         .shutters-row { display: flex; flex-wrap: wrap; margin: 0 -8px; }
-        .shutters-row .input-field { padding: 0 8px; box-sizing: border-box; }
+        .shutters-row .input-field { padding: 0 8px; box-sizing: border-box; min-width: 0; }
+        .shutters-row .input-field > label {
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
         .shutters-section-title {
             font-weight: bold;
             margin-top: 10px;

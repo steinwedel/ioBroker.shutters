@@ -58,6 +58,22 @@ const POSITION_STOP_DRIVERS: Partial<
  * @param config - Configuration of the covering to create a driver for.
  */
 export function createDriver(adapter: ioBroker.Adapter, config: IShutterConfig): IShutterDriver {
+    if (config.driverType === 'homematic') {
+        const positionStateId = config.states.position;
+        if (!positionStateId) {
+            throw new Error(`Covering "${config.id}": driverType "${config.driverType}" requires states.position`);
+        }
+        return new HomematicDriver(
+            adapter,
+            positionStateId,
+            config.states.positionActual ?? positionStateId,
+            config.states.stop,
+            config.states.tilt,
+            config.states.tiltActual,
+            config.invertPosition,
+            config.homematicLevelNormalized,
+        );
+    }
     const PositionStopDriver = POSITION_STOP_DRIVERS[config.driverType];
     if (PositionStopDriver) {
         const positionStateId = config.states.position;
@@ -91,7 +107,14 @@ export function createDriver(adapter: ioBroker.Adapter, config: IShutterConfig):
                     `Covering "${config.id}": driverType "generic-relay" requires states.open and states.close`,
                 );
             }
-            return new GenericRelayDriver(adapter, openStateId, closeStateId, config.states.stop);
+            return new GenericRelayDriver(
+                adapter,
+                openStateId,
+                closeStateId,
+                config.states.stop,
+                config.relayOpenRuntimeSecs,
+                config.relayCloseRuntimeSecs,
+            );
         }
         case 'tuya': {
             const percentControlStateId = config.states.position;
@@ -122,6 +145,8 @@ export function createDriver(adapter: ioBroker.Adapter, config: IShutterConfig):
                 downStateId,
                 config.states.position,
                 config.states.positionActual,
+                config.states.tilt,
+                config.states.tiltActual,
             );
         }
         default:

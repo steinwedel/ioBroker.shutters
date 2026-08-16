@@ -11,13 +11,15 @@ import {
     isHeatProtectionMinTempSatisfied,
     isSunProtectionEligible,
     isSunProtectionTriggeredByCloudCover,
-    isWithinOrientationWindow,
+    isWithinOrientationBasedSunWindow,
     isWithinTimeWindow,
 } from './sun-protection';
 import { getSunPosition } from './twilight';
 import type { CoveringType, IShutterConfig } from './types';
 import { evaluateWindProtection } from './wind-protection';
 import type { WeatherSource } from './weather-source';
+
+const AUTOMATED_COMMAND_STAGGER_MS = 750;
 
 /**
  * Default wind/rain/frost protection availability per covering type; explicit
@@ -36,6 +38,8 @@ interface ICoveringAutomationState {
     sunActive: boolean;
     /** Whether wind protection is currently active for this covering. */
     windActive: boolean;
+    /** Whether rain protection is currently active for this covering. */
+    rainActive: boolean;
     /** Whether frost protection is currently active (suppressing automated movement) for this covering. */
     frostActive: boolean;
     /** Whether night cooling is currently active (holding the covering open through what would otherwise be the schedule's close) for this covering. */
@@ -46,6 +50,8 @@ interface ICoveringAutomationState {
     windHysteresis: BelowThresholdHysteresis;
     /** Local midnight (ms since epoch) until which sun protection is suspended for this covering, see plan section 6.4; 0 = no active override. */
     sunOverrideUntilMs: number;
+    /** Set by a manual position command and cleared at the next schedule trigger. */
+    manualOverrideActive: boolean;
 }
 
 /** Global thresholds/hysteresis durations for `AutomationEngine`. */
@@ -116,6 +122,8 @@ export class AutomationEngine {
     /** Most recently read value of every configured `nightCoolingIndoorTempStateId` (plan section 7c), kept up to date the same way as `doorOpenByStateId`. */
     private readonly indoorTempByStateId = new Map<string, number | undefined>();
     private tickTimer: ioBroker.Interval | undefined;
+    private readonly queuedCommandTimers = new Map<string, ioBroker.Timeout>();
+    private nextAutomatedCommandAt = 0;
     /** Whether wind protection was active for at least one covering as of the last tick, see `notifyAggregatedProtectionChanges()`. */
     private windProtectionEngaged = false;
     /** Whether frost protection was active for at least one covering as of the last tick, see `notifyAggregatedProtectionChanges()`. */
@@ -155,11 +163,13 @@ export class AutomationEngine {
             this.states.set(id, {
                 sunActive: false,
                 windActive: false,
+                rainActive: false,
                 frostActive: false,
                 nightCoolingActive: false,
                 sunHysteresis: new BelowThresholdHysteresis(),
                 windHysteresis: new BelowThresholdHysteresis(),
                 sunOverrideUntilMs: 0,
+                manualOverrideActive: false,
             });
             controller.onManualCommand = () => this.handleManualCommand(id);
         }
@@ -167,14 +177,12 @@ export class AutomationEngine {
 
     /** Subscribes all configured door-contact/indoor-temperature states and starts the periodic evaluation tick. */
     public async start(): Promise<void> {
-        // Restore any sun-protection override deadline that was still active when the adapter last
-        // stopped (plan section 9a.2) - without this, a "Tagessperre" set by a manual command would be
-        // silently lost on every restart, and sun protection could re-engage the same day even though
-        // the user had just overridden it.
         for (const [id, controller] of this.controllers) {
             const state = this.states.get(id);
             if (state) {
-                state.sunOverrideUntilMs = await controller.getPersistedSunProtectionOverrideUntil();
+                state.sunOverrideUntilMs = 0;
+                state.manualOverrideActive = false;
+                await controller.setSunProtectionOverrideUntil(0);
             }
         }
 
@@ -212,6 +220,11 @@ export class AutomationEngine {
             this.adapter.clearInterval(this.tickTimer);
             this.tickTimer = undefined;
         }
+        for (const timer of this.queuedCommandTimers.values()) {
+            this.adapter.clearTimeout(timer);
+        }
+        this.queuedCommandTimers.clear();
+        this.nextAutomatedCommandAt = 0;
     }
 
     /**
@@ -227,6 +240,19 @@ export class AutomationEngine {
         } else {
             this.scheduleTargets.set(coveringId, percent);
         }
+        const state = this.states.get(coveringId);
+        if (state?.manualOverrideActive) {
+            state.manualOverrideActive = false;
+            state.sunOverrideUntilMs = 0;
+            this.controllers
+                .get(coveringId)
+                ?.setSunProtectionOverrideUntil(0)
+                .catch(err => {
+                    this.adapter.log.error(
+                        `Clearing manual override for covering "${coveringId}" failed: ${(err as Error).message}`,
+                    );
+                });
+        }
     }
 
     /**
@@ -239,7 +265,12 @@ export class AutomationEngine {
         this.tick();
     }
 
-    /** Updates `doorOpenByStateId`/`indoorTempByStateId` as their subscribed foreign states change; ignores every other state change. */
+    /**
+     * Updates `doorOpenByStateId`/`indoorTempByStateId` as subscribed foreign states change; ignores all others.
+     *
+     * @param id - Changed foreign state ID.
+     * @param state - New state value, or null/undefined when unavailable.
+     */
     private readonly handleForeignStateChange = (id: string, state: ioBroker.State | null | undefined): void => {
         if (this.doorOpenByStateId.has(id)) {
             this.doorOpenByStateId.set(id, state?.val === true);
@@ -259,9 +290,10 @@ export class AutomationEngine {
      */
     private handleManualCommand(coveringId: string): void {
         const state = this.states.get(coveringId);
-        if (!state || !state.sunActive) {
+        if (!state) {
             return;
         }
+        state.manualOverrideActive = true;
         const midnight = new Date();
         midnight.setDate(midnight.getDate() + 1);
         midnight.setHours(0, 0, 0, 0);
@@ -279,6 +311,7 @@ export class AutomationEngine {
     private tick(): void {
         const now = new Date();
         const nowMs = now.getTime();
+        this.nextAutomatedCommandAt = nowMs;
 
         for (const [id, controller] of this.controllers) {
             if (!controller.isAutomationEnabled()) {
@@ -288,10 +321,12 @@ export class AutomationEngine {
                 const state = this.states.get(id);
                 if (state) {
                     state.windActive = false;
+                    state.rainActive = false;
                     state.frostActive = false;
                     state.nightCoolingActive = false;
                     state.sunActive = false;
                 }
+                this.setProtectionActivityStates(id, controller, {});
                 continue;
             }
             try {
@@ -341,6 +376,17 @@ export class AutomationEngine {
             return;
         }
 
+        // Written unconditionally, independent of which priority branch below ends up applying -
+        // see `ShutterController.setDoorProtectionActive()` (plan section 3/7e).
+        const doorOpenNow = config.doorContactStateId
+            ? (this.doorOpenByStateId.get(config.doorContactStateId) ?? false) !== (config.invertDoorContact ?? false)
+            : false;
+        controller.setDoorProtectionActive(doorOpenNow).catch(err => {
+            this.adapter.log.error(
+                `Setting doorProtectionActive for covering "${id}" failed: ${(err as Error).message}`,
+            );
+        });
+
         const windEnabled = config.windProtectionEnabled ?? defaultOutdoorProtectionEnabled(config.coveringType);
         // Per-covering override (plan section 2a.5) for a covering whose material is more
         // wind-sensitive than the rest, e.g. a markise - falls back to the global thresholds.
@@ -361,8 +407,11 @@ export class AutomationEngine {
             });
 
         if (state.windActive) {
+            state.rainActive = false;
             state.frostActive = false;
             state.nightCoolingActive = false;
+            state.sunActive = false;
+            this.setProtectionActivityStates(id, controller, { windProtection: true });
             this.applyTarget(
                 id,
                 controller,
@@ -384,12 +433,17 @@ export class AutomationEngine {
                 windDirectionToleranceDeg: config.rainProtectionWindDirectionToleranceDeg,
             });
         if (rainActive) {
+            state.rainActive = true;
             state.frostActive = false;
             state.nightCoolingActive = false;
+            state.sunActive = false;
+            this.setProtectionActivityStates(id, controller, { rainProtection: true });
             const target = config.rainTargetPercent ?? protectedPosition(config.coveringType);
             this.applyTarget(id, controller, target, 'Rain protection', config.doorContactStateId);
             return;
         }
+
+        state.rainActive = false;
 
         // Once the override deadline has passed, clear it (both in-memory and persisted, plan section
         // 9a.2) so a stale future-looking timestamp does not linger in the visible state tree, and so a
@@ -405,7 +459,7 @@ export class AutomationEngine {
         }
 
         const sunEnabled = config.sunProtectionEnabled ?? true;
-        const sunOverrideActive = nowMs < state.sunOverrideUntilMs;
+        const sunOverrideActive = state.manualOverrideActive || nowMs < state.sunOverrideUntilMs;
         const scheduleOpen = this.scheduleTargets.get(id) === 0;
         const inWindow = this.isWithinSunWindow(config, now);
         const minTempSatisfied = isHeatProtectionMinTempSatisfied(
@@ -449,6 +503,7 @@ export class AutomationEngine {
         if (state.sunActive) {
             state.frostActive = false;
             state.nightCoolingActive = false;
+            this.setProtectionActivityStates(id, controller, { sunProtection: true });
             const target = config.sunTargetPercent ?? 70;
             this.applyTarget(id, controller, target, 'Sun protection', config.doorContactStateId);
             return;
@@ -469,12 +524,20 @@ export class AutomationEngine {
             // priority over night cooling (7c) - a genuine mechanical/safety concern outranks a
             // comfort feature.
             state.nightCoolingActive = false;
+            this.setProtectionActivityStates(id, controller, { frostProtection: true });
+            return;
+        }
+
+        if (state.manualOverrideActive) {
+            state.nightCoolingActive = false;
+            this.setProtectionActivityStates(id, controller, {});
             return;
         }
 
         const scheduleTarget = this.scheduleTargets.get(id);
         if (scheduleTarget === undefined) {
             state.nightCoolingActive = false;
+            this.setProtectionActivityStates(id, controller, {});
             return;
         }
 
@@ -495,6 +558,7 @@ export class AutomationEngine {
                     isSummer: this.weather.getIsSummer(),
                 });
             if (state.nightCoolingActive) {
+                this.setProtectionActivityStates(id, controller, { nightCooling: true });
                 this.applyTarget(id, controller, 0, 'Night cooling', config.doorContactStateId);
                 return;
             }
@@ -502,7 +566,20 @@ export class AutomationEngine {
             state.nightCoolingActive = false;
         }
 
+        this.setProtectionActivityStates(id, controller, {});
         this.applyTarget(id, controller, scheduleTarget, 'Schedule', config.doorContactStateId);
+    }
+
+    private setProtectionActivityStates(
+        id: string,
+        controller: ShutterController,
+        active: Parameters<ShutterController['setProtectionActivityStates']>[0],
+    ): void {
+        controller.setProtectionActivityStates(active).catch(err => {
+            this.adapter.log.error(
+                `Setting protection activity states for covering "${id}" failed: ${(err as Error).message}`,
+            );
+        });
     }
 
     /**
@@ -517,12 +594,16 @@ export class AutomationEngine {
     private isWithinSunWindow(config: IShutterConfig, now: Date): boolean {
         if (config.orientation !== undefined && this.options.location) {
             const sun = getSunPosition(now, this.options.location.latitude, this.options.location.longitude);
-            return isWithinOrientationWindow(
-                sun.azimuthDeg,
-                config.orientation,
-                config.orientationToleranceMinusDeg ?? -60,
-                config.orientationTolerancePlusDeg ?? 60,
-            );
+            return isWithinOrientationBasedSunWindow({
+                sunAzimuthDeg: sun.azimuthDeg,
+                sunElevationDeg: sun.elevationDeg,
+                orientationDeg: config.orientation,
+                toleranceMinusDeg: config.orientationToleranceMinusDeg ?? -60,
+                tolerancePlusDeg: config.orientationTolerancePlusDeg ?? 60,
+                minElevationDeg: config.sunProtectionMinElevationDeg ?? 0,
+                cloudCoverPercent: this.weather.getCloudCover(),
+                maxCloudCoverPercent: config.sunProtectionMaxCloudCoverPercent,
+            });
         }
         return isWithinTimeWindow(now, config.sunWindowStart, config.sunWindowEnd);
     }
@@ -544,7 +625,10 @@ export class AutomationEngine {
         bypassMotorProtection = false,
     ): void {
         const currentPercent = controller.getCurrentCoveringPercent();
-        const doorOpen = doorContactStateId ? (this.doorOpenByStateId.get(doorContactStateId) ?? false) : false;
+        const doorOpen = doorContactStateId
+            ? (this.doorOpenByStateId.get(doorContactStateId) ?? false) !==
+              (controller.getConfig().invertDoorContact ?? false)
+            : false;
         const target = clampForDoorProtection(desiredPercent, currentPercent, doorOpen);
 
         const previous = this.lastApplied.get(id);
@@ -573,10 +657,42 @@ export class AutomationEngine {
         }
 
         this.lastApplied.set(id, { percent: target, reason });
-        controller.applyAutomatedPosition(target, reason, bypassMotorProtection).catch(err => {
-            this.adapter.log.error(
-                `Applying automated position for covering "${id}" failed: ${(err as Error).message}`,
-            );
-        });
+        this.dispatchAutomatedCommand(id, controller, target, reason, bypassMotorProtection);
+    }
+
+    private dispatchAutomatedCommand(
+        id: string,
+        controller: ShutterController,
+        target: number,
+        reason: string,
+        bypassMotorProtection: boolean,
+    ): void {
+        const execute = (): void => {
+            this.queuedCommandTimers.delete(id);
+            controller.applyAutomatedPosition(target, reason, bypassMotorProtection).catch(err => {
+                this.adapter.log.error(
+                    `Applying automated position for covering "${id}" failed: ${(err as Error).message}`,
+                );
+            });
+        };
+        if (bypassMotorProtection) {
+            execute();
+            return;
+        }
+        const existingTimer = this.queuedCommandTimers.get(id);
+        if (existingTimer) {
+            this.adapter.clearTimeout(existingTimer);
+        }
+        const now = Date.now();
+        const delay = Math.max(0, this.nextAutomatedCommandAt - now);
+        this.nextAutomatedCommandAt = now + delay + AUTOMATED_COMMAND_STAGGER_MS;
+        if (delay === 0) {
+            execute();
+            return;
+        }
+        const timer = this.adapter.setTimeout(execute, delay);
+        if (timer) {
+            this.queuedCommandTimers.set(id, timer);
+        }
     }
 }

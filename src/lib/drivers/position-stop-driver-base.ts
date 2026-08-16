@@ -48,7 +48,11 @@ export abstract class PositionStopDriverBase implements IShutterDriver {
             : undefined;
     }
 
-    /** Writes `targetPercent` (0-100, adapter convention) to the driver's position state, after applying `invertPosition` and this driver's own external-position convention. */
+    /**
+     * Writes a position to the driver's position state after applying inversion and the external convention.
+     *
+     * @param targetPercent - Target position, 0-100 in the adapter convention.
+     */
     public async setPosition(targetPercent: number): Promise<void> {
         const effectiveTarget = this.invertPosition ? 100 - targetPercent : targetPercent;
         await this.adapter.setForeignStateAsync(this.positionStateId, this.toExternalPosition(effectiveTarget), false);

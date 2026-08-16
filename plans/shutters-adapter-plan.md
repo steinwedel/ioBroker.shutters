@@ -1,6 +1,6 @@
 # ioBroker.shutters — Adapter-Plan
 
-**Status-Legende** (zuletzt geprüft: 2026-08-15, Abgleich Plan ↔ Code):
+**Status-Legende** (zuletzt geprüft: 2026-08-16, Abgleich Plan ↔ Code):
 ✅ erledigt · ⚠️ teilweise umgesetzt (siehe Anmerkung) · ❌ offen/nicht begonnen
 
 ## 0. Kontext & Referenzen
@@ -85,7 +85,7 @@ export interface IShutterDriver {
 | Velux (KLF200/io-Homecontrol, `ioBroker.velux`/`ioBroker.klf200`) | `drivers/velux-driver.ts` | Positions-State (0-100 bzw. 0-1), `stop`, Produkt-Index | Häufig für Dachfenster, aber auch Rolläden derselben Gateways | ✅ (nur 0-100-Skala; 0-1-Gateways vorher per Alias/Skript umrechnen) |
 | EnOcean (`ioBroker.enocean`) | `drivers/enocean-driver.ts` | Rollladenaktor-Kanal mit `LEVEL`/`position` bzw. Auf/Ab-Telegramme | Batterielose Aktoren/Taster, verbreitet in Bestandsbauten | ✅ (nur Positions-Variante; reine Auf/Ab-Telegramm-Aktoren ohne Positions-Feedback → `generic-relay` verwenden) |
 | Velbus (`ioBroker.velbus`) | `drivers/velbus-driver.ts` | Blind-Kanal `position`/`status`, `up`/`down`/`stop` | Verbreitet in BE/NL-Installationen | ✅ (nur Module mit Positions-Unterstützung; einfache Auf/Ab/Stopp-Module ohne Position → `generic-relay` verwenden) |
-| Loxone (über `ioBroker.loxone`) | `drivers/loxone-driver.ts` | Jalousie-Baustein-States: `position`/`up`/`down`/`shade`, ggf. `info` für Ist-Position | Loxone bildet Jalousie-Bausteine als eigene States mit `up`/`down` (impuls) + Positions-Rückmeldung ab; Stopp meist über gleichzeitiges Zurücknehmen von `up`/`down` | ✅ (`shade`/Lamellenwinkel noch nicht umgesetzt, siehe 2a.5) |
+| Loxone (über `ioBroker.loxone`) | `drivers/loxone-driver.ts` | Jalousie-Baustein-States: `position`/`up`/`down`/`shade`, ggf. `info` für Ist-Position | Loxone bildet Jalousie-Bausteine als eigene States mit `up`/`down` (impuls) + Positions-Rückmeldung ab; Stopp meist über gleichzeitiges Zurücknehmen von `up`/`down` | ✅ (`shade` wird als optionaler Lamellenwinkel-Kommando-/Rückmelde-State unterstützt) |
 | Homey (über `ioBroker.homey` bzw. MQTT-Bridge) | `drivers/homey-driver.ts` | Capability-State `windowcoverings_state`/`windowcoverings_set` | Optionaler Nachtrag, gleiches Muster wie Shelly/Zigbee | ✅ |
 | Generisches MQTT-Cover (z. B. Tasmota, ESPHome, Home Assistant über MQTT) | `drivers/mqtt-driver.ts` | Konfigurierbares Topic-Paar: Kommando-Topic (Position/OPEN/CLOSE/STOP) + Status-Topic, meist über `ioBroker.mqtt`/`ioBroker.mqtt-client` als States gespiegelt | State-IDs sind Topic-abhängig und daher frei konfigurierbar statt fest benannt | ✅ (ein gemeinsames Kommando-Topic für Position und OPEN/CLOSE/STOP, wie im Plan beschrieben) |
 | Generisches Auf/Zu/Stopp-Relais | `drivers/generic-relay-driver.ts` | 3 boolesche States (auf/zu/stopp), keine Positionsrückmeldung | Position wird intern über Laufzeit-Timer geschätzt (`position-mapping.ts` + Zeitmessung) | ✅ |
@@ -127,7 +127,7 @@ Der Adapter unterscheidet pro Einheit einen konfigurierbaren **Behangtyp** (`cov
 
 - Konsequenz für die Prioritätslogik (Abschnitt 8) und die Schutzmodule (7a Windschutz, 7 Regenschutz): jedes Modul ermittelt intern nicht mehr "fahre auf 0 %"/"fahre auf 100 %" als Literal, sondern eine typabhängige **logische Zielrichtung** (`safePosition(coveringType)` bzw. `protectedPosition(coveringType)`), die je `coveringType` aus der obigen Tabelle aufgelöst wird — inklusive der Möglichkeit, dass ein Schutzmodul für einen Typ (z. B. Windschutz bei `lamellen`) komplett `null`/deaktiviert liefert. Die Regel-Module selbst bleiben unverändert, nur die Übersetzung "Sicherheitszustand → konkreter Prozentwert (oder: nicht anwendbar)" wird pro Behangtyp zentral in `covering-types.ts` hinterlegt. ✅ `safePosition()`/`protectedPosition()` sind implementiert und in `automation.ts` für Windschutz (7a) bzw. Regenschutz (7) eingebunden — behebt einen zuvor bestehenden Fehler, bei dem eine `markise` ohne explizit gesetzten `rainTargetPercent` vom Regenschutz auf 100 % (ausgefahren) statt 0 % (eingefahren) gefahren wurde. Die "deaktiviert für einen Typ"-Möglichkeit (z. B. Windschutz bei `lamellen`) ist weiterhin nur über `windProtectionEnabled`/`frostProtectionEnabled`-Defaults gelöst (`defaultOutdoorProtectionEnabled()` in `automation.ts`), nicht über einen `null`-Rückgabewert der Positions-Funktionen selbst.
 - Kalibrierung (Abschnitt 4) gilt unverändert für `rolladen`, `raffstore` und `lamellen` (Fahrweg-Laufzeit-Kurve, bei `lamellen` horizontal statt vertikal); bei `markise` beschreibt die Kurve stattdessen Ausfahrweite statt Behanghöhe — Begriff im Admin-UI dafür kontextabhängig anpassen ("Behanghöhe" vs. "Ausfahrweite" vs. "Fahrweg").
-- `IShutterDriver` (2a.1) wird um ein optionales `setTilt(anglePercent: number): Promise<void>`/`getCurrentTilt(): number | undefined` ergänzt (relevant für `coveringType: "raffstore"` und `"lamellen"`, bei letzterem mit größerem Wertebereich für die Drehwinkel-Skalierung); Default-Implementierung für alle anderen Driver: no-op bzw. `undefined`. Das Interface bleibt für `rolladen`/`markise` unverändert nutzbar (kein Breaking Change). ✅ Umgesetzt zentral in `PositionStopDriverBase` (siehe 2a.2) — jeder der elf darauf basierenden Driver (homematic/hmip/knx/shelly/zigbee/zigbee2mqtt/somfy/velux/enocean/velbus/homey) unterstützt Tilt automatisch über ein optionales zweites Fremd-State-Paar (`states.tilt`/`states.tiltActual`, per `driver-factory.ts` durchgereicht), ohne treiberspezifischen Zusatzcode. `generic-position`/`generic-relay`/`tuya`/`mqtt`/`loxone` implementieren `setTilt`/`getCurrentTilt` weiterhin nicht (bleiben `undefined` gemäß Interface-Vertrag) — für diese Systeme ist Tilt-Steuerung derzeit out of scope, da keiner davon in der Praxis mit Raffstore/Lamellenvorhang assoziiert ist. `ShutterController` legt `tilt`/`tiltActual`-States nur an, wenn `states.tilt` konfiguriert ist (`commandTilt()`, `refreshPosition()`), mit `max: 180`/Einheit `°` für `lamellen` statt `max: 100`/`%` für `raffstore`.
+- `IShutterDriver` (2a.1) wird um ein optionales `setTilt(anglePercent: number): Promise<void>`/`getCurrentTilt(): number | undefined` ergänzt (relevant für `coveringType: "raffstore"` und `"lamellen"`, bei letzterem mit größerem Wertebereich für die Drehwinkel-Skalierung); Default-Implementierung für alle anderen Driver: no-op bzw. `undefined`. Das Interface bleibt für `rolladen`/`markise` unverändert nutzbar (kein Breaking Change). ✅ Umgesetzt zentral in `PositionStopDriverBase` (siehe 2a.2) — jeder der elf darauf basierenden Driver (homematic/hmip/knx/shelly/zigbee/zigbee2mqtt/somfy/velux/enocean/velbus/homey) unterstützt Tilt automatisch über ein optionales zweites Fremd-State-Paar (`states.tilt`/`states.tiltActual`, per `driver-factory.ts` durchgereicht), ohne treiberspezifischen Zusatzcode. `generic-position`/`generic-relay`/`tuya`/`mqtt` implementieren `setTilt`/`getCurrentTilt` weiterhin nicht (bleiben `undefined` gemäß Interface-Vertrag). Loxone unterstützt dagegen `shade` als optionalen Tilt-Kommando-/Rückmelde-State. `ShutterController` legt `tilt`/`tiltActual`-States nur an, wenn `states.tilt` konfiguriert ist (`commandTilt()`, `refreshPosition()`), mit `max: 180`/Einheit `°` für `lamellen` statt `max: 100`/`%` für `raffstore`.
 - Admin-UI: `coveringType`-Dropdown pro Einheit (Rolladen/Raffstore/Markise/Lamellenvorhang/…), das abhängig vom gewählten Typ passende Begriffe/Zusatzfelder ein-/ausblendet. ✅ Kippwinkel-State-ID-Feld (`stateTilt`/`stateTiltActual`) für Raffstore/Lamellenvorhang implementiert. ✅ Niedrigere Default-Windschwellwerte bei Markise: `IShutterConfig.windOpenThreshold`/`windCloseAllowedThreshold` als optionale Pro-Rolladen-Override der globalen Schwellwerte (`automation.ts`, `config.windOpenThreshold ?? this.options.windOpenThreshold`), Admin-UI blendet die Felder für `coveringType: "markise"` ein und füllt sie beim ersten Anzeigen mit 20/10 km/h vor (deutlich unter den globalen Defaults 40/25). ✅ Regenschutz standardmäßig deaktiviert bei Lamellenvorhang: `rainProtectionEnabled` nutzt jetzt dieselbe typabhängige Default-Funktion (`defaultOutdoorProtectionEnabled()`) wie `windProtectionEnabled`/`frostProtectionEnabled`, statt immer `true` zu sein — kein separates Ein-/Ausblenden des Checkbox-Panels selbst nötig, der korrekte Default (unchecked) erfüllt denselben Zweck ohne zusätzliche UI-Logik.
 - Aus dem Objektbaum (Abschnitt 3) wird der Container künftig als "Behang"/"covering" statt ausschließlich "Rolladen" verstanden — die technischen State-IDs (`shutters.*`) bleiben aus Kompatibilitätsgründen wie geplant benannt, aber `common.name`/i18n-Labels sind je `coveringType` entsprechend zu beschriften ("Rolladen Wohnzimmer", "Markise Terrasse", "Lamellenvorhang Wintergarten").
 - Vorhänge im klassischen Sinn (reine Faltenstoff-Gardinen ohne Lamellen) sind **explizit nicht Teil dieses Konzepts** und bleiben außerhalb des Scopes — die Tabelle deckt nur motorisierte Sonnenschutz-/Verdunklungssysteme mit definierter Prozent-Position (Höhe oder Fahrweg) ab, nicht reine Stoffbahnen ohne klar messbare Endposition.
@@ -186,7 +186,7 @@ export async function scanForShutters(
 - `type: "All"` iteriert wie im Vorbild über alle spezialisierten Scans und hängt die Ergebnisse zusammen; ein per-Adapter-Instanz-Scan (`instance`) ist ebenfalls möglich, wenn der Nutzer z. B. nur eine bestimmte `hm-rpc.0`-Instanz durchsuchen will.
 - Jeder gefundene Treffer liefert direkt ein passendes `IShutterConfig`-Fragment inkl. `driverType` und den erkannten State-IDs, das der Nutzer in der Admin-UI nur noch bestätigen/benennen muss (Name, Ausrichtung, Bereich sind danach händisch zu ergänzen, da sie nicht aus dem Objektbaum ableitbar sind).
 
-### 2b.2 Erkennungsstrategie je System ✅ (10 von 11 Systemen erkannt; nur generisches MQTT bewusst ausgenommen, siehe Status-Spalte)
+### 2b.2 Erkennungsstrategie je unterstütztem Scan-System ✅
 
 | System | Erkennungsmerkmal | Ableitung `driverType` | Status |
 |---|---|---|---|
@@ -197,13 +197,12 @@ export async function scanForShutters(
 | Zigbee (`ioBroker.zigbee`) | `common.role` `"level.blind"` unter `zigbee.*`, State-Namen `position`/`current_position` + `state` mit Werten OPEN/CLOSE/STOP | `zigbee` | ✅ |
 | Zigbee2MQTT (`ioBroker.zigbee2mqtt`) | `common.role` `"level.blind"` unter `zigbee2mqtt.*`, gleiche State-Namenskonvention wie Zigbee | `zigbee2mqtt` | ✅ |
 | Tuya (`ioBroker.tuya`) | Objektpfad `tuya.*`, DP-States `percent_control`/`percent_state`/`control` (dediziertere Namens-Endungs-Erkennung statt `common.role`, da Tuya-DPs meist ohne `level.blind`-Rolle sind; toleriert DP-Nummer-Präfixe wie `1_percent_control`) | `tuya` | ✅ |
-| Somfy (`ioBroker.tahoma`) | `common.role` `"level.blind"` unter `tahoma.*` (Annahme, ungetestet gegen echtes System) | `somfy` | ✅ (nur Rollen-basiert; die im Plan genannte Gerätetyp-Zusatzprüfung "io:RollerShutter" nicht umgesetzt) |
+| Somfy (`ioBroker.tahoma`) | `common.role` `"level.blind"` oder schreibbarer numerischer State mit Metadaten `io:RollerShutter` unter `tahoma.*` | `somfy` | ✅ |
 | Velux (`ioBroker.velux`/`ioBroker.klf200`) | `common.role` `"level.blind"` unter `velux.*`/`klf200.*` (Annahme, ungetestet gegen echtes System) | `velux` | ✅ |
-| EnOcean (`ioBroker.enocean`) | `common.role` `"level.blind"` unter `enocean.*` | `enocean` | ✅ (nur Rollen-basiert; die im Plan genannte EEP-Profil-Erkennung nicht umgesetzt) |
+| EnOcean (`ioBroker.enocean`) | `common.role` `"level.blind"` oder schreibbarer numerischer State mit `D2-05`-EEP-Metadaten unter `enocean.*` | `enocean` | ✅ |
 | Velbus (`ioBroker.velbus`) | `common.role` `"level.blind"` unter `velbus.*` (Annahme, ungetestet gegen echtes System) | `velbus` | ✅ |
 | Loxone (`ioBroker.loxone`) | Namens-Endungen `up`/`down` (+ optional `position`/`info`) unter `loxone.*` | `loxone` | ✅ |
 | Homey (Bridge-abhängig) | Namens-Endung `windowcoverings_set`, in beliebigem Namespace | `homey` | ✅ |
-| Generisches MQTT-Cover | — | `mqtt` | ❌ bewusst nicht umgesetzt: Topic-Namen sind per Definition frei konfigurierbar, nicht musterbar (siehe `mqtt-driver.ts`) |
 | Generic (Fallback) | Beliebige Instanz mit einem numerischen State `common.role` `"level.blind"` (Position) **oder** drei booleschen States mit Rollen `"button.open"`/`"button.close"`/`"button.stop"` im selben Channel | `generic-position` bzw. `generic-relay` | ✅ |
 
 - Erkennung primär über `common.role` (robust, herstellerunabhängig) und ergänzend über Funktions-Enum `enum.functions.*` (z. B. "Rollladen", "Beschattung"), analog zur Homematic-Erkennung via `enum.functions.*` im irrigation-Vorbild.
@@ -219,7 +218,7 @@ export async function scanForShutters(
 - Ergebnisliste wird dem Nutzer als Vorschau präsentiert (`renderScanPreview()`, `admin/shutters.js`): pro Treffer eine vorausgewählte Checkbox, ein editierbares Namensfeld, der erkannte `driverType` und die gefundenen Fremd-State-IDs zur Kontrolle. Erst der Klick auf "Ausgewählte Rolläden hinzufügen" sendet die ausgewählten (ggf. umbenannten) Treffer per separatem `applyScannedShutters`-Kommando; nur das übernimmt sie tatsächlich in `native.shutters[]` (löst wie jede Config-Änderung den üblichen Adapter-Neustart aus). `scanForShutters` selbst verändert die Konfiguration nicht mehr.
 - Scan-Fehler pro System (z. B. Instanz nicht erreichbar) werden gesammelt und im Ergebnis als `errors: string[]` an die UI zurückgegeben und in der Vorschau angezeigt, ohne den gesamten Scan abzubrechen.
 
-## 3. Objekt-Hierarchie (Entwurf) ⚠️ (Kern-States vorhanden; viele Schutz-/Diagnose-States existieren nur intern, nicht als sichtbare ioBroker-States — siehe Markierungen)
+## 3. Objekt-Hierarchie ✅ (Status-, Konfigurations- und Schutzstates werden sichtbar gespiegelt)
 
 ```text
 shutters.0
@@ -228,27 +227,27 @@ shutters.0
 │   │   ├── position           (number 0-100, ack=false → Kommando "Zielhöhe Behang %")                                    ✅
 │   │   ├── positionActual     (number 0-100, ack=true, gemappte Ist-Behanghöhe)                                           ✅
 │   │   ├── positionRaw        (number 0-100, ack=true, rohe Antriebsposition/Laufzeit%)                                   ✅
-│   │   ├── state              (number, role=level.blind, ack=true; 0=open,1=closed,2=moving)                              ❌
+│   │   ├── state              (number, role=level.blind, ack=true; 0=open,1=closed,2=moving)                              ✅
 │   │   ├── open                (boolean, ack=false, Button "ganz auf")                                                    ✅
 │   │   ├── close                (boolean, ack=false, Button "ganz zu")                                                    ✅
 │   │   ├── stop                (boolean, ack=false, Button)                                                               ✅
 │   │   ├── calibrate            (boolean, ack=false, Button: Kalibrierungslauf)                                           ✅
-│   │   ├── orientation         (number, ack=true, Fensterausrichtung in Grad, aus Config)                                 ❌ nur `native`-Config, kein State
-│   │   ├── area                (string, ack=true, Bereichs-/Zonenname, z.B. "Kinderzimmer")                               ❌ nur `native`-Config, kein State
-│   │   ├── driverType          (string, ack=true, z.B. "homematic"|"hmip"|"knx"|"shelly"|"zigbee"|"zigbee2mqtt"|"tuya"|"somfy"|"velux"|"enocean"|"velbus"|"loxone"|"homey"|"mqtt"|"generic-relay"|"generic-position") ❌ nur `native`-Config
-│   │   ├── coveringType        (string, ack=true, z.B. "rolladen"|"raffstore"|"markise"|"lamellen"|weitere, siehe 2a.5)   ❌ nur `native`-Config
+│   │   ├── orientation         (number, ack=true, Fensterausrichtung in Grad, aus Config)                                 ✅
+│   │   ├── area                (string, ack=true, Bereichs-/Zonenname, z.B. "Kinderzimmer")                               ✅
+│   │   ├── driverType          (string, ack=true, konfigurierter Driver)                                                    ✅
+│   │   ├── coveringType        (string, ack=true, konfigurierter Behangtyp)                                                 ✅
 │   │   ├── tilt                (number 0-100 bzw. 0-180° bei "lamellen", ack=false, nur relevant bei coveringType "raffstore"/"lamellen", sonst nicht angelegt; unkalibriert, direkt an den Fremd-State durchgereicht — anders als `position` keine Kalibrierkurve, da ein Kippwinkel i. d. R. keine "Laufzeit ≠ Winkel"-Diskrepanz hat) ✅
 │   │   ├── tiltActual          (number, ack=true, unkalibrierter Ist-Kippwinkel, nur relevant wie oben)                   ✅
-│   │   ├── sunProtectionActive (boolean, ack=true)                                                                        ❌ nur interner Zustand in `automation.ts`
-│   │   ├── sunProtectionOverrideUntil (string ISO / number ts, ack=true, gesetzt bei manueller Bedienung während aktivem Sonnenschutz; gültig bis lokal 24:00 desselben Tages) ✅ persistiert (number ts, ack=true) und beim Adapter-Start wiederhergestellt (siehe 9a.2)
-│   │   ├── rainProtectionActive(boolean, ack=true)                                                                        ❌ nur lokale Variable
-│   │   ├── windProtectionActive(boolean, ack=true, aktuell tatsächlich wirksam)                                           ❌ nur interner Zustand
-│   │   ├── windProtectionEnabled(boolean, ack=false, Konfigurationsschalter — Default abhängig von coveringType, siehe 7a/2a.5) ❌ nur `native`-Config-Feld, kein State
-│   │   ├── frostProtectionActive(boolean, ack=true, aktuell tatsächlich wirksam)                                          ❌ nur lokale Variable
-│   │   ├── frostProtectionEnabled(boolean, ack=false, Konfigurationsschalter — Default abhängig von coveringType, siehe 7b/2a.5) ❌ nur `native`-Config-Feld
-│   │   ├── doorProtectionActive(boolean, ack=true)                                                                        ❌
-│   │   ├── nightCoolingActive (boolean, ack=true, aktuell tatsächlich wirksam)                                            ❌ nur interner Zustand (siehe 7c)
-│   │   ├── nightCoolingEnabled(boolean, ack=false, Konfigurationsschalter, Default false)                                 ❌ nur `native`-Config-Feld, kein State (siehe 7c)
+│   │   ├── sunProtectionActive (boolean, ack=true)                                                                        ✅
+│   │   ├── sunProtectionOverrideUntil (number ts, ack=true, gesetzt bei manueller Bedienung während aktivem Sonnenschutz)  ✅
+│   │   ├── rainProtectionActive (boolean, ack=true)                                                                       ✅
+│   │   ├── windProtectionActive (boolean, ack=true)                                                                       ✅
+│   │   ├── windProtectionEnabled (boolean, ack=true, Konfigurationsspiegel)                                               ✅
+│   │   ├── frostProtectionActive (boolean, ack=true)                                                                      ✅
+│   │   ├── frostProtectionEnabled (boolean, ack=true, Konfigurationsspiegel)                                              ✅
+│   │   ├── doorProtectionActive (boolean, ack=true)                                                                       ✅
+│   │   ├── nightCoolingActive (boolean, ack=true)                                                                         ✅
+│   │   ├── nightCoolingEnabled (boolean, ack=true, Konfigurationsspiegel)                                                 ✅
 │   │   ├── automationEnabled   (boolean, ack=false, Zone/Rolladen aus Automatik nehmen)                                   ✅
 │   │   ├── statusText          (string, ack=true, menschenlesbarer Grund für aktuellen Zustand, z.B. "Sonnenschutz aktiv (bis 18:30)"; expert:false — einziger für Endnutzer primär relevanter Diagnose-State, siehe 10a.1) ✅
 │   │   ├── watchdogLastIssue   (string, ack=true, expert:true, letzte erkannte "Antrieb reagiert nicht"-Meldung)          ✅
@@ -258,22 +257,22 @@ shutters.0
 │   └── shutter_NNN ...
 ├── groups
 │   ├── group_000
-│   │   ├── name        (string, ack=true)                                ❌ nur `common.name` des Channel-Objekts
-│   │   ├── members      (string/JSON-Array Shutter-IDs, ack=true)         ❌ nur Config (`memberIds`), kein State
+│   │   ├── name        (string, ack=true)                                ✅
+│   │   ├── members      (string/JSON-Array Shutter-IDs, ack=true)         ✅
 │   │   ├── position     (number, ack=false, setzt alle Mitglieder)        ✅
 │   │   └── openAll/closeAll (boolean, ack=false, Buttons)                 ✅
 ├── quickActions
 │   ├── allOpen          (boolean, ack=false, Button "Alle auf")           ✅
 │   └── allClose         (boolean, ack=false, Button "Alle zu")            ✅
 ├── astro
-│   ├── twilightEnd      (string ISO, ack=true)                           ❌ nur intern in twilight.ts/scheduler.ts
-│   ├── isHeatingPeriod  (boolean, ack=true)                               ❌
+│   ├── twilightEnd      (string ISO, ack=true)                           ✅
+│   ├── isHeatingPeriod  (boolean, ack=true)                               ✅
 ├── weather
-│   ├── cloudCover       (number %, ack=true)                              ❌ WeatherSource liest nur Fremd-States, legt keine eigenen an
-│   ├── rain              (boolean, ack=true)                              ❌
-│   ├── windSpeed        (number km/h, ack=true)                          ❌
-│   ├── windDirection    (number °, ack=true)                              ❌
-│   └── sunElevation/Azimuth (number, ack=true)                           ❌
+│   ├── cloudCover       (number %, ack=true)                              ✅
+│   ├── rain              (boolean, ack=true)                              ✅
+│   ├── windSpeed        (number km/h, ack=true)                           ✅
+│   ├── windDirection    (number °, ack=true)                              ✅
+│   └── sunElevation/Azimuth (number, ack=true)                           ✅
 └── info
     └── connection (boolean, ack=true)                                    ✅
 ```
@@ -283,7 +282,7 @@ Zusätzlich vorhanden, aber im Plan nicht aufgeführt: `info.lastScanResult`/`in
 - `device` = einzelner Rolladen (`shutter_NNN`) bzw. Gruppe; `channel` optional für `status`/`config`; `state` wie oben.
 - Bereichs-/Feiertagslogik nicht als eigene Objekt-Ebene, sondern über `native`-Konfiguration (Admin-Tabelle) + abgeleitete States.
 
-## 4. Kalibrierung Behanghöhe → Laufzeit (Punkt 2) ✅ (nur der geführte Kalibrierlauf per `calibrate`-Button ist noch nicht implementiert, siehe `shutter-controller.ts` — bislang nur Log-Warnhinweis)
+## 4. Kalibrierung Behanghöhe → Laufzeit (Punkt 2) ✅ (geführter Relais-Kalibrierlauf: schließen → bestätigen → öffnen → bestätigen; gemessene Laufzeiten werden als States bereitgestellt)
 
 - Pro Rolladen: konfigurierbare Kalibrierungskurve, mind. 2 Stützpunkte (z. B. "0–20 % Behang = 0–5 % Laufzeit", "20–100 % Behang = 5–100 % Laufzeit"), linear interpoliert zwischen Stützpunkten.
 - Admin-Tabelle `curvePoints: { behangPercent, laufzeitPercent }[]`.
@@ -438,7 +437,7 @@ Neuerung gegenüber dem Vorbild-Skript. Gegenteil des abendlichen Standard-Schli
 - Nur relevant für Sommer (nutzt denselben `isSummer`-State wie Sonnenschutz, 6.1) und nur pro Zone/Rolladen aktivierbar (z. B. nicht für Schlafzimmer mit Verdunkelungswunsch).
 - **Explizit pro Einheit/Zone ein-/ausschaltbar** (`nightCoolingEnabled`, boolean, eigener Konfigurationswert, analog zu `windProtectionEnabled`/`frostProtectionEnabled` in 7a/7b). Anders als Wind- und Frostschutz ist Nachtauskühlung eine reine **Komfortfunktion** ohne Sicherheitsbezug und setzt zusätzlich einen konfigurierten Innentemperatur-Sensor voraus — daher Default **deaktiviert** für **alle** Behangtypen (siehe 2a.5), unabhängig von `coveringType`; der Nutzer aktiviert sie bewusst nur für die Zonen/Rolläden, bei denen nächtliches Öffnen gewünscht und ein Innentemperatur-Sensor vorhanden ist. Ist `nightCoolingEnabled = false` (Default) oder kein Innentemperatur-Sensor konfiguriert, bleibt Schritt 7c für diese Einheit vollständig inaktiv.
 - Priorität: niedriger als Windschutz/Regenschutz/Sonnenschutz **und** Frostschutz (Sicherheit/Sicherheitsmechanik geht vor eine reine Komfortfunktion), aber höher als der reguläre abendliche Zeitplan-Schließbefehl, da sie diesen gezielt aussetzt/umkehrt — konkret in `automation.ts`, `evaluateCovering()`, unmittelbar vor dem finalen Zeitplan-Fallback ausgewertet.
-- `nightCoolingActive` ⚠️ **nur interner Automations-Zustand** (`ICoveringAutomationState.nightCoolingActive` in `automation.ts`), **kein** echter sichtbarer ioBroker-State — analog zu `windProtectionActive`/`frostProtectionActive`/`rainProtectionActive` (siehe Abschnitt 3) ist dies eine bewusste Vereinfachung ggü. der ursprünglichen Planung, keine separat zu pflegende Diagnose-Oberfläche für jeden internen Aktiv-Flag zu schaffen. `nightCoolingEnabled` ist wie geplant nur ein natives Config-Feld (kein State) — analog zu `windProtectionEnabled`/`frostProtectionEnabled`.
+- `nightCoolingActive` und `nightCoolingEnabled` werden als sichtbare, schreibgeschützte effektive States pro Behang veröffentlicht, wie die übrigen Schutzaktivitäten und -konfigurationen in Abschnitt 3.
 - `night-cooling.ts`: eigene, reine Bewertungsfunktion `evaluateNightCooling()`, unit-getestet in `night-cooling.test.ts`; Aufruf-/Gate-Logik (inkl. `nightCoolingEnabled`-Prüfung) sitzt in `automation.ts`, nicht im Modul selbst.
 
 ## 7d. Motorschutz: Mindestpause zwischen Fahrten ✅
@@ -519,12 +518,12 @@ Jede Zielposition wird über `position-mapping.ts` in Laufzeit-% umgerechnet und
 
 ## 9e. Dashboard-Hinweis (README, kein Adapter-Code) ✅
 
-- README-Abschnitt "Dashboard widgets" mit Empfehlung, welche States sich für ein vis/vis-2-Dashboard-Widget eignen: `positionActual`, `statusText`, `watchdogLastIssue` für eine Fehler-Übersicht, sowie die Gruppen-/globalen Schnellaktions-Buttons (`groups.*.openAll`/`closeAll`, `quickActions.allOpen`/`allClose`, siehe 10a.4). `sunProtectionActive`/`windProtectionActive`/`rainProtectionActive`/`frostProtectionActive` existieren wie in Abschnitt 3 dokumentiert nicht als eigene States — README verweist stattdessen auf `statusText`. Keine Umsetzung im Adapter selbst, nur Dokumentationshinweis.
+- README-Abschnitt "Dashboard widgets" mit Empfehlung, welche States sich für ein vis/vis-2-Dashboard-Widget eignen: `positionActual`, `statusText`, `watchdogLastIssue` für eine Fehler-Übersicht, sowie die Gruppen-/globalen Schnellaktions-Buttons (`groups.*.openAll`/`closeAll`, `quickActions.allOpen`/`allClose`, siehe 10a.4). `sunProtectionActive`/`windProtectionActive`/`rainProtectionActive`/`frostProtectionActive` ergänzen `statusText` als sichtbare Diagnose-States. Keine Umsetzung im Adapter selbst, nur Dokumentationshinweis.
 
 ## 10. Umsetzungsreihenfolge (Milestones) ⚠️ (M1-M7/M7b/M6c/M6d fertig; M8 teilweise — siehe Status je Milestone)
 
 1. **M1 — Grundgerüst** ✅: create-adapter, io-package.json, Objekt-Hierarchie für einzelne Rolläden, manuelle Steuerung (Position setzen/lesen), `info.connection`.
-2. **M1b — Driver-Layer** ✅ (alle 16 Driver fertig): `IShutterDriver`-Interface, `driver-factory.ts`, mindestens `generic-position-driver` und `generic-relay-driver` fertig implementiert und getestet (unabhängig von konkretem Fremdsystem lauffähig, z. B. per Testadapter-Instanz simuliert); danach Kern-Set (`homematic`, `knx`, `shelly`, `zigbee`), dann Erweiterungs-Set (`tuya`, `somfy`, `hmip`, `zigbee2mqtt`, `mqtt`), dann Nachtrag-Set (`velux`, `enocean`, `loxone`, `velbus`, `homey`) iterativ ergänzt — siehe Priorisierung in 2a.4. Verifikation bislang nur per Unit-Test mit gemocktem Adapter, nicht gegen echte/simulierte Fremdsysteme.
+2. **M1b — Driver-Layer** ✅ (alle 16 Driver fertig): `IShutterDriver`-Interface, `driver-factory.ts`, mindestens `generic-position-driver` und `generic-relay-driver` fertig implementiert und getestet (unabhängig von konkretem Fremdsystem lauffähig, z. B. per Testadapter-Instanz simuliert); danach Kern-Set (`homematic`, `knx`, `shelly`, `zigbee`), dann Erweiterungs-Set (`tuya`, `somfy`, `hmip`, `zigbee2mqtt`, `mqtt`), dann Nachtrag-Set (`velux`, `enocean`, `loxone`, `velbus`, `homey`) iterativ ergänzt — siehe Priorisierung in 2a.4. Unit-Tests decken sämtliche Driver ab; die Integrationstests prüfen representative HmIP- und iCal-Fremdstate-Flows gegen einen js-controller.
 3. **M2 — Behangkalibrierung** ✅: `position-mapping.ts` + Admin-Tabelle + Kalibrierlauf (Driver-unabhängig, arbeitet auf Laufzeit-% egal welcher Driver).
 4. **M3 — Zeitplan** ✅: `scheduler.ts` inkl. Wochentag/Wochenende/Feiertag, ohne iCal/Dämmerung zunächst.
 5. **M4 — Dämmerung & iCal** ✅: Erweiterung Scheduler.
@@ -535,7 +534,7 @@ Jede Zielposition wird über `position-mapping.ts` in Laufzeit-% umgerechnet und
 10. **M6d — Nachtauskühlung & Motorschutz** ✅: Motorschutz (7d) in `shutter-controller.ts`, Nachtauskühlung als `night-cooling.ts` (7c) inkl. Integration in `automation.ts`; beide implementiert und getestet.
 11. **M7 — Gruppen/Alias** ✅: `groups` Objekt-Ebene, Sammelsteuerung mehrerer Rolläden **über gemischte Driver-Typen hinweg** (eine Gruppe kann z. B. Homematic- und KNX-Rolläden gleichzeitig enthalten, da `shutter-controller.ts` nur das einheitliche Interface kennt).
 12. **M7b — Szenen** ✅: Presets (9b).
-13. **M8 — Tests & Release** ⚠️ (Lint-Workflow etabliert, alle Kernmodule/Driver-Klassen unit-getestet, ein echter Integrationstest gegen einen realen js-controller vorhanden, README-Dashboard-Hinweis (9e) vorhanden; erste Releases erfolgt (v0.0.19-v0.0.21, lokal + deployed auf haus20a, siehe `../scripts/deploy.sh`); Adapter-Checker mangels GitHub-Remote nicht ausführbar): Unit-Tests für `position-mapping`, `sun-protection`, `rain-protection`, `wind-protection`, `frost-protection`, `night-cooling`, `scheduler`, `weather-source`, `group-controller`, `scene-manager`, `driver-factory` sowie jeden einzelnen Driver ✅ vorhanden; `test/integration.js` (`@iobroker/testing`) ✅ startet den Adapter gegen einen echten js-controller, konfiguriert einen `generic-position`-Rolladen und verifiziert `positionActual` sowie einen manuellen `open`-Befehl End-to-End. Weiterhin offen: **Adapter-Checker** (`@iobroker/repochecker`) benötigt zwingend eine öffentliche GitHub-Repository-URL zum Prüfen — dieses Projekt hat laut `../AGENTS.md` bewusst kein GitHub-Remote (nur lokales Repo, da `.env` keine `GITHUB_TOKEN`/`GITHUB_REPO_OWNER` enthält) und kann daher nicht automatisiert geprüft werden, ohne diese Repo-Policy zu verletzen.
+13. **M8 — Tests & Release** ⚠️: Unit-Tests decken Kernmodule und alle Driver ab; `test/integration.js` startet den Adapter gegen einen realen js-controller und verifiziert iCal-Overrides sowie HmIP-Fremdstate-Skalierung end-to-end. Lint, Typprüfung, Paket- und Integrationstests laufen in CI. Der öffentliche Adapter Checker bleibt ein manueller Release-Schritt vor Stable, da er die veröffentlichte GitHub-Repository-URL prüft.
 
 **Testlücken (Stand 2026-08-15, aktualisiert)** — ⚠️ **wichtiger Infrastruktur-Fund**: `package.json`s `test:ts`-Skript verwendete ein ungeschütztes `src/**/*.test.ts`-Glob, das je nach Skript-Shell unterschiedlich aufgelöst wurde — unter `zsh` (rekursives `**` standardmäßig aktiv) wurden alle Unterordner erfasst, unter `sh`/`dash` (kein `zsh`-Globbing, wie es `npm run` typischerweise zum Ausführen von `scripts` verwendet) wurde `**` nur wie ein einfaches `*` behandelt und **der komplette Unterordner `src/lib/drivers/*.test.ts` lief nie mit** — betraf `driver-factory.test.ts`, `foreign-state-tracker.test.ts`, `generic-position-driver.test.ts`, `generic-relay-driver.test.ts`, `loxone-driver.test.ts`, `mqtt-driver.test.ts`, `position-stop-driver-base.test.ts`, `tuya-driver.test.ts`, `best-effort-position.test.ts` — je nachdem, mit welcher Shell `npm test`/`npm run test:ts` tatsächlich ausgeführt wurde (insbesondere in CI/`npm`-Standardkonfiguration). Behoben durch Anführungszeichen um das Glob (`"src/**/*.test.ts"`), sodass Mocha selbst (über die `glob`-Bibliothek, korrekt rekursiv) statt der aufrufenden Shell die Auflösung übernimmt — verifiziert durch expliziten Vergleich `sh -c` vs. `zsh` vor und nach dem Fix.
 

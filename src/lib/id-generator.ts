@@ -15,6 +15,13 @@ export function nextAvailableCoveringId(existingIds: Iterable<string>, prefix = 
     return nextAvailableAreaId(existingIds, prefix);
 }
 
+/**
+ * Generates the first unused sequential area ID with the supplied prefix.
+ *
+ * @param existingIds - IDs already assigned to areas.
+ * @param prefix - ID prefix; defaults to `"area"`.
+ * @returns The next available area ID.
+ */
 export function nextAvailableAreaId(existingIds: Iterable<string>, prefix = 'area'): string {
     const used = new Set(existingIds);
     let n = 1;

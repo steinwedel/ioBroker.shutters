@@ -57,6 +57,7 @@ export interface IScannedShutter {
     coveringType: CoveringType;
     /** Always `true`; the user can disable automation after reviewing the candidate. */
     automationEnabled: boolean;
+    homematicLevelNormalized?: boolean;
     /** Foreign state IDs found for this candidate, matching the shape `IShutterConfig.states` expects for `driverType`. */
     states: Record<string, string>;
 }
@@ -132,6 +133,18 @@ function classifyDriverType(id: string): DriverType {
  * @param positionStateId - Position state whose parent to search for a stop sibling.
  * @param objectsById - All scanned state objects, keyed by ID.
  */
+function findHomematicActualState(
+    positionStateId: string,
+    objectsById: Map<string, ioBroker.StateObject>,
+): string | undefined {
+    if (!/^hm-(rpc|rega)\.\d+\.[^.]+\.4\.LEVEL$/.test(positionStateId)) {
+        return undefined;
+    }
+    const actualStateId = positionStateId.replace(/\.4\.LEVEL$/, '.3.LEVEL');
+    const actualState = objectsById.get(actualStateId);
+    return actualState && actualState.common.write === false ? actualStateId : undefined;
+}
+
 function findStopSibling(positionStateId: string, objectsById: Map<string, ioBroker.StateObject>): string | undefined {
     const parentId = positionStateId.slice(0, positionStateId.lastIndexOf('.'));
     for (const [id, obj] of objectsById) {
@@ -214,6 +227,23 @@ function lastIdSegment(id: string): string {
     return (id.slice(id.lastIndexOf('.') + 1) ?? '').toLowerCase();
 }
 
+function nativeStringValue(obj: ioBroker.StateObject, key: 'type' | 'deviceType' | 'eep' | 'EEP'): string | undefined {
+    const value = (obj.native as Record<string, unknown> | undefined)?.[key];
+    return typeof value === 'string' ? value : undefined;
+}
+
+function isSomfyRollerShutter(obj: ioBroker.StateObject): boolean {
+    return (['type', 'deviceType'] as const).some(key => nativeStringValue(obj, key) === 'io:RollerShutter');
+}
+
+function isEnoceanShutterEep(obj: ioBroker.StateObject): boolean {
+    return (['eep', 'EEP'] as const).some(key => /^D2-05(?:-|$)/i.test(nativeStringValue(obj, key) ?? ''));
+}
+
+function isWritableNumber(obj: ioBroker.StateObject): boolean {
+    return obj.common.type === 'number' && obj.common.write !== false;
+}
+
 /**
  * Tuya (`ioBroker.tuya`) detection pass (plan section 2b.2): Tuya DPs are not tagged with a
  * `level.blind` role, so this matches the `percent_control`/`percent_state`/`control` DP name
@@ -293,6 +323,46 @@ function scanTuyaCandidates(
     }
 }
 
+function scanMetadataCandidates(
+    objectsById: Map<string, ioBroker.StateObject>,
+    isSkipped: (id: string) => boolean,
+    seenCoveringIds: Set<string>,
+    shutters: IScannedShutter[],
+): void {
+    for (const [id, obj] of objectsById) {
+        if (isSkipped(id) || !isWritableNumber(obj)) {
+            continue;
+        }
+        let driverType: DriverType | undefined;
+        if (isSomfyRollerShutter(obj)) {
+            driverType = 'somfy';
+        } else if (id.startsWith('enocean.') && isEnoceanShutterEep(obj)) {
+            driverType = 'enocean';
+        }
+        if (!driverType) {
+            continue;
+        }
+        const coveringId = deriveCoveringId(id);
+        if (seenCoveringIds.has(coveringId)) {
+            continue;
+        }
+        seenCoveringIds.add(coveringId);
+        const stopStateId = findStopSibling(id, objectsById);
+        const states: Record<string, string> = { position: id, positionActual: id };
+        if (stopStateId) {
+            states.stop = stopStateId;
+        }
+        shutters.push({
+            id: coveringId,
+            name: resolveName(obj.common.name, coveringId),
+            driverType,
+            coveringType: 'rolladen',
+            automationEnabled: true,
+            states,
+        });
+    }
+}
+
 /**
  * Loxone (`ioBroker.loxone`) detection pass (plan section 2b.2): matches sibling `up`/`down` impulse
  * states (and, if present, `position`/`info` for direct percentage control) under the same parent
@@ -311,7 +381,7 @@ function scanLoxoneCandidates(
 ): void {
     const byParent = new Map<
         string,
-        { up?: string; down?: string; position?: string; positionActual?: string; name?: string }
+        { up?: string; down?: string; position?: string; positionActual?: string; shade?: string; name?: string }
     >();
 
     for (const [id, obj] of objectsById) {
@@ -319,7 +389,7 @@ function scanLoxoneCandidates(
             continue;
         }
         const suffix = lastIdSegment(id);
-        if (suffix !== 'up' && suffix !== 'down' && suffix !== 'position' && suffix !== 'info') {
+        if (suffix !== 'up' && suffix !== 'down' && suffix !== 'position' && suffix !== 'info' && suffix !== 'shade') {
             continue;
         }
         const parentId = id.slice(0, id.lastIndexOf('.'));
@@ -330,8 +400,10 @@ function scanLoxoneCandidates(
             entry.down = id;
         } else if (suffix === 'position') {
             entry.position = id;
-        } else {
+        } else if (suffix === 'info') {
             entry.positionActual = id;
+        } else {
+            entry.shade = id;
         }
         entry.name ??= resolveName(obj.common.name, parentId);
         byParent.set(parentId, entry);
@@ -353,6 +425,10 @@ function scanLoxoneCandidates(
         }
         if (entry.positionActual) {
             states.positionActual = entry.positionActual;
+        }
+        if (entry.shade) {
+            states.tilt = entry.shade;
+            states.tiltActual = entry.shade;
         }
         shutters.push({
             id: coveringId,
@@ -465,7 +541,9 @@ export async function scanForShutters(
                 seenCoveringIds.add(coveringId);
                 const driverType = classifyDriverType(id);
                 const stopStateId = findStopSibling(id, objectsById);
-                const states: Record<string, string> = { position: id, positionActual: id };
+                const actualStateId =
+                    driverType === 'homematic' ? findHomematicActualState(id, objectsById) : undefined;
+                const states: Record<string, string> = { position: id, positionActual: actualStateId ?? id };
                 if (stopStateId) {
                     states.stop = stopStateId;
                 }
@@ -520,7 +598,11 @@ export async function scanForShutters(
             seenCoveringIds.add(coveringId);
             const levelObj = objectsById.get(levelStateId);
             const stopStateId = findStopSibling(levelStateId, objectsById);
-            const states: Record<string, string> = { position: levelStateId, positionActual: levelStateId };
+            const actualStateId = findHomematicActualState(levelStateId, objectsById);
+            const states: Record<string, string> = {
+                position: levelStateId,
+                positionActual: actualStateId ?? levelStateId,
+            };
             if (stopStateId) {
                 states.stop = stopStateId;
             }
@@ -562,6 +644,8 @@ export async function scanForShutters(
         // dedicated pass each, matching the state name suffixes described in plan section 2b.2.
         const isSkipped = (id: string): boolean =>
             isForbidden(id, adapter.namespace) || alreadyConfiguredStateIds.has(id);
+        onProgress?.('Scanning Somfy/EnOcean metadata candidates...');
+        scanMetadataCandidates(objectsById, isSkipped, seenCoveringIds, shutters);
         onProgress?.('Scanning Tuya candidates...');
         scanTuyaCandidates(objectsById, isSkipped, seenCoveringIds, shutters);
         onProgress?.('Scanning Loxone candidates...');

@@ -7,11 +7,34 @@ import { PositionStopDriverBase } from './position-stop-driver-base';
 export class HomematicDriver extends PositionStopDriverBase {
     public readonly type = 'homematic';
 
+    /** Creates a Homematic driver with optional normalized HmIP receiver levels. */
+    public constructor(
+        adapter: ioBroker.Adapter,
+        positionStateId: string,
+        positionActualStateId: string,
+        stopStateId: string | undefined,
+        tiltStateId?: string,
+        tiltActualStateId?: string,
+        invertPosition = false,
+        private readonly normalizedLevel = false,
+    ) {
+        super(
+            adapter,
+            positionStateId,
+            positionActualStateId,
+            stopStateId,
+            tiltStateId,
+            tiltActualStateId,
+            invertPosition,
+        );
+    }
+
     protected toExternalPosition(targetPercent: number): number {
-        return 100 - targetPercent;
+        const level = 100 - targetPercent;
+        return this.normalizedLevel ? level / 100 : level;
     }
 
     protected fromExternalPosition(position: number): number {
-        return 100 - position;
+        return 100 - (this.normalizedLevel ? position * 100 : position);
     }
 }

@@ -53,6 +53,11 @@ interface IFakeControllerHandle {
     persistedOverrideUntil: number;
     /** Defaults to `false` (settled/not moving) - see `hasDrifted` in `automation.ts`'s `applyTarget()`. */
     hasPendingMove: boolean;
+    /** Every value passed to `setDoorProtectionActive()` (plan section 3/7e), in call order. */
+    doorProtectionActiveCalls: boolean[];
+    protectionActivityCalls: Partial<
+        Record<'sunProtection' | 'rainProtection' | 'windProtection' | 'frostProtection' | 'nightCooling', boolean>
+    >[];
 }
 
 function createFakeController(config: IShutterConfig, persistedOverrideUntil = 0): IFakeControllerHandle {
@@ -64,6 +69,8 @@ function createFakeController(config: IShutterConfig, persistedOverrideUntil = 0
         currentPercent: undefined,
         persistedOverrideUntil,
         hasPendingMove: false,
+        doorProtectionActiveCalls: [],
+        protectionActivityCalls: [],
     };
     handle.controller = {
         onManualCommand: undefined as (() => void) | undefined,
@@ -71,6 +78,21 @@ function createFakeController(config: IShutterConfig, persistedOverrideUntil = 0
         isAutomationEnabled: () => config.automationEnabled,
         getCurrentCoveringPercent: () => handle.currentPercent,
         hasPendingMove: () => handle.hasPendingMove,
+        // eslint-disable-next-line @typescript-eslint/require-await -- intentionally synchronous test double for an async controller method
+        setDoorProtectionActive: async (active: boolean) => {
+            handle.doorProtectionActiveCalls.push(active);
+        },
+        setProtectionActivityStates: (
+            active: Partial<
+                Record<
+                    'sunProtection' | 'rainProtection' | 'windProtection' | 'frostProtection' | 'nightCooling',
+                    boolean
+                >
+            >,
+        ) => {
+            handle.protectionActivityCalls.push(active);
+            return Promise.resolve();
+        },
         // eslint-disable-next-line @typescript-eslint/require-await -- intentionally synchronous test double for an async controller method
         applyAutomatedPosition: async (percent: number, reason: string, bypass = false) => {
             handle.appliedCalls.push({ percent, reason, bypass });
@@ -1114,6 +1136,44 @@ describe('AutomationEngine', () => {
             engine.stop();
         });
 
+        it('inverts the configured door-contact state when requested', async () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(
+                makeConfig({
+                    doorContactStateId: 'foreign.door',
+                    invertDoorContact: true,
+                    sunProtectionEnabled: false,
+                }),
+            );
+            controllerHandle.currentPercent = 20;
+            const { adapter, foreignStates, emitForeignStateChange } = createFakeAdapter();
+            foreignStates.set('foreign.door', { val: true, ack: true } as ioBroker.State);
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            await engine.start();
+            engine.setScheduleTarget(controllerHandle.config.id, 100);
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([{ percent: 100, reason: 'Schedule', bypass: false }]);
+            expect(controllerHandle.doorProtectionActiveCalls).to.deep.equal([false, false]);
+
+            emitForeignStateChange('foreign.door', false);
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 100, reason: 'Schedule', bypass: false },
+                { percent: 20, reason: 'Schedule', bypass: false },
+            ]);
+            expect(controllerHandle.doorProtectionActiveCalls).to.deep.equal([false, false, true]);
+
+            engine.stop();
+        });
+
         it('never clamps an opening target', async () => {
             const weather = createFakeWeather();
             const controllerHandle = createFakeController(
@@ -1136,6 +1196,48 @@ describe('AutomationEngine', () => {
             expect(controllerHandle.appliedCalls).to.deep.equal([{ percent: 0, reason: 'Schedule', bypass: false }]);
 
             engine.stop();
+        });
+
+        it('reports doorProtectionActive as reflecting the door-contact state, independent of clamping (plan section 3)', async () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(
+                makeConfig({ doorContactStateId: 'foreign.door', sunProtectionEnabled: false }),
+            );
+            const { adapter, foreignStates, emitForeignStateChange } = createFakeAdapter();
+            foreignStates.set('foreign.door', { val: false, ack: true } as ioBroker.State);
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            // start() itself already runs one tick, hence one `false` call before evaluateNow() below.
+            await engine.start();
+            engine.evaluateNow();
+            expect(controllerHandle.doorProtectionActiveCalls).to.deep.equal([false, false]);
+
+            emitForeignStateChange('foreign.door', true);
+            engine.evaluateNow();
+            expect(controllerHandle.doorProtectionActiveCalls).to.deep.equal([false, false, true]);
+
+            engine.stop();
+        });
+
+        it('reports doorProtectionActive as false for a covering with no door contact configured', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(makeConfig({ sunProtectionEnabled: false }));
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.doorProtectionActiveCalls).to.deep.equal([false]);
         });
     });
 
@@ -1166,21 +1268,34 @@ describe('AutomationEngine', () => {
             // Simulate a manual command: ShutterController would call this directly.
             controllerHandle.controller.onManualCommand?.();
 
-            expect(controllerHandle.overrideSetCalls).to.have.length(1);
+            expect(controllerHandle.overrideSetCalls).to.have.length(2);
             const expectedMidnight = new Date(2026, 6, 16, 0, 0, 0, 0).getTime();
-            expect(controllerHandle.overrideSetCalls[0]).to.equal(expectedMidnight);
+            expect(controllerHandle.overrideSetCalls[1]).to.equal(expectedMidnight);
 
             engine.evaluateNow();
-            // Sun protection is now suppressed; the schedule (still "open", i.e. 0%) applies instead.
             expect(controllerHandle.appliedCalls).to.deep.equal([
-                { percent: 70, reason: 'Sun protection', bypass: false },
-                { percent: 0, reason: 'Schedule', bypass: false },
+                {
+                    percent: 70,
+                    reason: 'Sun protection',
+                    bypass: false,
+                },
+            ]);
+
+            engine.setScheduleTarget(controllerHandle.config.id, 0);
+            engine.evaluateNow();
+            expect(controllerHandle.overrideSetCalls).to.deep.equal([0, expectedMidnight, 0]);
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                {
+                    percent: 70,
+                    reason: 'Sun protection',
+                    bypass: false,
+                },
             ]);
 
             engine.stop();
         });
 
-        it('restores a persisted override deadline on start(), suppressing sun protection across a restart', async () => {
+        it('clears a persisted override deadline on start(), allowing sun protection after a restart', async () => {
             const weather = createFakeWeather();
             const futureOverride = new Date(2026, 6, 16, 0, 0, 0, 0).getTime(); // later tonight
             const controllerHandle = createFakeController(
@@ -1203,7 +1318,10 @@ describe('AutomationEngine', () => {
             engine.setScheduleTarget(controllerHandle.config.id, 0);
             engine.evaluateNow();
 
-            expect(controllerHandle.appliedCalls).to.deep.equal([{ percent: 0, reason: 'Schedule', bypass: false }]);
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 70, reason: 'Sun protection', bypass: false },
+            ]);
+            expect(controllerHandle.overrideSetCalls).to.deep.equal([0]);
 
             engine.stop();
         });
@@ -1352,6 +1470,42 @@ describe('AutomationEngine', () => {
 
             expect(changes).to.deep.equal([]);
             expect(controllerHandle.appliedCalls).to.deep.equal([]);
+        });
+
+        it('publishes only the protection that wins the automation decision', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(makeConfig({ sunProtectionEnabled: true }));
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            weather.windSpeed = 50;
+            weather.rain = true;
+            weather.solarRadiation = 300;
+            engine.setScheduleTarget(controllerHandle.config.id, 0);
+            engine.evaluateNow();
+
+            expect(controllerHandle.protectionActivityCalls).to.deep.equal([{ windProtection: true }]);
+        });
+
+        it('clears protection activity when automation is disabled', () => {
+            const weather = createFakeWeather();
+            const controllerHandle = createFakeController(makeConfig({ automationEnabled: false }));
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                DEFAULT_OPTIONS,
+            );
+
+            engine.evaluateNow();
+
+            expect(controllerHandle.protectionActivityCalls).to.deep.equal([{}]);
         });
 
         it('fires onSunProtectionChange(true)/(false) on the aggregate rising/falling edge (plan section 10a.14)', () => {

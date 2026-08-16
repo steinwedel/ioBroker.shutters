@@ -15,6 +15,7 @@ import { SceneController } from './lib/scene-manager';
 import { scanForShutters, type IScannedShutter } from './lib/shutter-scanner';
 import { ShutterController } from './lib/shutter-controller';
 import type { IShutterConfig } from './lib/types';
+import { createWeatherDiagnosticObjects, updateWeatherDiagnosticStates } from './lib/weather-diagnostics';
 import { WeatherSource } from './lib/weather-source';
 
 /** Anything that can handle a state change for its own, relative state IDs - implemented by ShutterController, GroupController and SceneController. */
@@ -33,6 +34,8 @@ class Shutters extends utils.Adapter {
     private readonly stateIdToHandler = new Map<string, IStateChangeHandler>();
     /** Periodic driver -> positionActual/positionRaw sync, see `dataSource: poll` in io-package.json. */
     private positionRefreshTimer: ioBroker.Interval | undefined;
+    /** Periodic writer for `astro.*`/`weather.*` diagnostic states (plan section 3), see `weather-diagnostics.ts`. */
+    private weatherDiagnosticsTimer: ioBroker.Interval | undefined;
     private scheduler: Scheduler | undefined;
     private weatherSource: WeatherSource | undefined;
     private automationEngine: AutomationEngine | undefined;
@@ -154,6 +157,20 @@ class Shutters extends utils.Adapter {
         const location = await this.resolveLocation();
         await this.initHolidayState();
         await this.initIcalIntegration();
+
+        // Astro/weather diagnostic states (plan section 3) - previously computed only internally,
+        // never surfaced as visible states. Written once immediately, then kept up to date on the
+        // same cadence as the automation tick (weather values change with the underlying foreign
+        // states anyway; the astro-derived ones only meaningfully change over minutes, not seconds).
+        await createWeatherDiagnosticObjects(this);
+        const weatherSourceForDiagnostics = this.weatherSource;
+        const updateDiagnostics = (): void => {
+            updateWeatherDiagnosticStates(this, weatherSourceForDiagnostics, location).catch(err => {
+                this.log.warn(`Updating weather/astro diagnostic states failed: ${(err as Error).message}`);
+            });
+        };
+        updateDiagnostics();
+        this.weatherDiagnosticsTimer = this.setInterval(updateDiagnostics, this.config.automationTickMs ?? 30_000);
 
         this.scheduler = new Scheduler(
             this,
@@ -800,6 +817,10 @@ class Shutters extends utils.Adapter {
 
         if (id === this.icalTableStateId) {
             this.icalEvents = this.parseIcalTable(state.val);
+            this.scheduler?.stop();
+            this.reconcileScheduleTargetsOnStartup();
+            this.scheduler?.start();
+            this.automationEngine?.evaluateNow();
             return;
         }
 
@@ -828,6 +849,9 @@ class Shutters extends utils.Adapter {
             this.weatherSource?.stop();
             if (this.positionRefreshTimer) {
                 this.clearInterval(this.positionRefreshTimer);
+            }
+            if (this.weatherDiagnosticsTimer) {
+                this.clearInterval(this.weatherDiagnosticsTimer);
             }
             for (const controller of this.controllers.values()) {
                 controller.destroy();

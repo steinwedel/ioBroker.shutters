@@ -22,6 +22,7 @@ export class LoxoneDriver implements IShutterDriver {
 
     /** Only set when a position read-back state is configured; see class doc. */
     private readonly positionTracker: ForeignNumberTracker | undefined;
+    private readonly tiltTracker: ForeignNumberTracker | undefined;
     /** Only meaningfully used when no direct percentage control is configured at all; see class doc. */
     private readonly positionEstimate = new BestEffortPositionEstimate();
 
@@ -31,6 +32,8 @@ export class LoxoneDriver implements IShutterDriver {
      * @param downStateId - Foreign state pulsed to move down/close.
      * @param positionStateId - Foreign state written with the target 0-100 value, if this Loxone configuration exposes direct percentage control.
      * @param positionActualStateId - Foreign state read for the current position, if available; defaults to `positionStateId` if that is configured.
+     * @param tiltStateId - Foreign state written with the slat tilt, if configured.
+     * @param tiltActualStateId - Foreign state read for the current slat tilt; defaults to `tiltStateId`.
      */
     public constructor(
         private readonly adapter: ioBroker.Adapter,
@@ -38,10 +41,15 @@ export class LoxoneDriver implements IShutterDriver {
         private readonly downStateId: string,
         private readonly positionStateId: string | undefined,
         positionActualStateId: string | undefined,
+        private readonly tiltStateId?: string,
+        tiltActualStateId?: string,
     ) {
         const readBackStateId = positionActualStateId ?? positionStateId;
         if (readBackStateId) {
             this.positionTracker = new ForeignNumberTracker(adapter, readBackStateId, 'LoxoneDriver');
+        }
+        if (tiltStateId) {
+            this.tiltTracker = new ForeignNumberTracker(adapter, tiltActualStateId ?? tiltStateId, 'LoxoneDriver');
         }
     }
 
@@ -99,6 +107,20 @@ export class LoxoneDriver implements IShutterDriver {
         return this.positionTracker?.getValue() ?? this.positionEstimate.getValue();
     }
 
+    /**
+     * @param anglePercent - Tilt target written to the configured Loxone shade state.
+     */
+    public async setTilt(anglePercent: number): Promise<void> {
+        if (this.tiltStateId) {
+            await this.adapter.setForeignStateAsync(this.tiltStateId, anglePercent, false);
+        }
+    }
+
+    /** @returns The tracked shade read-back, or undefined when tilt is not configured/not yet known. */
+    public getCurrentTilt(): number | undefined {
+        return this.tiltTracker?.getValue();
+    }
+
     /** @returns Always undefined; this driver has no dedicated movement-in-progress feedback. */
     public isMoving(): boolean | undefined {
         return undefined;
@@ -107,5 +129,6 @@ export class LoxoneDriver implements IShutterDriver {
     /** Unsubscribes the state-change listener registered in the constructor, if any. */
     public destroy(): void {
         this.positionTracker?.destroy();
+        this.tiltTracker?.destroy();
     }
 }

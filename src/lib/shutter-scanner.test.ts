@@ -4,7 +4,7 @@ import { scanForShutters } from './shutter-scanner';
 /** Fake object-view row, loosely typed since `common` only needs the fields `scanForShutters()` actually reads. */
 interface IFakeRow {
     id: string;
-    value: { type: 'state'; common: Partial<ioBroker.StateCommon> };
+    value: { type: 'state'; common: Partial<ioBroker.StateCommon>; native?: Record<string, unknown> };
 }
 
 /** Fake `enum.functions.*` object, loosely typed for the `IFunctionEnumObject` shape actually read. */
@@ -70,6 +70,21 @@ describe('shutter-scanner', () => {
             position: 'hm-rpc.0.ABC.1.LEVEL',
             positionActual: 'hm-rpc.0.ABC.1.LEVEL',
             stop: 'hm-rpc.0.ABC.1.STOP',
+        });
+    });
+
+    it('uses the HmIP status actuator LEVEL as feedback for a virtual receiver command', async () => {
+        const adapter = createFakeAdapter([
+            { id: 'hm-rpc.2.ABC.3.LEVEL', value: { type: 'state', common: { role: 'level.blind', write: false } } },
+            { id: 'hm-rpc.2.ABC.4.LEVEL', value: { type: 'state', common: { role: 'level.blind', write: true } } },
+        ]);
+
+        const result = await scanForShutters(adapter, new Set());
+
+        expect(result.shutters).to.have.lengthOf(1);
+        expect(result.shutters[0].states).to.deep.equal({
+            position: 'hm-rpc.2.ABC.4.LEVEL',
+            positionActual: 'hm-rpc.2.ABC.3.LEVEL',
         });
     });
 
@@ -409,6 +424,65 @@ describe('shutter-scanner', () => {
         });
     });
 
+    describe('Somfy and EnOcean metadata detection', () => {
+        it('proposes a Somfy candidate for a writable io:RollerShutter state without a level.blind role', async () => {
+            const adapter = createFakeAdapter([
+                {
+                    id: 'tahoma.0.device1.core:ClosureState',
+                    value: {
+                        type: 'state',
+                        common: { type: 'number', write: true },
+                        native: { type: 'io:RollerShutter' },
+                    },
+                },
+            ]);
+
+            const result = await scanForShutters(adapter, new Set());
+
+            expect(result.shutters).to.have.lengthOf(1);
+            expect(result.shutters[0]).to.include({ driverType: 'somfy' });
+            expect(result.shutters[0].states).to.deep.equal({
+                position: 'tahoma.0.device1.core:ClosureState',
+                positionActual: 'tahoma.0.device1.core:ClosureState',
+            });
+        });
+
+        it('proposes an EnOcean candidate for a writable D2-05 EEP state without a level.blind role', async () => {
+            const adapter = createFakeAdapter([
+                {
+                    id: 'enocean.0.actor1.position',
+                    value: { type: 'state', common: { type: 'number', write: true }, native: { EEP: 'D2-05-00' } },
+                },
+            ]);
+
+            const result = await scanForShutters(adapter, new Set());
+
+            expect(result.shutters).to.have.lengthOf(1);
+            expect(result.shutters[0]).to.include({ driverType: 'enocean' });
+        });
+
+        it('does not infer a metadata candidate from a read-only or non-numeric state', async () => {
+            const adapter = createFakeAdapter([
+                {
+                    id: 'tahoma.0.device1.core:ClosureState',
+                    value: {
+                        type: 'state',
+                        common: { type: 'number', write: false },
+                        native: { type: 'io:RollerShutter' },
+                    },
+                },
+                {
+                    id: 'enocean.0.actor1.position',
+                    value: { type: 'state', common: { type: 'string', write: true }, native: { eep: 'D2-05-00' } },
+                },
+            ]);
+
+            const result = await scanForShutters(adapter, new Set());
+
+            expect(result.shutters).to.have.lengthOf(0);
+        });
+    });
+
     describe('Loxone detection pass', () => {
         it('proposes a loxone candidate from an up/down pair', async () => {
             const adapter = createFakeAdapter([
@@ -442,6 +516,24 @@ describe('shutter-scanner', () => {
                 down: 'loxone.0.blind1.down',
                 position: 'loxone.0.blind1.position',
                 positionActual: 'loxone.0.blind1.info',
+            });
+        });
+
+        it('maps a sibling shade state to tilt command and read-back', async () => {
+            const adapter = createFakeAdapter([
+                { id: 'loxone.0.blind1.up', value: { type: 'state', common: {} } },
+                { id: 'loxone.0.blind1.down', value: { type: 'state', common: {} } },
+                { id: 'loxone.0.blind1.shade', value: { type: 'state', common: {} } },
+            ]);
+
+            const result = await scanForShutters(adapter, new Set());
+
+            expect(result.shutters).to.have.lengthOf(1);
+            expect(result.shutters[0].states).to.deep.equal({
+                up: 'loxone.0.blind1.up',
+                down: 'loxone.0.blind1.down',
+                tilt: 'loxone.0.blind1.shade',
+                tiltActual: 'loxone.0.blind1.shade',
             });
         });
 
@@ -505,6 +597,7 @@ describe('shutter-scanner', () => {
                 'Scanning for coverings with a level.blind/button role...',
                 'Scanning Homematic "Verschluss" channels...',
                 'Resolving generic relay candidates...',
+                'Scanning Somfy/EnOcean metadata candidates...',
                 'Scanning Tuya candidates...',
                 'Scanning Loxone candidates...',
                 'Scanning Homey candidates...',

@@ -4,6 +4,7 @@ import {
     isHeatProtectionMinTempSatisfied,
     isSunProtectionEligible,
     isSunProtectionTriggeredByCloudCover,
+    isWithinOrientationBasedSunWindow,
     isWithinOrientationWindow,
     isWithinTimeWindow,
 } from './sun-protection';
@@ -57,6 +58,72 @@ describe('sun-protection', () => {
             expect(isWithinOrientationWindow(170, 180, -20, 70)).to.equal(true); // -10°, within -20°..+70°
             expect(isWithinOrientationWindow(240, 180, -20, 70)).to.equal(true); // +60°, within -20°..+70°
             expect(isWithinOrientationWindow(260, 180, -20, 70)).to.equal(false); // +80°, above the +70° plus bound
+        });
+    });
+
+    describe('isWithinOrientationBasedSunWindow (plan section 6.2)', () => {
+        function makeInputs(
+            overrides: Partial<Parameters<typeof isWithinOrientationBasedSunWindow>[0]> = {},
+        ): Parameters<typeof isWithinOrientationBasedSunWindow>[0] {
+            return {
+                sunAzimuthDeg: 180,
+                sunElevationDeg: 30,
+                orientationDeg: 180,
+                toleranceMinusDeg: -70,
+                tolerancePlusDeg: 70,
+                minElevationDeg: 0,
+                cloudCoverPercent: undefined,
+                maxCloudCoverPercent: undefined,
+                ...overrides,
+            };
+        }
+
+        it('is active when azimuth and elevation match, with no cloud-cover filter configured', () => {
+            expect(isWithinOrientationBasedSunWindow(makeInputs())).to.equal(true);
+        });
+
+        it('is inactive when the azimuth is outside the tolerance, regardless of elevation', () => {
+            expect(isWithinOrientationBasedSunWindow(makeInputs({ sunAzimuthDeg: 0 }))).to.equal(false);
+        });
+
+        it('is inactive when the elevation is below the configured minimum, even with a matching azimuth', () => {
+            expect(isWithinOrientationBasedSunWindow(makeInputs({ sunElevationDeg: 5, minElevationDeg: 10 }))).to.equal(
+                false,
+            );
+        });
+
+        it('is active exactly at the minimum elevation boundary', () => {
+            expect(
+                isWithinOrientationBasedSunWindow(makeInputs({ sunElevationDeg: 10, minElevationDeg: 10 })),
+            ).to.equal(true);
+        });
+
+        it('ignores cloud cover entirely when no maxCloudCoverPercent is configured, even a fully overcast sky', () => {
+            expect(
+                isWithinOrientationBasedSunWindow(
+                    makeInputs({ cloudCoverPercent: 100, maxCloudCoverPercent: undefined }),
+                ),
+            ).to.equal(true);
+        });
+
+        it('is active once a maxCloudCoverPercent is configured and the sky is clear enough', () => {
+            expect(
+                isWithinOrientationBasedSunWindow(makeInputs({ cloudCoverPercent: 40, maxCloudCoverPercent: 40 })),
+            ).to.equal(true);
+        });
+
+        it('is inactive once cloud cover exceeds the configured maxCloudCoverPercent', () => {
+            expect(
+                isWithinOrientationBasedSunWindow(makeInputs({ cloudCoverPercent: 41, maxCloudCoverPercent: 40 })),
+            ).to.equal(false);
+        });
+
+        it('fails closed (inactive) when maxCloudCoverPercent is configured but cloud cover is unavailable', () => {
+            expect(
+                isWithinOrientationBasedSunWindow(
+                    makeInputs({ cloudCoverPercent: undefined, maxCloudCoverPercent: 40 }),
+                ),
+            ).to.equal(false);
         });
     });
 

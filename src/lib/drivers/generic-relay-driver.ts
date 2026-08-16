@@ -1,84 +1,164 @@
 import { BestEffortPositionEstimate } from './best-effort-position';
 import type { IShutterDriver } from './types';
 
-/**
- * Driver for coverings driven by simple open/close/stop relay outputs, with
- * no position feedback at all (e.g. a basic Somfy/EnOcean relay actuator).
- *
- * Position is only tracked as a best-effort in-memory estimate (0 or 100
- * after a full open/close command, invalidated by `stop()` since the actual
- * resting position after stopping mid-movement is genuinely unknown);
- * precise intermediate positions require runtime-based tracking, which is
- * added together with the calibration curve (position-mapping.ts, plan
- * section 4) and is not yet implemented here.
- *
- * Required `config.states` keys: `open`, `close`, `stop` (all boolean, ack=false).
- */
+/** Controls a covering through open, close, and optional stop relay states. */
 export class GenericRelayDriver implements IShutterDriver {
+    /** Driver identifier used by shutter configuration. */
     public readonly type = 'generic-relay';
 
     private readonly positionEstimate = new BestEffortPositionEstimate();
+    private movement:
+        | {
+              /** Estimated position when timed movement began. */
+              startPercent: number;
+              /** Requested position at the end of timed movement. */
+              targetPercent: number;
+              /** Timestamp when timed movement began. */
+              startedAt: number;
+              /** Total duration of timed movement in milliseconds. */
+              durationMs: number;
+          }
+        | undefined;
+    private stopTimer: ioBroker.Timeout | undefined;
 
     /**
-     * @param adapter - Adapter instance, used for foreign state access.
-     * @param openStateId - Foreign state pulsed to open/retract.
-     * @param closeStateId - Foreign state pulsed to close/extend.
-     * @param stopStateId - Foreign state pulsed to stop, if supported by the actuator.
+     * Creates a relay-based covering driver.
+     *
+     * @param adapter - Adapter used to command foreign states and manage timers.
+     * @param openStateId - Foreign state ID that opens the covering.
+     * @param closeStateId - Foreign state ID that closes the covering.
+     * @param stopStateId - Optional foreign state ID that stops movement.
+     * @param openRuntimeSecs - Calibrated full opening time in seconds.
+     * @param closeRuntimeSecs - Calibrated full closing time in seconds.
      */
     public constructor(
         private readonly adapter: ioBroker.Adapter,
         private readonly openStateId: string,
         private readonly closeStateId: string,
         private readonly stopStateId: string | undefined,
+        private readonly openRuntimeSecs: number | undefined = undefined,
+        private readonly closeRuntimeSecs: number | undefined = undefined,
     ) {}
 
-    /** @param targetPercent - Target position 0-100; only 0 and 100 are actually reachable, see class doc. */
+    /**
+     * Moves the covering to a requested position.
+     *
+     * @param targetPercent - Target position, 0-100.
+     */
     public async setPosition(targetPercent: number): Promise<void> {
-        // Without runtime-based intermediate tracking (see class doc), only
-        // the fully open/closed ends are meaningfully reachable for now.
         if (targetPercent <= 0) {
             await this.open();
-        } else if (targetPercent >= 100) {
-            await this.close();
-        } else {
-            this.adapter.log.warn(
-                `GenericRelayDriver: intermediate position ${targetPercent}% requested but not supported without runtime calibration - ignoring.`,
-            );
+            return;
         }
+        if (targetPercent >= 100) {
+            await this.close();
+            return;
+        }
+
+        const currentPercent = this.getCurrentPosition();
+        const directionRuntimeSecs =
+            targetPercent < (currentPercent ?? Number.NaN) ? this.openRuntimeSecs : this.closeRuntimeSecs;
+        if (currentPercent === undefined || !this.stopStateId || !isValidRuntime(directionRuntimeSecs)) {
+            this.adapter.log.warn(
+                `GenericRelayDriver: intermediate position ${targetPercent}% requires a current position, stop state and directional runtime calibration - ignoring.`,
+            );
+            return;
+        }
+
+        const durationMs = (Math.abs(targetPercent - currentPercent) / 100) * directionRuntimeSecs * 1000;
+        if (durationMs === 0) {
+            return;
+        }
+        this.clearMovement();
+        this.movement = { startPercent: currentPercent, targetPercent, startedAt: Date.now(), durationMs };
+        await this.adapter.setForeignStateAsync(
+            targetPercent < currentPercent ? this.openStateId : this.closeStateId,
+            true,
+            false,
+        );
+        this.stopTimer = this.adapter.setTimeout(() => {
+            this.finishTimedMovement().catch(error => {
+                this.adapter.log.error(
+                    `GenericRelayDriver: stopping timed movement failed: ${(error as Error).message}`,
+                );
+            });
+        }, durationMs);
     }
 
-    /** Pulses the open/retract relay. */
+    /** Opens the covering fully. */
     public async open(): Promise<void> {
+        this.clearMovement();
         await this.adapter.setForeignStateAsync(this.openStateId, true, false);
         this.positionEstimate.markOpened();
     }
 
-    /** Pulses the close/extend relay. */
+    /** Closes the covering fully. */
     public async close(): Promise<void> {
+        this.clearMovement();
         await this.adapter.setForeignStateAsync(this.closeStateId, true, false);
         this.positionEstimate.markClosed();
     }
 
-    /** Pulses the stop relay, if configured, and invalidates the position estimate (see class doc). */
+    /** Stops the covering and preserves the estimated current position. */
     public async stop(): Promise<void> {
+        const currentPercent = this.getCurrentPosition();
+        this.clearMovement();
+        if (currentPercent !== undefined) {
+            this.positionEstimate.setValue(currentPercent);
+        }
+        await this.pulseStop();
+    }
+
+    /** @returns The estimated current position, or undefined when unknown. */
+    public getCurrentPosition(): number | undefined {
+        if (!this.movement) {
+            return this.positionEstimate.getValue();
+        }
+        const elapsedMs = Date.now() - this.movement.startedAt;
+        if (elapsedMs >= this.movement.durationMs) {
+            return this.movement.targetPercent;
+        }
+        return (
+            this.movement.startPercent +
+            ((this.movement.targetPercent - this.movement.startPercent) * elapsedMs) / this.movement.durationMs
+        );
+    }
+
+    /** @returns Whether a timed movement is currently in progress. */
+    public isMoving(): boolean | undefined {
+        return !!this.movement && Date.now() - this.movement.startedAt < this.movement.durationMs;
+    }
+
+    /** Clears the pending timed movement and releases its timer. */
+    public destroy(): void {
+        this.clearMovement();
+    }
+
+    private async finishTimedMovement(): Promise<void> {
+        if (!this.movement) {
+            return;
+        }
+        const targetPercent = this.movement.targetPercent;
+        this.clearMovement();
+        this.positionEstimate.setValue(targetPercent);
+        await this.pulseStop();
+    }
+
+    private clearMovement(): void {
+        this.movement = undefined;
+        if (this.stopTimer) {
+            this.adapter.clearTimeout(this.stopTimer);
+            this.stopTimer = undefined;
+        }
+    }
+
+    private async pulseStop(): Promise<void> {
         if (this.stopStateId) {
             await this.adapter.setForeignStateAsync(this.stopStateId, true, false);
         }
-        this.positionEstimate.invalidate();
     }
+}
 
-    /** @returns The best-effort position estimate, see class doc. */
-    public getCurrentPosition(): number | undefined {
-        return this.positionEstimate.getValue();
-    }
-
-    /** @returns Always undefined; this driver has no movement feedback. */
-    public isMoving(): boolean | undefined {
-        return undefined;
-    }
-
-    /** No-op; this driver holds no subscriptions. */
-    public destroy(): void {
-        // No subscriptions held.
-    }
+function isValidRuntime(value: number | undefined): value is number {
+    return typeof value === 'number' && Number.isFinite(value) && value > 0;
 }

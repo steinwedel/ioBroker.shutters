@@ -129,6 +129,44 @@ describe('LoxoneDriver', () => {
         });
     });
 
+    describe('with a shade tilt state configured', () => {
+        it('writes tilt commands and tracks shade read-back from the same state', async () => {
+            const { adapter, setForeignStateCalls, emitStateChange } = createFakeAdapter();
+            const driver = new LoxoneDriver(
+                adapter,
+                'loxone.0.blind1.up',
+                'loxone.0.blind1.down',
+                undefined,
+                undefined,
+                'loxone.0.blind1.shade',
+            );
+
+            await driver.setTilt(42);
+            emitStateChange('loxone.0.blind1.shade', 58);
+
+            expect(setForeignStateCalls).to.deep.equal([{ id: 'loxone.0.blind1.shade', val: 42 }]);
+            expect(driver.getCurrentTilt()).to.equal(58);
+        });
+
+        it('uses a separately configured tilt read-back state', () => {
+            const { adapter, emitStateChange } = createFakeAdapter();
+            const driver = new LoxoneDriver(
+                adapter,
+                'loxone.0.blind1.up',
+                'loxone.0.blind1.down',
+                undefined,
+                undefined,
+                'loxone.0.blind1.shade',
+                'loxone.0.blind1.shadeInfo',
+            );
+
+            emitStateChange('loxone.0.blind1.shade', 42);
+            expect(driver.getCurrentTilt()).to.be.undefined;
+            emitStateChange('loxone.0.blind1.shadeInfo', 58);
+            expect(driver.getCurrentTilt()).to.equal(58);
+        });
+    });
+
     describe('with direct percentage control configured', () => {
         it('writes the target position unchanged, ignoring up/down', async () => {
             const { adapter, setForeignStateCalls } = createFakeAdapter();

@@ -1022,6 +1022,25 @@ function getPlanOptions() {
         });
 }
 
+function getCoveringOptions() {
+    var ids = {};
+    return shuttersConfig.shutters
+        .filter(function (covering) {
+            if (!covering.id || ids[covering.id]) return false;
+            ids[covering.id] = true;
+            return true;
+        })
+        .map(function (covering) {
+            return { value: covering.id, text: (covering.name || covering.id) + ' (' + covering.id + ')' };
+        });
+}
+
+function clampSceneTargetPercent(value) {
+    var number = Number(value);
+    if (!isFinite(number)) return 0;
+    return Math.max(0, Math.min(100, number));
+}
+
 function makeText(id, label, value, colWidth, onChangeCb, type) {
     var wrap = document.createElement('div');
     wrap.className = 'input-field col s' + (colWidth || 3);
@@ -1263,6 +1282,24 @@ function renderCoveringCard(covering, index) {
     }
     card.appendChild(statesRow);
 
+    if (covering.driverType === 'generic-relay') {
+        var relayRuntimeRow = document.createElement('div');
+        relayRuntimeRow.className = 'shutters-row row';
+        relayRuntimeRow.appendChild(
+            makeText('cov-' + index + '-relayOpenRuntimeSecs', 'relayOpenRuntimeSecs', covering.relayOpenRuntimeSecs, 3, function (v) {
+                covering.relayOpenRuntimeSecs = v;
+                onChangeFired();
+            }, 'number'),
+        );
+        relayRuntimeRow.appendChild(
+            makeText('cov-' + index + '-relayCloseRuntimeSecs', 'relayCloseRuntimeSecs', covering.relayCloseRuntimeSecs, 3, function (v) {
+                covering.relayCloseRuntimeSecs = v;
+                onChangeFired();
+            }, 'number'),
+        );
+        card.appendChild(relayRuntimeRow);
+    }
+
     var protectionTitle = document.createElement('div');
     protectionTitle.className = 'shutters-section-title';
     protectionTitle.innerText = _('protectionSectionTitle');
@@ -1485,6 +1522,41 @@ function renderCoveringCard(covering, index) {
         }
         card.appendChild(sunRow);
 
+        // 6.2-specific fields (elevation minimum, cloud-cover ceiling): only meaningful once an
+        // orientation is actually set, since they refine the orientation-based window, not the plain
+        // time-window fallback above.
+        if (covering.orientation !== undefined) {
+            var sunOrientationRow = document.createElement('div');
+            sunOrientationRow.className = 'shutters-row row';
+            sunOrientationRow.appendChild(
+                makeText(
+                    'cov-' + index + '-sunProtectionMinElevationDeg',
+                    'sunProtectionMinElevationDeg',
+                    covering.sunProtectionMinElevationDeg,
+                    3,
+                    function (v) {
+                        covering.sunProtectionMinElevationDeg = v;
+                        onChangeFired();
+                    },
+                    'number',
+                ),
+            );
+            sunOrientationRow.appendChild(
+                makeText(
+                    'cov-' + index + '-sunProtectionMaxCloudCoverPercent',
+                    'sunProtectionMaxCloudCoverPercent',
+                    covering.sunProtectionMaxCloudCoverPercent,
+                    3,
+                    function (v) {
+                        covering.sunProtectionMaxCloudCoverPercent = v;
+                        onChangeFired();
+                    },
+                    'number',
+                ),
+            );
+            card.appendChild(sunOrientationRow);
+        }
+
         // Live preview of which clock time the two tolerance bounds correspond to today, given the
         // covering's orientation and the resolved location (plan section 6.2) - only meaningful once an
         // orientation is actually set.
@@ -1502,6 +1574,12 @@ function renderCoveringCard(covering, index) {
     doorRow.appendChild(
         makeStateIdField('cov-' + index + '-doorContactStateId', 'doorContactStateId', covering.doorContactStateId, 6, function (v) {
             covering.doorContactStateId = v;
+            onChangeFired();
+        }),
+    );
+    doorRow.appendChild(
+        makeCheckbox('cov-' + index + '-invertDoorContact', 'invertDoorContact', covering.invertDoorContact, function (v) {
+            covering.invertDoorContact = v;
             onChangeFired();
         }),
     );
@@ -1906,6 +1984,24 @@ function renderWeather() {
         );
     });
     container.appendChild(row);
+
+    // Calendar-based heating-period fallback (plan section 6.2/2), only relevant while isSummerStateId
+    // above is left empty - shown as plain "MM-DD" text fields, not foreign-state pickers.
+    var heatingPeriodRow = document.createElement('div');
+    heatingPeriodRow.className = 'shutters-row row';
+    heatingPeriodRow.appendChild(
+        makeText('weather-heatingPeriodStart', 'heatingPeriodStart', w.heatingPeriodStart, 3, function (v) {
+            w.heatingPeriodStart = v;
+            onChangeFired();
+        }),
+    );
+    heatingPeriodRow.appendChild(
+        makeText('weather-heatingPeriodEnd', 'heatingPeriodEnd', w.heatingPeriodEnd, 3, function (v) {
+            w.heatingPeriodEnd = v;
+            onChangeFired();
+        }),
+    );
+    container.appendChild(heatingPeriodRow);
     if (typeof translateAll === 'function') translateAll();
 }
 
@@ -2018,38 +2114,126 @@ function renderGroups() {
                 onChangeFired();
             }),
         );
-        row.appendChild(
-            makeText(
-                'group-' + index + '-members',
-                'groupMemberIds',
-                (group.memberIds || []).join(', '),
-                6,
-                function (v) {
-                    group.memberIds = v
-                        .split(',')
-                        .map(function (s) {
-                            return s.trim();
-                        })
-                        .filter(function (s) {
-                            return s.length > 0;
-                        });
-                    onChangeFired();
-                },
-            ),
-        );
+        var memberWrap = document.createElement('div');
+        memberWrap.className = 'input-field col s6';
+        var memberSelect = document.createElement('select');
+        memberSelect.id = 'group-' + index + '-members';
+        memberSelect.multiple = true;
+        var memberIds = group.memberIds || [];
+        var knownMemberIds = {};
+        getCoveringOptions().forEach(function (option) {
+            knownMemberIds[option.value] = true;
+            var opt = document.createElement('option');
+            opt.value = option.value;
+            opt.text = option.text;
+            opt.selected = memberIds.indexOf(option.value) !== -1;
+            memberSelect.appendChild(opt);
+        });
+        memberIds.forEach(function (memberId) {
+            if (!knownMemberIds[memberId]) {
+                var missingOpt = document.createElement('option');
+                missingOpt.value = memberId;
+                missingOpt.text = _('missingCovering') + ': ' + memberId;
+                missingOpt.selected = true;
+                missingOpt.disabled = true;
+                memberSelect.appendChild(missingOpt);
+            }
+        });
+        memberSelect.onchange = function () {
+            group.memberIds = Array.prototype.map.call(memberSelect.selectedOptions, function (option) {
+                return option.value;
+            });
+            onChangeFired();
+        };
+        var memberLabel = document.createElement('label');
+        memberLabel.setAttribute('for', memberSelect.id);
+        memberLabel.className = 'active';
+        memberLabel.innerText = _('groupMemberIds');
+        memberWrap.appendChild(memberSelect);
+        memberWrap.appendChild(memberLabel);
+        row.appendChild(memberWrap);
         card.appendChild(row);
 
         container.appendChild(built.card);
     });
     if (typeof translateAll === 'function') translateAll();
+    refreshSelects();
 }
 
-// ---- Scenes ----
+function makeSceneTargetSelect(scene, sceneIndex, target, targetIndex) {
+    var wrap = document.createElement('div');
+    wrap.className = 'input-field col s5';
+    var select = document.createElement('select');
+    select.id = 'scene-' + sceneIndex + '-target-' + targetIndex + '-covering';
+    var targetIds = {};
+    scene.targets.forEach(function (sceneTarget) {
+        targetIds[sceneTarget.coveringId] = true;
+    });
+    var knownIds = {};
+    getCoveringOptions().forEach(function (option) {
+        knownIds[option.value] = true;
+        var opt = document.createElement('option');
+        opt.value = option.value;
+        opt.text = option.text;
+        opt.selected = option.value === target.coveringId;
+        opt.disabled = option.value !== target.coveringId && targetIds[option.value];
+        select.appendChild(opt);
+    });
+    if (!knownIds[target.coveringId]) {
+        var missingOpt = document.createElement('option');
+        missingOpt.value = target.coveringId;
+        missingOpt.text = _('missingCovering') + ': ' + target.coveringId;
+        missingOpt.selected = true;
+        missingOpt.disabled = true;
+        select.appendChild(missingOpt);
+    }
+    select.onchange = function () {
+        target.coveringId = select.value;
+        renderScenes();
+        onChangeFired();
+    };
+    var label = document.createElement('label');
+    label.setAttribute('for', select.id);
+    label.className = 'active';
+    label.innerText = _('sceneTargetCovering');
+    wrap.appendChild(select);
+    wrap.appendChild(label);
+    return wrap;
+}
+
+function makeSceneTargetPosition(sceneIndex, target, targetIndex) {
+    var wrap = document.createElement('div');
+    wrap.className = 'input-field col s4';
+    var input = document.createElement('input');
+    input.id = 'scene-' + sceneIndex + '-target-' + targetIndex + '-position';
+    input.type = 'number';
+    input.min = '0';
+    input.max = '100';
+    input.step = '1';
+    input.value = clampSceneTargetPercent(target.percent);
+    input.oninput = function () {
+        if (input.value.trim() === '' || !isFinite(Number(input.value))) return;
+        target.percent = clampSceneTargetPercent(input.value);
+        input.value = target.percent;
+        onChangeFired();
+    };
+    input.onchange = function () {
+        input.value = clampSceneTargetPercent(target.percent);
+    };
+    var label = document.createElement('label');
+    label.setAttribute('for', input.id);
+    label.className = 'active';
+    label.innerText = _('sceneTargetPosition');
+    wrap.appendChild(input);
+    wrap.appendChild(label);
+    return wrap;
+}
 
 function renderScenes() {
     var container = document.getElementById('shutters-scenes-container');
     container.innerHTML = '';
     shuttersConfig.scenes.forEach(function (scene, index) {
+        scene.targets = scene.targets || [];
         var built = buildAccordionCard(
             scene.name || scene.id || '(' + _('name') + ')',
             isCardCollapsed('scenes', index),
@@ -2081,38 +2265,55 @@ function renderScenes() {
                 onChangeFired();
             }),
         );
-        row.appendChild(
-            makeText(
-                'scene-' + index + '-targets',
-                'sceneTargets',
-                (scene.targets || [])
-                    .map(function (t) {
-                        return t.coveringId + ':' + t.percent;
-                    })
-                    .join(', '),
-                6,
-                function (v) {
-                    scene.targets = v
-                        .split(',')
-                        .map(function (s) {
-                            return s.trim();
-                        })
-                        .filter(function (s) {
-                            return s.length > 0;
-                        })
-                        .map(function (pair) {
-                            var parts = pair.split(':');
-                            return { coveringId: parts[0].trim(), percent: Number(parts[1]) };
-                        });
-                    onChangeFired();
-                },
-            ),
-        );
         card.appendChild(row);
+
+        scene.targets.forEach(function (target, targetIndex) {
+            target.percent = clampSceneTargetPercent(target.percent);
+            var targetRow = document.createElement('div');
+            targetRow.className = 'shutters-row row';
+            targetRow.appendChild(makeSceneTargetSelect(scene, index, target, targetIndex));
+            targetRow.appendChild(makeSceneTargetPosition(index, target, targetIndex));
+            var removeWrap = document.createElement('div');
+            removeWrap.className = 'col s3';
+            removeWrap.style.marginTop = '18px';
+            var removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn-flat shutters-remove-btn';
+            removeBtn.innerText = _('removeSceneTargetButton');
+            removeBtn.onclick = function () {
+                scene.targets.splice(targetIndex, 1);
+                renderScenes();
+                onChangeFired();
+            };
+            removeWrap.appendChild(removeBtn);
+            targetRow.appendChild(removeWrap);
+            card.appendChild(targetRow);
+        });
+
+        var addTargetBtn = document.createElement('button');
+        addTargetBtn.type = 'button';
+        addTargetBtn.className = 'btn waves-effect shutters-add-btn';
+        addTargetBtn.innerText = _('addSceneTargetButton');
+        var usedTargetIds = {};
+        scene.targets.forEach(function (target) {
+            usedTargetIds[target.coveringId] = true;
+        });
+        var availableCovering = getCoveringOptions().filter(function (option) {
+            return !usedTargetIds[option.value];
+        })[0];
+        addTargetBtn.disabled = !availableCovering;
+        addTargetBtn.onclick = function () {
+            if (!availableCovering) return;
+            scene.targets.push({ coveringId: availableCovering.value, percent: 0 });
+            renderScenes();
+            onChangeFired();
+        };
+        card.appendChild(addTargetBtn);
 
         container.appendChild(built.card);
     });
     if (typeof translateAll === 'function') translateAll();
+    refreshSelects();
 }
 
 function shuttersGetNativeConfig() {

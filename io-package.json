@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.23",
+    "version": "0.0.24",
     "news": {
+      "0.0.24": {
+        "en": "**FIXED**: Prevent long field labels in the Coverings and Weather Data Admin UI tabs from overlapping their input fields",
+        "de": "**BEHOBEN**: Lange Feldbezeichnungen in den Verwaltungs-UI-Registerkarten „Bedeckungen“ und „Wetterdaten“ überlappen nun nicht mehr die Eingabefelder.",
+        "ru": "**ИСПРАВЛЕНО**: Предотвращается перекрытие длинных меток полей во вкладках «Покрытия» и «Данные о погоде» в административном интерфейсе.",
+        "pt": "**CORRIGIDO**: Impede que rótulos de campos longos nas guias da interface de administração de Coberturas e Dados Meteorológicos se sobreponham aos seus campos de entrada.",
+        "nl": "**OPGELOST**: Voorkomt dat lange veldlabels in de tabbladen 'Bedekkingen' en 'Weergaven' in de beheerdersinterface de invoervelden overlappen.",
+        "fr": "**CORRIGÉ** : Empêche les étiquettes de champ longues des onglets « Couvertures » et « Données météorologiques » de l’interface d’administration de chevaucher leurs champs de saisie.",
+        "it": "**RISOLTO**: Impedisce alle etichette dei campi lunghi nelle schede dell'interfaccia utente di amministrazione di Coperture e Dati meteorologici di sovrapporsi ai relativi campi di input.",
+        "es": "**CORREGIDO**: Se evita que las etiquetas de campo largas en las pestañas de la interfaz de administración de datos meteorológicos y de coberturas se superpongan a sus campos de entrada.",
+        "pl": "**NAPRAWIONO**: Zapobiegaj nakładaniu się długich etykiet pól na kartach interfejsu administratora danych pogodowych i pokrycia na pola wprowadzania danych",
+        "uk": "**ВИПРАВЛЕНО**: Запобігання перекриванню полів введення довгими підписами полів на вкладках інтерфейсу адміністратора «Покриття» та «Дані про погоду».",
+        "zh-cn": "**已修复**：防止覆盖区域和天气数据管理界面选项卡中的长字段标签与其输入字段重叠。"
+      },
       "0.0.23": {
         "en": "**NEW**: Add a per-covering `windOpenThreshold`/`windCloseAllowedThreshold` override (plan section 2a.5) for a covering more wind-sensitive than the rest - the admin UI shows and pre-fills a lower suggestion (20/10 km/h) for a markise, since its fabric/arms are far more vulnerable to wind than a closed rolladen panzer\n**FIXED**: `rainProtectionEnabled` now defaults to disabled for a `lamellen` covering (typically indoor, no real weather exposure), matching the existing default for `windProtectionEnabled`/`frostProtectionEnabled` - previously rain protection defaulted to enabled regardless of covering type",
         "de": "**NEU**: Fügen Sie eine Überschreibung der Werte für `windOpenThreshold`/`windCloseAllowedThreshold` pro Abdeckung hinzu (Planabschnitt 2a.5), um eine windempfindlichere Abdeckung als die übrigen zu ermöglichen. Die Benutzeroberfläche zeigt für eine Markise einen niedrigeren Wert (20/10 km/h) an und legt diesen als Voreinstellung fest, da deren Stoff/Arme deutlich windanfälliger sind als eine geschlossene Rollladenpanzerabdeckung.\n**BEHOBEN**: `rainProtectionEnabled` ist nun standardmäßig deaktiviert für Lamellenbedeckungen (typischerweise für Innenräume, keine direkte Witterungseinwirkung), entsprechend der bisherigen Standardeinstellung für `windProtectionEnabled`/`frostProtectionEnabled` – zuvor war der Regenschutz unabhängig vom Bedeckungstyp standardmäßig aktiviert.",
@@ -80,19 +93,6 @@
         "pl": "* *ENHANCED* *: Podziel tolerancję orientacji ochrony przeciwsłonecznej na niezależne dolne / górne granice ('OrientationToleranceMinusDeg' / 'OrientationTolerancePlusDeg', domyślnie -70 ° / + 70 °), auto- wypełniony przez admin UI i wyemitowany ze starego pola 'OrientationToleranceDeg'; admin UI teraz pokazuje również przybliżony czas zegara każdy związany odpowiada dzisiaj ",
         "uk": "**ENHANCED**: Спліт толерантності до орієнтаційної орієнтації сонця в незалежну нижню/верхову межу (`orientationToleranceMinusDeg`/`orientationTolerancePlusDeg`, за замовчуванням -70°/+70°), автоматично заповнену адміністрацією UI та мігровано з старого поля `orientationToleranceDeg`; admin UI тепер також показує приблизний годинниковий час, який відповідає сьогодні",
         "zh-cn": "** ENHANCED**:将太阳保护定向容忍分为独立的下/上界限(`定向容忍最小值'/`定向容忍最小值'/`定向容忍最小值',默认-70°/+70°),由管理员UI自动填充,并从旧单“定向容忍最小值”字段迁移;管理员UI现在还显示每个界限与今天相对应的大约时钟时间"
-      },
-      "0.0.17": {
-        "en": "**ENHANCED**: Reconcile every covering's intended position (schedule/sun/wind/rain/frost) immediately on adapter startup, and re-evaluate immediately on every schedule trigger instead of waiting up to `automationTickMs`",
-        "de": "**VERBESSERT**: Gleicht die vorgesehene Position jeder Abdeckung (Zeitplan/Sonne/Wind/Regen/Frost) sofort beim Start des Adapters ab und bewertet sie bei jedem Zeitplanauslöser sofort neu, anstatt bis zu `automationTickMs` zu warten.",
-        "ru": "**УЛУЧШЕНО**: Мгновенное согласование предполагаемого положения каждого покрытия (расписание/солнце/ветер/дождь/мороз) при запуске адаптера и немедленная переоценка при каждом срабатывании расписания вместо ожидания `automationTickMs`.",
-        "pt": "**APRIMORADO**: Concilia a posição pretendida de cada cobertura (programação/sol/vento/chuva/geada) imediatamente na inicialização do adaptador e reavalia imediatamente a cada acionamento de programação, em vez de esperar até `automationTickMs`.",
-        "nl": "**VERBETERD**: De beoogde positie van elke afdekking (planning/zon/wind/regen/vorst) wordt direct bij het opstarten van de adapter afgestemd en onmiddellijk opnieuw geëvalueerd bij elke planningstrigger, in plaats van te wachten tot `automationTickMs`.",
-        "fr": "**AMÉLIORÉ** : La position prévue de chaque couverture (programmation/soleil/vent/pluie/gel) est automatiquement rééquilibrée dès le démarrage de l’adaptateur, et une réévaluation immédiate est effectuée à chaque déclenchement de la programmation au lieu d’attendre `automationTickMs`.",
-        "it": "**MIGLIORATO**: Riconcilia la posizione prevista di ogni copertura (programma/sole/vento/pioggia/gelo) immediatamente all'avvio dell'adattatore e rivaluta immediatamente ad ogni attivazione della programmazione invece di attendere fino a `automationTickMs`",
-        "es": "**MEJORADO**: Sincroniza la posición prevista de cada cubierta (horario/sol/viento/lluvia/helada) inmediatamente al iniciar el adaptador, y reevalúa inmediatamente en cada activador del horario en lugar de esperar hasta `automationTickMs`.",
-        "pl": "**ULEPSZONE**: Natychmiastowe uzgadnianie zamierzonej pozycji każdego pokrycia (harmonogram/słońce/wiatr/deszcz/mróz) po uruchomieniu adaptera i ponowna ocena natychmiast po każdym wyzwoleniu harmonogramu zamiast czekania na `automationTickMs`",
-        "uk": "**ПОКРАЩЕНО**: Узгоджуйте передбачуване положення кожного покриття (розклад/сонце/вітер/дощ/мороз) негайно під час запуску адаптера та повторно оцінюйте його негайно під час кожного спрацьовування розкладу, замість того, щоб чекати до `automationTickMs`.",
-        "zh-cn": "**增强功能**：在适配器启动时立即协调每个遮盖物的预期位置（日程安排/日照/风向/雨水/霜冻），并在每次日程触发时立即重新评估，而不是等待到 `automationTickMs`。"
       }
     },
     "titleLang": {

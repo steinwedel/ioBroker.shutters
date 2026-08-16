@@ -125,14 +125,9 @@ describe('driver-factory', () => {
                 makeConfig({ driverType: 'homematic', invertPosition: true }, { position: 'foreign.position' }),
             );
 
-            // Homematic's own external convention is `100 - x`; invertPosition flips the covering
-            // percentage once more on top of that, so a target of 85 (85% closed) becomes 100-(100-85)=85
-            // externally instead of homematic's usual 100-85=15 - i.e. the two inversions cancel out.
             await driver.setPosition(85);
             expect(setForeignStateCalls).to.deep.equal([{ id: 'foreign.position', val: 85 }]);
 
-            // Round-trip: the device reporting back the same external value it was just commanded to
-            // (85) must decode to the same covering percentage (85) that was requested.
             emitStateChange('foreign.position', 85);
             expect(driver.getCurrentPosition()).to.equal(85);
         });
@@ -248,6 +243,23 @@ describe('driver-factory', () => {
                 makeConfig({ driverType: 'loxone' }, { up: 'foreign.up', down: 'foreign.down' }),
             );
             expect(driver.type).to.equal('loxone');
+        });
+
+        it('wires states.tilt/tiltActual through to the driver', async () => {
+            const { adapter, setForeignStateCalls, emitStateChange } = createTrackingFakeAdapter();
+            const driver = createDriver(
+                adapter,
+                makeConfig(
+                    { driverType: 'loxone', coveringType: 'raffstore' },
+                    { up: 'foreign.up', down: 'foreign.down', tilt: 'foreign.shade', tiltActual: 'foreign.shadeInfo' },
+                ),
+            );
+
+            await driver.setTilt?.(45);
+            emitStateChange('foreign.shadeInfo', 60);
+
+            expect(setForeignStateCalls).to.deep.equal([{ id: 'foreign.shade', val: 45 }]);
+            expect(driver.getCurrentTilt?.()).to.equal(60);
         });
 
         it('throws when states.down is missing', () => {

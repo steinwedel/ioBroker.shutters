@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.24 (2026-08-16)
+
+* (steinwedel) **FIXED**: Prevent long field labels in the Coverings and Weather Data Admin UI tabs from overlapping their input fields
+
 ## 0.0.23 (2026-08-15)
 
 * (steinwedel) **NEW**: Add a per-covering `windOpenThreshold`/`windCloseAllowedThreshold` override (plan section 2a.5) for a covering more wind-sensitive than the rest - the admin UI shows and pre-fills a lower suggestion (20/10 km/h) for a markise, since its fabric/arms are far more vulnerable to wind than a closed rolladen panzer
