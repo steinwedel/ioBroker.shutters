@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.36 (2026-08-16)
+
+* (steinwedel) **ENHANCED**: Position door-contact settings beside the Rolladensperre option
+
 ## 0.0.35 (2026-08-16)
 
 * (steinwedel) **NEW**: Add a per-covering Rolladensperre switch to enable or disable door-contact protection

@@ -1,7 +1,7 @@
 # Context
 
 ## Current Task
-- Added a per-covering Rolladensperre switch for door-contact handling.
+- Positioned the door-contact fields directly beside Rolladensperre in the Coverings Admin UI.
 
 ## Key Decisions
 - Existing door-contact configurations remain active unless explicitly disabled.

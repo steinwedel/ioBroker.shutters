@@ -1367,12 +1367,27 @@ function renderCoveringCard(covering, index) {
             onChangeFired();
         }),
     );
-    protectionRow1.appendChild(
+    var doorProtectionRow = document.createElement('div');
+    doorProtectionRow.className = 'shutters-door-protection';
+    doorProtectionRow.appendChild(
         makeCheckbox('cov-' + index + '-doorProtectionEnabled', 'doorProtectionEnabled', covering.doorProtectionEnabled, function (v) {
             covering.doorProtectionEnabled = v;
             onChangeFired();
         }),
     );
+    doorProtectionRow.appendChild(
+        makeStateIdField('cov-' + index + '-doorContactStateId', 'doorContactStateId', covering.doorContactStateId, 6, function (v) {
+            covering.doorContactStateId = v;
+            onChangeFired();
+        }),
+    );
+    doorProtectionRow.appendChild(
+        makeCheckbox('cov-' + index + '-invertDoorContact', 'invertDoorContact', covering.invertDoorContact, function (v) {
+            covering.invertDoorContact = v;
+            onChangeFired();
+        }),
+    );
+    protectionRow1.appendChild(doorProtectionRow);
     card.appendChild(protectionRow1);
 
     // Wind-threshold override (plan section 2a.5): shown for a markise (auto-filled with a lower
@@ -1596,22 +1611,6 @@ function renderCoveringCard(covering, index) {
             updateOrientationToleranceHint(index);
         }
     }
-
-    var doorRow = document.createElement('div');
-    doorRow.className = 'shutters-row row';
-    doorRow.appendChild(
-        makeStateIdField('cov-' + index + '-doorContactStateId', 'doorContactStateId', covering.doorContactStateId, 6, function (v) {
-            covering.doorContactStateId = v;
-            onChangeFired();
-        }),
-    );
-    doorRow.appendChild(
-        makeCheckbox('cov-' + index + '-invertDoorContact', 'invertDoorContact', covering.invertDoorContact, function (v) {
-            covering.invertDoorContact = v;
-            onChangeFired();
-        }),
-    );
-    card.appendChild(doorRow);
 
     return built.card;
 }

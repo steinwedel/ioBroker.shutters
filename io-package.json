@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.35",
+    "version": "0.0.36",
     "news": {
+      "0.0.36": {
+        "en": "**ENHANCED**: Position door-contact settings beside the Rolladensperre option",
+        "de": "**VERBESSERT**: Positionieren Sie die Türkontakteinstellungen neben der Option „Rolladensperre“.",
+        "ru": "**УЛУЧШЕНО**: Разместите настройки дверных контактов рядом с опцией Rolladensperre.",
+        "pt": "**APRIMORADO**: Posicione as configurações de contato da porta ao lado da opção Rolladensperre.",
+        "nl": "**VERBETERD**: Plaats de instellingen voor het deurcontact naast de Rolladensperre-optie.",
+        "fr": "**AMÉLIORÉ** : Positionnez les réglages des contacts de porte à côté de l’option Rolladensperre.",
+        "it": "**MIGLIORATO**: Posiziona le impostazioni del contatto porta accanto all'opzione Rolladensperre",
+        "es": "**MEJORADO**: Coloque los ajustes de contacto de la puerta junto a la opción Rolladensperre.",
+        "pl": "**ULEPSZONE**: Umieść ustawienia styku drzwiowego obok opcji Rolladensperre",
+        "uk": "**ПОКРАЩЕНО**: Розташуйте налаштування дверного контакту поруч із опцією Rolladensperre",
+        "zh-cn": "**增强功能**：将门接触设置置于 Rolladensperre 选项旁边"
+      },
       "0.0.35": {
         "en": "**NEW**: Add a per-covering Rolladensperre switch to enable or disable door-contact protection",
         "de": "**NEU**: Fügen Sie einen Rolladensperre-Schalter pro Abdeckung hinzu, um den Türkontaktschutz zu aktivieren oder zu deaktivieren.",
@@ -80,19 +93,6 @@
         "pl": "**ULEPSZONE**: Zmień kolejność pól podstawowych na każdej karcie Pokrycia",
         "uk": "**ПОКРАЩЕНО**: Змінено порядок основних полів у кожній картці «Покриття»",
         "zh-cn": "**增强功能**：重新排列每张封面卡片中的主要字段。"
-      },
-      "0.0.29": {
-        "en": "**FIXED**: Align the standalone Coverings ID field to the left",
-        "de": "**BEHOBEN**: Das eigenständige Feld „Bedeckungs-ID“ linksbündig ausrichten",
-        "ru": "**ИСПРАВЛЕНО**: Поле ID покрытия выровнено по левому краю.",
-        "pt": "**CORRIGIDO**: Alinhar o campo ID de Revestimentos independente à esquerda.",
-        "nl": "**OPGELOST**: Lijn het aparte veld 'Bedekkings-ID' links uit.",
-        "fr": "**CORRIGÉ** : Aligner le champ ID Coverings autonome à gauche",
-        "it": "**CORRETTO**: Allineare a sinistra il campo ID rivestimenti autonomo.",
-        "es": "**CORREGIDO**: Alinear el campo independiente Coverings ID a la izquierda.",
-        "pl": "**NAPRAWIONO**: Wyrównanie samodzielnego pola ID okładek do lewej strony",
-        "uk": "**ВИПРАВЛЕНО**: Вирівняти окреме поле ідентифікатора покриття ліворуч",
-        "zh-cn": "**已修复**：将独立的 Coverings ID 字段左对齐"
       }
     },
     "titleLang": {
