@@ -1559,7 +1559,9 @@ function renderCoveringCard(covering, index) {
                 'number',
             ),
         );
-        sunRow.appendChild(
+        var sunDetailsRow = document.createElement('div');
+        sunDetailsRow.className = 'shutters-row row';
+        sunDetailsRow.appendChild(
             makeText(
                 'cov-' + index + '-sunProtectionMinTemp',
                 'sunProtectionMinTemp',
@@ -1572,7 +1574,7 @@ function renderCoveringCard(covering, index) {
                 'number',
             ),
         );
-        sunRow.appendChild(
+        sunDetailsRow.appendChild(
             makeText(
                 'cov-' + index + '-orientationToleranceMinusDeg',
                 'orientationToleranceMinusDeg',
@@ -1586,7 +1588,7 @@ function renderCoveringCard(covering, index) {
                 'number',
             ),
         );
-        sunRow.appendChild(
+        sunDetailsRow.appendChild(
             makeText(
                 'cov-' + index + '-orientationTolerancePlusDeg',
                 'orientationTolerancePlusDeg',
@@ -1601,13 +1603,13 @@ function renderCoveringCard(covering, index) {
             ),
         );
         if (!covering.orientation) {
-            sunRow.appendChild(
+            sunDetailsRow.appendChild(
                 makeText('cov-' + index + '-sunWindowStart', 'sunWindowStart', covering.sunWindowStart, 3, function (v) {
                     covering.sunWindowStart = v;
                     onChangeFired();
                 }),
             );
-            sunRow.appendChild(
+            sunDetailsRow.appendChild(
                 makeText('cov-' + index + '-sunWindowEnd', 'sunWindowEnd', covering.sunWindowEnd, 3, function (v) {
                     covering.sunWindowEnd = v;
                     onChangeFired();
@@ -1615,6 +1617,7 @@ function renderCoveringCard(covering, index) {
             );
         }
         sunProtectionFields.appendChild(sunRow);
+        sunProtectionFields.appendChild(sunDetailsRow);
 
         // 6.2-specific fields (elevation minimum, cloud-cover ceiling): only meaningful once an
         // orientation is actually set, since they refine the orientation-based window, not the plain

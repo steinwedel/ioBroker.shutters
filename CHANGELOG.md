@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.43 (2026-08-16)
+
+* (steinwedel) **ENHANCED**: Start remaining sun-protection settings on a new line after the target position
+
 ## 0.0.42 (2026-08-16)
 
 * (steinwedel) **ENHANCED**: Nest and indent Coverings sun-protection settings beneath their checkbox

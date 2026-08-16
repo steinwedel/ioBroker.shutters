@@ -1,11 +1,11 @@
 # Context
 
 ## Current Task
-- Nested and indented all sun-protection settings beneath their checkbox.
+- Added a new line after the Sun protection target position field.
 
 ## Key Decisions
-- Sun-protection settings retain their existing conditional behavior and values.
-- The settings group is indented by 16 pixels below Sonnenschutz.
+- The remaining sun-protection fields start on the following line.
+- The settings group remains nested and indented below Sonnenschutz.
 - Deployment uses the central `../scripts/deploy.sh` process.
 
 ## Next Steps

@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.42",
+    "version": "0.0.43",
     "news": {
+      "0.0.43": {
+        "en": "**ENHANCED**: Start remaining sun-protection settings on a new line after the target position",
+        "de": "**VERBESSERT**: Die restlichen Sonnenschutzeinstellungen werden nach der Zielposition in einer neuen Zeile neu eingestellt.",
+        "ru": "**УЛУЧШЕНО**: Начинайте настройку оставшегося уровня защиты от солнца с новой строки после целевой позиции.",
+        "pt": "**APRIMORADO**: Inicie as configurações restantes de proteção solar em uma nova linha após a posição desejada.",
+        "nl": "**VERBETERD**: Start de resterende zonbeschermingsinstellingen op een nieuwe regel na de gewenste positie.",
+        "fr": "**AMÉLIORÉ** : Les autres réglages de protection solaire commencent sur une nouvelle ligne après la position cible.",
+        "it": "**MIGLIORATO**: Inizia le impostazioni rimanenti di protezione solare su una nuova riga dopo la posizione target",
+        "es": "**MEJORADO**: Comience a configurar los ajustes restantes de protección solar en una nueva línea después de la posición objetivo.",
+        "pl": "**ULEPSZONE**: Rozpocznij pozostałe ustawienia ochrony przeciwsłonecznej w nowym wierszu po pozycji docelowej",
+        "uk": "**ПОКРАЩЕНО**: Почніть налаштування решти сонцезахисних елементів на новому рядку після цільового положення",
+        "zh-cn": "**增强功能**：在目标位置之后，另起一行开始显示剩余的防晒设置"
+      },
       "0.0.42": {
         "en": "**ENHANCED**: Nest and indent Coverings sun-protection settings beneath their checkbox",
         "de": "**VERBESSERT**: Die Sonnenschutzeinstellungen für Nest- und Einzugsabdeckungen befinden sich unterhalb der jeweiligen Checkbox.",
@@ -80,19 +93,6 @@
         "pl": "**ULEPSZONE**: Przenieś selektor systemów pokryć do powiązanej sekcji sprzętu",
         "uk": "**ПОКРАЩЕНО**: Переміщено селектор системи покриттів до розділу пов’язаної фурнітури.",
         "zh-cn": "**增强功能**：将 Coverings 系统选择器移至关联的硬件部分"
-      },
-      "0.0.36": {
-        "en": "**ENHANCED**: Position door-contact settings beside the Rolladensperre option",
-        "de": "**VERBESSERT**: Positionieren Sie die Türkontakteinstellungen neben der Option „Rolladensperre“.",
-        "ru": "**УЛУЧШЕНО**: Разместите настройки дверных контактов рядом с опцией Rolladensperre.",
-        "pt": "**APRIMORADO**: Posicione as configurações de contato da porta ao lado da opção Rolladensperre.",
-        "nl": "**VERBETERD**: Plaats de instellingen voor het deurcontact naast de Rolladensperre-optie.",
-        "fr": "**AMÉLIORÉ** : Positionnez les réglages des contacts de porte à côté de l’option Rolladensperre.",
-        "it": "**MIGLIORATO**: Posiziona le impostazioni del contatto porta accanto all'opzione Rolladensperre",
-        "es": "**MEJORADO**: Coloque los ajustes de contacto de la puerta junto a la opción Rolladensperre.",
-        "pl": "**ULEPSZONE**: Umieść ustawienia styku drzwiowego obok opcji Rolladensperre",
-        "uk": "**ПОКРАЩЕНО**: Розташуйте налаштування дверного контакту поруч із опцією Rolladensperre",
-        "zh-cn": "**增强功能**：将门接触设置置于 Rolladensperre 选项旁边"
       }
     },
     "titleLang": {
