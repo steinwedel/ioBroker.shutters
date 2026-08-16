@@ -2,9 +2,6 @@
 
 [![NPM version](https://img.shields.io/npm/v/iobroker.shutters.svg)](https://www.npmjs.com/package/iobroker.shutters)
 [![Downloads](https://img.shields.io/npm/dm/iobroker.shutters.svg)](https://www.npmjs.com/package/iobroker.shutters)
-![Number of Installations](https://iobroker.live/badges/shutters-installed.svg)
-![Current version in stable repository](https://iobroker.live/badges/shutters-stable.svg)
-
 [![NPM](https://nodei.co/npm/iobroker.shutters.png?downloads=true)](https://nodei.co/npm/iobroker.shutters/)
 
 **Tests:** ![Test and Release](https://github.com/steinwedel/ioBroker.shutters/workflows/Test%20and%20Release/badge.svg)
