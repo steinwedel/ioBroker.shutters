@@ -7,6 +7,8 @@ import { evaluateRainProtection, type IRainProtectionInputs } from './rain-prote
 function makeInputs(overrides: Partial<IRainProtectionInputs> = {}): IRainProtectionInputs {
     return {
         rain: true,
+        windSpeedKmh: 10,
+        minWindSpeedForDirectionKmh: 0,
         windDirectionDeg: undefined,
         orientationDeg: undefined,
         windDirectionToleranceDeg: undefined,
@@ -32,7 +34,12 @@ describe('rain-protection', () => {
         it('protects when the wind blows straight toward the window (matches orientation exactly)', () => {
             expect(
                 evaluateRainProtection(
-                    makeInputs({ windDirectionDeg: 180, orientationDeg: 180, windDirectionToleranceDeg: 45 }),
+                    makeInputs({
+                        windSpeedKmh: 10,
+                        windDirectionDeg: 180,
+                        orientationDeg: 180,
+                        windDirectionToleranceDeg: 45,
+                    }),
                 ),
             ).to.equal(true);
         });
@@ -88,6 +95,45 @@ describe('rain-protection', () => {
             expect(
                 evaluateRainProtection(
                     makeInputs({ windDirectionDeg: undefined, orientationDeg: 180, windDirectionToleranceDeg: 45 }),
+                ),
+            ).to.equal(true);
+        });
+
+        it('applies the direction filter only at or above the configured minimum wind speed', () => {
+            expect(
+                evaluateRainProtection(
+                    makeInputs({
+                        windSpeedKmh: 9.9,
+                        minWindSpeedForDirectionKmh: 10,
+                        windDirectionDeg: 0,
+                        orientationDeg: 180,
+                        windDirectionToleranceDeg: 45,
+                    }),
+                ),
+            ).to.equal(true);
+            expect(
+                evaluateRainProtection(
+                    makeInputs({
+                        windSpeedKmh: 10,
+                        minWindSpeedForDirectionKmh: 10,
+                        windDirectionDeg: 0,
+                        orientationDeg: 180,
+                        windDirectionToleranceDeg: 45,
+                    }),
+                ),
+            ).to.equal(false);
+        });
+
+        it('fails safe to protection when wind speed is unavailable', () => {
+            expect(
+                evaluateRainProtection(
+                    makeInputs({
+                        windSpeedKmh: undefined,
+                        minWindSpeedForDirectionKmh: 0,
+                        windDirectionDeg: 0,
+                        orientationDeg: 180,
+                        windDirectionToleranceDeg: 45,
+                    }),
                 ),
             ).to.equal(true);
         });

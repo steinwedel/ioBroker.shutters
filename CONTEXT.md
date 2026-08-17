@@ -1,7 +1,7 @@
 # Context
 
 ## Current Task
-- Fixed the rain-protection Admin UI so its visible setting matches the runtime default and its direction tolerance is inline.
+- Stabilized rain protection with a five-minute rain debounce, smoothed wind direction, and a minimum directional wind speed.
 
 ## Key Decisions
 - The 320×320 RGBA icon remains at `admin/shutters.png`; existing metadata references require no changes.

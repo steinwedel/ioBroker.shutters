@@ -138,7 +138,10 @@ class Shutters extends utils.Adapter {
             }
         }, 5000);
 
-        this.weatherSource = new WeatherSource(this, this.config.weather ?? {});
+        this.weatherSource = new WeatherSource(this, this.config.weather ?? {}, {
+            rainStatusDebounceMs: this.config.rainStatusDebounceMs ?? 300_000,
+            windDirectionSmoothingDurationMs: this.config.windDirectionSmoothingDurationMs ?? 300_000,
+        });
         await this.weatherSource.start();
 
         const location = await this.resolveLocation();
@@ -182,6 +185,7 @@ class Shutters extends utils.Adapter {
             windOpenThreshold: this.config.windOpenThreshold ?? 40,
             windCloseAllowedThreshold: this.config.windCloseAllowedThreshold ?? 25,
             windCalmMinDurationMs: this.config.windCalmMinDurationMs ?? 600_000,
+            rainProtectionMinWindSpeedForDirectionKmh: this.config.rainProtectionMinWindSpeedForDirectionKmh ?? 5,
             frostThreshold: this.config.frostThreshold ?? 2,
             nightCoolingIndoorMinTemp: this.config.nightCoolingIndoorMinTemp ?? 24,
             nightCoolingMinDelta: this.config.nightCoolingMinDelta ?? 3,

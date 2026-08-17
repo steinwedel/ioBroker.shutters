@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import sinon from 'sinon';
 import { isDateWithinMonthDayRange, WeatherSource } from './weather-source';
 import type { IWeatherConfig } from './types';
 
@@ -230,9 +231,16 @@ describe('WeatherSource', () => {
             expect(weather.getSolarRadiation()).to.be.undefined;
         });
 
-        it('getRain() distinguishes "unavailable" (undefined) from a falsy boolean value', async () => {
+        it('getRain() preserves its last effective status when the raw reading becomes unavailable', async () => {
             const { adapter, emitForeignStateChange } = createFakeAdapter({ 'foreign.rain': true });
-            const weather = new WeatherSource(adapter, { rainStateId: 'foreign.rain' });
+            const weather = new WeatherSource(
+                adapter,
+                { rainStateId: 'foreign.rain' },
+                {
+                    rainStatusDebounceMs: 0,
+                    windDirectionSmoothingDurationMs: 300_000,
+                },
+            );
             await weather.start();
 
             expect(weather.getRain()).to.equal(true);
@@ -241,7 +249,7 @@ describe('WeatherSource', () => {
             expect(weather.getRain()).to.equal(false);
 
             emitForeignStateChange('foreign.rain', null);
-            expect(weather.getRain()).to.be.undefined;
+            expect(weather.getRain()).to.equal(false);
         });
 
         it('returns undefined for a non-numeric value on a numeric metric instead of throwing/coercing', async () => {
@@ -252,6 +260,84 @@ describe('WeatherSource', () => {
             emitForeignStateChange('foreign.solar', 'not-a-number');
 
             expect(weather.getSolarRadiation()).to.be.undefined;
+        });
+    });
+
+    describe('weather stabilization', () => {
+        it('makes the initial rain reading effective immediately, then debounces every transition', async () => {
+            const clock = sinon.useFakeTimers();
+            try {
+                const { adapter, emitForeignStateChange } = createFakeAdapter({ 'foreign.rain': false });
+                const weather = new WeatherSource(
+                    adapter,
+                    { rainStateId: 'foreign.rain' },
+                    {
+                        rainStatusDebounceMs: 300_000,
+                        windDirectionSmoothingDurationMs: 300_000,
+                    },
+                );
+                await weather.start();
+                expect(weather.getRain()).to.equal(false);
+
+                emitForeignStateChange('foreign.rain', true);
+                clock.tick(299_999);
+                expect(weather.getRain()).to.equal(false);
+                clock.tick(1);
+                expect(weather.getRain()).to.equal(true);
+
+                emitForeignStateChange('foreign.rain', false);
+                clock.tick(120_000);
+                emitForeignStateChange('foreign.rain', true);
+                clock.tick(300_000);
+                expect(weather.getRain()).to.equal(true);
+            } finally {
+                clock.restore();
+            }
+        });
+
+        it('uses a circular moving average for wind direction and expires stale samples', async () => {
+            const clock = sinon.useFakeTimers();
+            try {
+                const { adapter, emitForeignStateChange } = createFakeAdapter({ 'foreign.direction': 350 });
+                const weather = new WeatherSource(
+                    adapter,
+                    { windDirectionStateId: 'foreign.direction' },
+                    {
+                        rainStatusDebounceMs: 300_000,
+                        windDirectionSmoothingDurationMs: 300_000,
+                    },
+                );
+                await weather.start();
+                emitForeignStateChange('foreign.direction', 10);
+                expect(weather.getWindDirection()).to.be.closeTo(0, 0.001);
+
+                clock.tick(300_001);
+                expect(weather.getWindDirection()).to.be.undefined;
+            } finally {
+                clock.restore();
+            }
+        });
+
+        it('treats opposing directions as ambiguous and normalizes 360 degrees to north', async () => {
+            const { adapter, emitForeignStateChange } = createFakeAdapter({ 'foreign.direction': 360 });
+            const weather = new WeatherSource(adapter, { windDirectionStateId: 'foreign.direction' });
+            await weather.start();
+            expect(weather.getWindDirection()).to.equal(0);
+
+            emitForeignStateChange('foreign.direction', 180);
+            expect(weather.getWindDirection()).to.be.undefined;
+        });
+
+        it('clears the effective wind direction for invalid or unavailable readings', async () => {
+            const { adapter, emitForeignStateChange } = createFakeAdapter({ 'foreign.direction': 180 });
+            const weather = new WeatherSource(adapter, { windDirectionStateId: 'foreign.direction' });
+            await weather.start();
+            expect(weather.getWindDirection()).to.equal(180);
+
+            emitForeignStateChange('foreign.direction', 'invalid');
+            expect(weather.getWindDirection()).to.be.undefined;
+            emitForeignStateChange('foreign.direction', null);
+            expect(weather.getWindDirection()).to.be.undefined;
         });
     });
 

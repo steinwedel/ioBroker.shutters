@@ -13,6 +13,10 @@ import { isWithinOrientationWindow } from './sun-protection';
 export interface IRainProtectionInputs {
     /** Current rain indicator, or undefined if not measured. */
     rain: boolean | undefined;
+    /** Current wind speed in km/h, or undefined if not measured. */
+    windSpeedKmh: number | undefined;
+    /** Minimum wind speed in km/h required before using the direction filter. */
+    minWindSpeedForDirectionKmh: number;
     /** Current wind direction in degrees (compass, clockwise from North), or undefined if not measured/configured. */
     windDirectionDeg: number | undefined;
     /** This covering's window orientation in degrees, see `IShutterConfig.orientation`; undefined if not configured. */
@@ -37,6 +41,8 @@ export function evaluateRainProtection(inputs: IRainProtectionInputs): boolean {
     if (
         inputs.windDirectionToleranceDeg === undefined ||
         inputs.orientationDeg === undefined ||
+        inputs.windSpeedKmh === undefined ||
+        inputs.windSpeedKmh < inputs.minWindSpeedForDirectionKmh ||
         inputs.windDirectionDeg === undefined
     ) {
         // No filter configured, or a required input is currently unavailable - fail open towards

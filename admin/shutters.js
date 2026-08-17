@@ -214,6 +214,9 @@ function shuttersEnsureDefaults(settings) {
     settings.windOpenThreshold = settings.windOpenThreshold != null ? settings.windOpenThreshold : 40;
     settings.windCloseAllowedThreshold =
         settings.windCloseAllowedThreshold != null ? settings.windCloseAllowedThreshold : 25;
+    settings.rainStatusDebounceMs = settings.rainStatusDebounceMs != null ? settings.rainStatusDebounceMs : 300000;
+    settings.windDirectionSmoothingDurationMs = settings.windDirectionSmoothingDurationMs != null ? settings.windDirectionSmoothingDurationMs : 300000;
+    settings.rainProtectionMinWindSpeedForDirectionKmh = settings.rainProtectionMinWindSpeedForDirectionKmh != null ? settings.rainProtectionMinWindSpeedForDirectionKmh : 5;
     settings.frostThreshold = settings.frostThreshold != null ? settings.frostThreshold : 2;
 
     var usedAreaIds = {};
@@ -2096,6 +2099,9 @@ function renderThresholds() {
         ['sunProtectionClearSkyCloudCoverMaxPercent', 'sunProtectionClearSkyCloudCoverMaxPercent'],
         ['windOpenThreshold', 'windOpenThreshold'],
         ['windCloseAllowedThreshold', 'windCloseAllowedThreshold'],
+        ['rainStatusDebounceMs', 'rainStatusDebounceMs'],
+        ['windDirectionSmoothingDurationMs', 'windDirectionSmoothingDurationMs'],
+        ['rainProtectionMinWindSpeedForDirectionKmh', 'rainProtectionMinWindSpeedForDirectionKmh'],
         ['frostThreshold', 'frostThreshold'],
         ['nightCoolingIndoorMinTemp', 'nightCoolingIndoorMinTemp'],
         ['nightCoolingMinDelta', 'nightCoolingMinDelta'],

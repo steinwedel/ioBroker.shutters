@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.56 (2026-08-17)
+
+* (steinwedel) **FIXED**: Stabilize rain status and wind direction to prevent rain-protection oscillation
+
 ## 0.0.55 (2026-08-17)
 
 * (steinwedel) **FIXED**: Show the effective rain-protection setting and place its wind-direction tolerance beside the checkbox

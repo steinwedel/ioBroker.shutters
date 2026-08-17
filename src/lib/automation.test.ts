@@ -172,6 +172,7 @@ const DEFAULT_OPTIONS: IAutomationOptions = {
     windOpenThreshold: 40,
     windCloseAllowedThreshold: 25,
     windCalmMinDurationMs: 600_000,
+    rainProtectionMinWindSpeedForDirectionKmh: 0,
     frostThreshold: 2,
     nightCoolingIndoorMinTemp: 24,
     nightCoolingMinDelta: 3,

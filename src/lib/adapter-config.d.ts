@@ -25,6 +25,9 @@ declare global {
             windOpenThreshold?: number;
             windCloseAllowedThreshold?: number;
             windCalmMinDurationMs?: number;
+            rainStatusDebounceMs?: number;
+            windDirectionSmoothingDurationMs?: number;
+            rainProtectionMinWindSpeedForDirectionKmh?: number;
             frostThreshold?: number;
             nightCoolingIndoorMinTemp?: number;
             nightCoolingMinDelta?: number;

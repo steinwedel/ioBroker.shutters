@@ -66,14 +66,23 @@ export function isDateWithinMonthDayRange(
 export class WeatherSource {
     private readonly values = new Map<string, ioBroker.StateValue | undefined>();
     private readonly idsToKeys = new Map<string, keyof IWeatherConfig>();
+    private effectiveRain: boolean | undefined;
+    private pendingRain: boolean | undefined;
+    private pendingRainSinceMs: number | undefined;
+    private readonly windDirectionSamples: { value: number; timestampMs: number }[] = [];
 
     /**
      * @param adapter - Adapter instance, used for foreign state access.
      * @param config - Configured foreign state IDs per weather metric.
+     * @param stabilization - Rain debounce and wind-direction smoothing durations in milliseconds.
      */
     public constructor(
         private readonly adapter: ioBroker.Adapter,
         private readonly config: IWeatherConfig,
+        private readonly stabilization = {
+            rainStatusDebounceMs: 300_000,
+            windDirectionSmoothingDurationMs: 300_000,
+        },
     ) {
         for (const key of Object.keys(config) as (keyof IWeatherConfig)[]) {
             const stateId = config[key];
@@ -89,7 +98,7 @@ export class WeatherSource {
             await this.adapter.subscribeForeignStatesAsync(stateId);
             const state = await this.adapter.getForeignStateAsync(stateId);
             if (state) {
-                this.values.set(stateId, state.val);
+                this.setValue(stateId, state.val, true);
             }
         }
         this.adapter.on('stateChange', this.handleForeignStateChange);
@@ -139,19 +148,47 @@ export class WeatherSource {
         return this.getNumber('windSpeedStateId');
     }
 
-    /** @returns Whether rain is currently detected, or undefined if not configured/not yet received. */
+    /** @returns The effective debounced rain status, or undefined before the first reading. */
     public getRain(): boolean | undefined {
-        const stateId = this.config.rainStateId;
-        if (!stateId) {
+        if (!this.config.rainStateId) {
             return undefined;
         }
-        const val = this.values.get(stateId);
-        return val === undefined ? undefined : Boolean(val);
+        if (
+            this.pendingRain !== undefined &&
+            this.pendingRainSinceMs !== undefined &&
+            Date.now() - this.pendingRainSinceMs >= this.stabilization.rainStatusDebounceMs
+        ) {
+            this.effectiveRain = this.pendingRain;
+            this.pendingRain = undefined;
+            this.pendingRainSinceMs = undefined;
+        }
+        return this.effectiveRain;
     }
 
-    /** @returns Current wind direction in degrees (0-359, compass, clockwise from North), or undefined if not configured/not yet received. */
+    /** @returns Circularly smoothed wind direction in degrees, or undefined when unavailable or ambiguous. */
     public getWindDirection(): number | undefined {
-        return this.getNumber('windDirectionStateId');
+        if (!this.config.windDirectionStateId) {
+            return undefined;
+        }
+        const cutoffMs = Date.now() - this.stabilization.windDirectionSmoothingDurationMs;
+        while (this.windDirectionSamples[0]?.timestampMs < cutoffMs) {
+            this.windDirectionSamples.shift();
+        }
+        if (this.windDirectionSamples.length === 0) {
+            return undefined;
+        }
+        let northComponent = 0;
+        let eastComponent = 0;
+        for (const sample of this.windDirectionSamples) {
+            const radians = (sample.value * Math.PI) / 180;
+            northComponent += Math.cos(radians);
+            eastComponent += Math.sin(radians);
+        }
+        if (Math.hypot(northComponent, eastComponent) < 0.001) {
+            return undefined;
+        }
+        const direction = (Math.atan2(eastComponent, northComponent) * 180) / Math.PI;
+        return (direction + 360) % 360;
     }
 
     /** @returns Current outdoor temperature in °C, or undefined if not configured/not yet received. */
@@ -178,10 +215,38 @@ export class WeatherSource {
         return typeof val === 'number' ? val : undefined;
     }
 
+    private setValue(stateId: string, value: ioBroker.StateValue | undefined, initial = false): void {
+        this.values.set(stateId, value);
+        if (stateId === this.config.rainStateId) {
+            const rain = value === undefined ? undefined : Boolean(value);
+            if (initial) {
+                this.effectiveRain = rain;
+                this.pendingRain = undefined;
+                this.pendingRainSinceMs = undefined;
+            } else if (rain === undefined) {
+                this.pendingRain = undefined;
+                this.pendingRainSinceMs = undefined;
+            } else if (rain === this.effectiveRain) {
+                this.pendingRain = undefined;
+                this.pendingRainSinceMs = undefined;
+            } else if (rain !== this.pendingRain) {
+                this.pendingRain = rain;
+                this.pendingRainSinceMs = Date.now();
+            }
+        }
+        if (stateId === this.config.windDirectionStateId) {
+            if (typeof value === 'number' && Number.isFinite(value)) {
+                this.windDirectionSamples.push({ value: ((value % 360) + 360) % 360, timestampMs: Date.now() });
+            } else {
+                this.windDirectionSamples.length = 0;
+            }
+        }
+    }
+
     private readonly handleForeignStateChange = (id: string, state: ioBroker.State | null | undefined): void => {
         if (!this.idsToKeys.has(id)) {
             return;
         }
-        this.values.set(id, state ? state.val : undefined);
+        this.setValue(id, state ? state.val : undefined);
     };
 }

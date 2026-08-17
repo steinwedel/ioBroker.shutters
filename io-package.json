@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.55",
+    "version": "0.0.56",
     "news": {
+      "0.0.56": {
+        "en": "**FIXED**: Stabilize rain status and wind direction to prevent rain-protection oscillation",
+        "de": "**BEHOBEN**: Regenstatus und Windrichtung stabilisieren, um ein Schwingen des Regenschutzes zu verhindern",
+        "ru": "**ИСПРАВЛЕНО**: Стабилизация количества осадков и направления ветра для предотвращения колебаний защитного экрана от дождя.",
+        "pt": "**CORRIGIDO**: Estabilizar o estado da chuva e a direção do vento para evitar oscilações na proteção contra chuva.",
+        "nl": "**OPGELOST**: Stabiliseer de regenstatus en windrichting om schommelingen in de regenbescherming te voorkomen.",
+        "fr": "**CORRIGÉ** : Stabilisation de l’état des précipitations et de la direction du vent pour éviter les oscillations de la protection contre la pluie",
+        "it": "**RISOLTO**: Stabilizzare lo stato della pioggia e la direzione del vento per prevenire l'oscillazione della protezione dalla pioggia",
+        "es": "**CORREGIDO**: Estabilizar el estado de la lluvia y la dirección del viento para evitar la oscilación de la protección contra la lluvia.",
+        "pl": "**NAPRAWIONO**: Stabilizacja statusu deszczu i kierunku wiatru w celu zapobiegania oscylacjom chroniącym przed deszczem",
+        "uk": "**ВИПРАВЛЕНО**: Стабілізація стану дощу та напрямку вітру для запобігання коливанням дощозахисту",
+        "zh-cn": "**已修复**：稳定降雨状态和风向，防止防雨装置晃动"
+      },
       "0.0.55": {
         "en": "**FIXED**: Show the effective rain-protection setting and place its wind-direction tolerance beside the checkbox",
         "de": "**BEHOBEN**: Die effektive Regenschutzeinstellung anzeigen und die Toleranz gegenüber der Windrichtung neben dem Kontrollkästchen platzieren.",
@@ -80,19 +93,6 @@
         "pl": "**ULEPSZONE**: Migracja obiektów obejmujących hierarchię urządzenie → kanał → stan ze zgodnością ze starszymi stanami\n**NAPRAWIONO**: Zresetuj stan połączenia adaptera podczas rozładowywania i odświeżania dokumentacji kalibracji\n**ULEPSZONE**: Usuń nieużywaną podatną na ataki zależność serwera programistycznego\n**ULEPSZONE**: Zastąp starszy interfejs użytkownika administratora JSONConfig i obsługuj obecny model stanu świątecznego",
         "uk": "**ПОКРАЩЕНО**: Перенесення об'єктів покриття до ієрархії пристрою → каналу → стану з сумісністю зі старими станами\n**ВИПРАВЛЕНО**: Скидання стану підключення адаптера під час вивантаження та оновлення документації калібрування\n**ПОКРАЩЕНО**: Видалено невикористану вразливу залежність сервера розробки\n**ПОКРАЩЕНО**: Замінено застарілий інтерфейс адміністратора на JSONConfig та підтримка поточної моделі святкових станів",
         "zh-cn": "**增强功能**：将覆盖对象迁移到设备→通道→状态层次结构，并保持与旧状态的兼容性\n**已修复**：卸载期间重置适配器连接状态并刷新校准文档\n**增强功能**：移除未使用的易受攻击的开发服务器依赖项\n**增强功能**：将旧版管理界面替换为 JSONConfig，并支持当前的节假日状态模型"
-      },
-      "0.0.49": {
-        "en": "**ENHANCED**: Synchronize all Admin UI translations from the authoritative German dictionary",
-        "de": "**VERBESSERT**: Synchronisiert nun alle Übersetzungen der Admin-Benutzeroberfläche aus dem maßgeblichen deutschen Wörterbuch.",
-        "ru": "**УЛУЧШЕНО**: Синхронизация всех переводов административного интерфейса из авторитетного немецкого словаря.",
-        "pt": "**APRIMORADO**: Sincronize todas as traduções da interface administrativa com o dicionário alemão oficial.",
-        "nl": "**VERBETERD**: Synchroniseer alle vertalingen van de beheerdersinterface met het gezaghebbende Duitse woordenboek.",
-        "fr": "**AMÉLIORÉ** : Synchronisation de toutes les traductions de l’interface d’administration à partir du dictionnaire allemand de référence",
-        "it": "**MIGLIORATO**: Sincronizza tutte le traduzioni dell'interfaccia utente di amministrazione dal dizionario tedesco autorevole",
-        "es": "**MEJORADO**: Sincroniza todas las traducciones de la interfaz de administración desde el diccionario alemán oficial.",
-        "pl": "**ULEPSZONE**: Synchronizuj wszystkie tłumaczenia interfejsu administratora z autorytatywnego słownika języka niemieckiego",
-        "uk": "**ПОКРАЩЕНО**: Синхронізуйте всі переклади інтерфейсу адміністратора з авторитетного німецького словника",
-        "zh-cn": "**增强功能**：同步所有管理员用户界面翻译，使其与权威德语词典一致。"
       }
     },
     "titleLang": {

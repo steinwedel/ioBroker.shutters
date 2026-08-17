@@ -81,6 +81,8 @@ export interface IAutomationOptions {
     windCloseAllowedThreshold: number;
     /** How long wind speed must stay below `windCloseAllowedThreshold` before deactivating wind protection. */
     windCalmMinDurationMs: number;
+    /** Wind speed (km/h) at/above which rain protection applies the wind-direction filter. */
+    rainProtectionMinWindSpeedForDirectionKmh: number;
     /** Outdoor temperature (°C) at/below which frost protection may activate. */
     frostThreshold: number;
     /** Indoor temperature (°C) at/above which night cooling (7c) may activate for an eligible covering. */
@@ -429,6 +431,8 @@ export class AutomationEngine {
             rainEnabled &&
             evaluateRainProtection({
                 rain: this.weather.getRain(),
+                windSpeedKmh: this.weather.getWindSpeed(),
+                minWindSpeedForDirectionKmh: this.options.rainProtectionMinWindSpeedForDirectionKmh,
                 windDirectionDeg: this.weather.getWindDirection(),
                 orientationDeg: config.orientation,
                 windDirectionToleranceDeg: config.rainProtectionWindDirectionToleranceDeg,

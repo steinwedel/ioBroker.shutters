@@ -341,6 +341,13 @@ export interface IShuttersNativeConfig {
     /** How long wind speed must stay below `windCloseAllowedThreshold` before deactivating wind protection (hysteresis, plan section 7a). Default: 600000 (10 min). */
     windCalmMinDurationMs?: number;
 
+    /** How long a changed rain status must remain stable before it becomes effective. Default: 300000 (5 min). */
+    rainStatusDebounceMs?: number;
+    /** Time window used to calculate the circular average of wind direction. Default: 300000 (5 min). */
+    windDirectionSmoothingDurationMs?: number;
+    /** Minimum wind speed (km/h) before rain protection applies the wind-direction filter. Default: 5. */
+    rainProtectionMinWindSpeedForDirectionKmh?: number;
+
     /** Outdoor temperature (°C) at/below which frost protection may activate (combined with humidity/rain, plan section 7b). Default: 2. */
     frostThreshold?: number;
 
