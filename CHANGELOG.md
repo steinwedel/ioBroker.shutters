@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.55 (2026-08-17)
+
+* (steinwedel) **FIXED**: Show the effective rain-protection setting and place its wind-direction tolerance beside the checkbox
+
 ## 0.0.54 (2026-08-16)
 
 * (steinwedel) **ENHANCED**: Add a custom roller-shutter adapter icon and remove unavailable repository badges

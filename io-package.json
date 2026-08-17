@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.54",
+    "version": "0.0.55",
     "news": {
+      "0.0.55": {
+        "en": "**FIXED**: Show the effective rain-protection setting and place its wind-direction tolerance beside the checkbox",
+        "de": "**BEHOBEN**: Die effektive Regenschutzeinstellung anzeigen und die Toleranz gegenüber der Windrichtung neben dem Kontrollkästchen platzieren.",
+        "ru": "**ИСПРАВЛЕНО**: Отображается эффективная настройка защиты от дождя, а рядом с флажком указывается допустимое отклонение по направлению ветра.",
+        "pt": "**CORRIGIDO**: Exibir a configuração efetiva de proteção contra chuva e colocar sua tolerância à direção do vento ao lado da caixa de seleção.",
+        "nl": "**OPGELOST**: Toon de effectieve regenbeschermingsinstelling en plaats de tolerantie voor de windrichting naast het selectievakje.",
+        "fr": "**CORRIGÉ** : Afficher le réglage effectif de protection contre la pluie et placer sa tolérance à la direction du vent à côté de la case à cocher.",
+        "it": "**CORRETTO**: Mostra l'impostazione di protezione dalla pioggia effettiva e posiziona la relativa tolleranza della direzione del vento accanto alla casella di controllo",
+        "es": "**CORREGIDO**: Mostrar la configuración efectiva de protección contra la lluvia y colocar su tolerancia de dirección del viento junto a la casilla de verificación.",
+        "pl": "**NAPRAWIONO**: Pokaż efektywne ustawienie ochrony przed deszczem i umieść jego tolerancję kierunku wiatru obok pola wyboru",
+        "uk": "**ВИПРАВЛЕНО**: Відображати ефективне налаштування захисту від дощу та розміщувати його допуск напрямку вітру поруч із прапорцем.",
+        "zh-cn": "**已修复**：显示有效的防雨设置，并将其风向容差值放在复选框旁边。"
+      },
       "0.0.54": {
         "en": "**ENHANCED**: Add a custom roller-shutter adapter icon and remove unavailable repository badges",
         "de": "**VERBESSERT**: Ein benutzerdefiniertes Symbol für einen Rollladenadapter hinzufügen und die Abzeichen für nicht verfügbare Repositorys entfernen.",
@@ -80,19 +93,6 @@
         "pl": "**ULEPSZONE**: Synchronizuj wszystkie tłumaczenia interfejsu administratora z autorytatywnego słownika języka niemieckiego",
         "uk": "**ПОКРАЩЕНО**: Синхронізуйте всі переклади інтерфейсу адміністратора з авторитетного німецького словника",
         "zh-cn": "**增强功能**：同步所有管理员用户界面翻译，使其与权威德语词典一致。"
-      },
-      "0.0.48": {
-        "en": "**ENHANCED**: Disable per-covering sun and rain protection when orientation is missing",
-        "de": "**VERBESSERT**: Deaktivierung des vorabgedeckten Sonnen- und Regenschutzes bei fehlender Ausrichtung",
-        "ru": "**УЛУЧШЕНО**: Отключение защиты от солнца и дождя для каждого слоя покрытия, если отсутствует ориентация.",
-        "pt": "**APRIMORADO**: Desative a proteção contra sol e chuva por cobertura quando a orientação estiver ausente.",
-        "nl": "**VERBETERD**: Schakel zon- en regenbescherming per hoes uit wanneer de oriëntatie ontbreekt.",
-        "fr": "**AMÉLIORÉ** : Désactivation de la protection solaire et anti-pluie intégrée lorsque l’orientation est manquante.",
-        "it": "**MIGLIORATO**: Disattiva la protezione solare e antipioggia per la copertura quando manca l'orientamento",
-        "es": "**MEJORADO**: Desactivar la protección solar y contra la lluvia por cubierta cuando falta la orientación.",
-        "pl": "**ULEPSZONE**: Wyłącz ochronę przed słońcem i deszczem dla każdego pokrycia, gdy brakuje orientacji",
-        "uk": "**ПОКРАЩЕНО**: Вимкнення захисту від сонця та дощу для кожного покриття, якщо відсутня орієнтація",
-        "zh-cn": "**增强功能**：当方向信息缺失时，禁用每个遮盖物的遮阳和防雨功能。"
       }
     },
     "titleLang": {

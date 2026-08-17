@@ -227,6 +227,7 @@ function shuttersEnsureDefaults(settings) {
         s.states = s.states || {};
         if (s.automationEnabled === undefined) s.automationEnabled = true;
         if (s.doorProtectionEnabled === undefined) s.doorProtectionEnabled = true;
+        if (s.rainProtectionEnabled === undefined) s.rainProtectionEnabled = s.coveringType !== 'lamellen';
         if (s.orientation === undefined) {
             s.sunProtectionEnabled = false;
             s.rainProtectionEnabled = false;
@@ -1379,13 +1380,31 @@ function renderCoveringCard(covering, index) {
         }, !orientationConfigured),
     );
     protectionRow1.appendChild(sunProtectionGroup);
-    protectionRow1.appendChild(
+    var rainProtectionGroup = document.createElement('div');
+    rainProtectionGroup.className = 'shutters-rain-protection-group';
+    rainProtectionGroup.appendChild(
         makeCheckbox('cov-' + index + '-rainProtectionEnabled', 'rainProtectionEnabled', covering.rainProtectionEnabled, function (v) {
             covering.rainProtectionEnabled = v;
-            renderCoverings(); // re-render: the wind-direction tolerance field only shows while enabled
+            renderCoverings();
             onChangeFired();
         }, !orientationConfigured),
     );
+    if (covering.rainProtectionEnabled && orientationConfigured) {
+        rainProtectionGroup.appendChild(
+            makeText(
+                'cov-' + index + '-rainProtectionWindDirectionToleranceDeg',
+                'rainProtectionWindDirectionToleranceDeg',
+                covering.rainProtectionWindDirectionToleranceDeg,
+                3,
+                function (v) {
+                    covering.rainProtectionWindDirectionToleranceDeg = v;
+                    onChangeFired();
+                },
+                'number',
+            ),
+        );
+    }
+    protectionRow1.appendChild(rainProtectionGroup);
     protectionRow1.appendChild(
         makeCheckbox('cov-' + index + '-windProtectionEnabled', 'windProtectionEnabled', covering.windProtectionEnabled, function (v) {
             covering.windProtectionEnabled = v;
@@ -1484,28 +1503,6 @@ function renderCoveringCard(covering, index) {
             ),
         );
         card.appendChild(windThresholdRow);
-    }
-
-    // Only show the wind-direction tolerance field when rain protection is enabled and an orientation
-    // is configured (plan section 7) - without an orientation there is no window-facing reference to
-    // compare the wind direction against, so the field would have no effect.
-    if (covering.rainProtectionEnabled && covering.orientation !== undefined && covering.orientation !== '') {
-        var rainWindDirectionRow = document.createElement('div');
-        rainWindDirectionRow.className = 'shutters-row row';
-        rainWindDirectionRow.appendChild(
-            makeText(
-                'cov-' + index + '-rainProtectionWindDirectionToleranceDeg',
-                'rainProtectionWindDirectionToleranceDeg',
-                covering.rainProtectionWindDirectionToleranceDeg,
-                3,
-                function (v) {
-                    covering.rainProtectionWindDirectionToleranceDeg = v;
-                    onChangeFired();
-                },
-                'number',
-            ),
-        );
-        card.appendChild(rainWindDirectionRow);
     }
 
     // Only show the indoor-temperature field when night cooling is actually enabled for this covering
