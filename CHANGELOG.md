@@ -1,5 +1,5 @@
 # Changelog
-## **WORK IN PROGRESS**
+## 0.0.57 (2026-08-18)
 
 * (steinwedel) **FIXED**: Skip a redundant Scheduler restart on a no-op holiday/iCal state rewrite, and log schedule computations/triggers for diagnosability
 

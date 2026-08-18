@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.56",
+    "version": "0.0.57",
     "news": {
+      "0.0.57": {
+        "en": "**FIXED**: Skip a redundant Scheduler restart on a no-op holiday/iCal state rewrite, and log schedule computations/triggers for diagnosability",
+        "de": "**BEHOBEN**: Überspringe einen redundanten Scheduler-Neustart bei einer wirkungslosen Feiertags-/iCal-Zustandsüberschreibung und protokolliere Zeitplanberechnungen/-auslöser zur Diagnose",
+        "ru": "**ИСПРАВЛЕНО**: Пропуск избыточного перезапуска планировщика при перезаписи состояния праздников/iCal без изменений, а также логирование вычислений/триггеров расписания для диагностики",
+        "pt": "**CORRIGIDO**: Ignorar uma reinicialização redundante do Scheduler em uma reescrita de estado de feriado/iCal sem alterações, e registrar cálculos/acionamentos de agendamento para diagnóstico",
+        "nl": "**OPGELOST**: Sla een overbodige Scheduler-herstart over bij een no-op feriado/iCal-statusoverschrijving, en log planningsberekeningen/-triggers voor diagnose",
+        "fr": "**CORRIGÉ** : Ignorer un redémarrage redondant du Scheduler lors d'une réécriture d'état de jour férié/iCal sans effet, et journaliser les calculs/déclenchements de planification pour le diagnostic",
+        "it": "**RISOLTO**: Salta un riavvio ridondante dello Scheduler su una riscrittura di stato festività/iCal senza effetto, e registra calcoli/trigger di pianificazione per la diagnostica",
+        "es": "**CORREGIDO**: Omitir un reinicio redundante del Scheduler en una reescritura de estado de festivo/iCal sin cambios, y registrar cálculos/activaciones de programación para diagnóstico",
+        "pl": "**NAPRAWIONO**: Pominięcie zbędnego restartu Schedulera przy bezoperacyjnym przepisaniu stanu świąt/iCal oraz logowanie obliczeń/wyzwalaczy harmonogramu w celu diagnostyki",
+        "uk": "**ВИПРАВЛЕНО**: Пропуск зайвого перезапуску планувальника при перезаписі стану свят/iCal без змін, а також логування обчислень/тригерів розкладу для діагностики",
+        "zh-cn": "**已修复**：跳过在无操作的假日/iCal状态重写时的冗余调度器重启，并记录调度计算/触发器以便诊断"
+      },
       "0.0.56": {
         "en": "**FIXED**: Stabilize rain status and wind direction to prevent rain-protection oscillation",
         "de": "**BEHOBEN**: Regenstatus und Windrichtung stabilisieren, um ein Schwingen des Regenschutzes zu verhindern",
@@ -80,19 +93,6 @@
         "pl": "**NAPRAWIONO**: Przywrócono interfejs administratora Materialize",
         "uk": "**ВИПРАВЛЕНО**: Відновлено інтерфейс адміністратора Materialize",
         "zh-cn": "**已修复**：恢复 Materialize 管理界面"
-      },
-      "0.0.50": {
-        "en": "**ENHANCED**: Migrate covering objects to device → channel → state hierarchy with legacy state compatibility\n**FIXED**: Reset the adapter connection state during unload and refresh calibration documentation\n**ENHANCED**: Remove the unused vulnerable development server dependency\n**ENHANCED**: Replace the legacy Admin UI with JSONConfig and support the current holiday state model",
-        "de": "**VERBESSERT**: Migration von Covering-Objekten zur Geräte-→-Kanal-→-Zustands-Hierarchie mit Legacy-Zustandskompatibilität\n**BEHOBEN**: Zurücksetzen des Adapterverbindungsstatus beim Entladen und Aktualisieren der Kalibrierungsdokumentation\n**VERBESSERT**: Entfernt die ungenutzte, anfällige Abhängigkeit vom Entwicklungsserver.\n**VERBESSERT**: Die veraltete Admin-Benutzeroberfläche wird durch JSONConfig ersetzt und das aktuelle Feiertagsstatusmodell wird unterstützt.",
-        "ru": "**УЛУЧШЕНО**: Перенос объектов покрытия в иерархию устройство → канал → состояние с сохранением совместимости с устаревшими состояниями.\n**ИСПРАВЛЕНО**: Сброс состояния подключения адаптера во время выгрузки и обновление документации по калибровке.\n**УЛУЧШЕНО**: Удалена неиспользуемая уязвимая зависимость от сервера разработки.\n**УЛУЧШЕНО**: Заменен устаревший административный интерфейс на JSONConfig и добавлена поддержка текущей модели состояний праздников.",
-        "pt": "**APRIMORADO**: Migração de objetos de cobertura para a hierarquia dispositivo → canal → estado, com compatibilidade com estados legados.\n**CORRIGIDO**: Redefinir o estado de conexão do adaptador durante o descarregamento e atualizar a documentação de calibração.\n**APRIMORADO**: Remove a dependência vulnerável e não utilizada do servidor de desenvolvimento.\n**APRIMORADO**: Substituição da interface administrativa legada por JSONConfig e suporte ao modelo de estado de feriado atual.",
-        "nl": "**VERBETERD**: Migreer objecten met dekking naar de apparaat → kanaal → status-hiërarchie met behoud van compatibiliteit met de oude statusstructuur.\n**OPGELOST**: De verbindingsstatus van de adapter wordt gereset tijdens het ontladen en de kalibratiedocumentatie wordt vernieuwd.\n**VERBETERD**: Verwijder de ongebruikte, kwetsbare afhankelijkheid van de ontwikkelingsserver.\n**VERBETERD**: Vervang de oude beheerdersinterface door JSONConfig en ondersteun het huidige vakantiestatusmodel.",
-        "fr": "**AMÉLIORÉ** : Migration des objets de couverture vers la hiérarchie périphérique → canal → état avec compatibilité avec l’état existant\n**CORRIGÉ** : Réinitialisation de l’état de connexion de l’adaptateur pendant le déchargement et actualisation de la documentation d’étalonnage\n**AMÉLIORÉ** : Suppression de la dépendance inutilisée au serveur de développement vulnérable\n**AMÉLIORÉ** : Remplacement de l’interface d’administration existante par JSONConfig et prise en charge du modèle d’état des jours fériés actuel",
-        "it": "**MIGLIORATO**: Migra gli oggetti di copertura alla gerarchia dispositivo → canale → stato con compatibilità con lo stato legacy\n**RISOLTO**: Ripristina lo stato di connessione dell'adattatore durante lo scaricamento e aggiorna la documentazione di calibrazione\n**MIGLIORATO**: Rimossa la dipendenza vulnerabile e inutilizzata dal server di sviluppo\n**MIGLIORATO**: Sostituisci l'interfaccia utente di amministrazione legacy con JSONConfig e supporta l'attuale modello di stato delle festività.",
-        "es": "**MEJORADO**: Migración de objetos de cobertura a la jerarquía dispositivo → canal → estado con compatibilidad de estado heredada\n**CORREGIDO**: Restablecer el estado de conexión del adaptador durante la descarga y actualizar la documentación de calibración.\n**MEJORADO**: Eliminar la dependencia del servidor de desarrollo vulnerable que no se utiliza.\n**MEJORADO**: Reemplaza la interfaz de usuario de administración anterior con JSONConfig y admite el modelo de estado de vacaciones actual.",
-        "pl": "**ULEPSZONE**: Migracja obiektów obejmujących hierarchię urządzenie → kanał → stan ze zgodnością ze starszymi stanami\n**NAPRAWIONO**: Zresetuj stan połączenia adaptera podczas rozładowywania i odświeżania dokumentacji kalibracji\n**ULEPSZONE**: Usuń nieużywaną podatną na ataki zależność serwera programistycznego\n**ULEPSZONE**: Zastąp starszy interfejs użytkownika administratora JSONConfig i obsługuj obecny model stanu świątecznego",
-        "uk": "**ПОКРАЩЕНО**: Перенесення об'єктів покриття до ієрархії пристрою → каналу → стану з сумісністю зі старими станами\n**ВИПРАВЛЕНО**: Скидання стану підключення адаптера під час вивантаження та оновлення документації калібрування\n**ПОКРАЩЕНО**: Видалено невикористану вразливу залежність сервера розробки\n**ПОКРАЩЕНО**: Замінено застарілий інтерфейс адміністратора на JSONConfig та підтримка поточної моделі святкових станів",
-        "zh-cn": "**增强功能**：将覆盖对象迁移到设备→通道→状态层次结构，并保持与旧状态的兼容性\n**已修复**：卸载期间重置适配器连接状态并刷新校准文档\n**增强功能**：移除未使用的易受攻击的开发服务器依赖项\n**增强功能**：将旧版管理界面替换为 JSONConfig，并支持当前的节假日状态模型"
       }
     },
     "titleLang": {
