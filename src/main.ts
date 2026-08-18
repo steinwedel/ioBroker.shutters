@@ -502,7 +502,9 @@ class Shutters extends utils.Adapter {
 
     private onScheduleTrigger(areaId: string, _areaName: string, action: 'open' | 'close'): void {
         const targetPercent = action === 'open' ? 0 : 100;
-        for (const [id] of this.matchingControllers(areaId)) {
+        const matches = this.matchingControllers(areaId);
+        this.log.info(`Schedule "${action}" triggered for area "${_areaName}" (${matches.length} covering(s)).`);
+        for (const [id] of matches) {
             this.automationEngine?.setScheduleTarget(id, targetPercent);
         }
         // Re-evaluate immediately rather than waiting for the next periodic tick, so a covering that
@@ -674,7 +676,17 @@ class Shutters extends utils.Adapter {
         }
 
         if (id === this.config.holidayStateId) {
-            this.isPublicHoliday = !!state.val;
+            const nextIsPublicHoliday = !!state.val;
+            // Guard against a no-op rewrite (e.g. the holiday adapter re-publishing the same value
+            // shortly after midnight, observed to land ~30s after this adapter's own midnight
+            // schedule recompute): restarting the Scheduler here is pointless if nothing actually
+            // changed, and doing so anyway needlessly tears down/recreates every pending open/close
+            // timer for the rest of the day for no reason.
+            if (nextIsPublicHoliday === this.isPublicHoliday) {
+                return;
+            }
+            this.isPublicHoliday = nextIsPublicHoliday;
+            this.log.debug(`Public holiday state changed to ${nextIsPublicHoliday} - recomputing today's schedule.`);
             this.scheduler?.stop();
             this.reconcileScheduleTargetsOnStartup();
             this.scheduler?.start();
@@ -683,7 +695,14 @@ class Shutters extends utils.Adapter {
         }
 
         if (id === this.icalTableStateId) {
-            this.icalEvents = this.parseIcalTable(state.val);
+            const nextIcalEvents = this.parseIcalTable(state.val);
+            // Same no-op guard as above, for the same reason (a calendar adapter re-publishing an
+            // unchanged table should not repeatedly tear down/recreate every pending schedule timer).
+            if (JSON.stringify(nextIcalEvents) === JSON.stringify(this.icalEvents)) {
+                return;
+            }
+            this.icalEvents = nextIcalEvents;
+            this.log.debug("iCal schedule overrides changed - recomputing today's schedule.");
             this.scheduler?.stop();
             this.reconcileScheduleTargetsOnStartup();
             this.scheduler?.start();

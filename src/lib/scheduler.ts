@@ -251,6 +251,7 @@ export class Scheduler {
     private scheduleAll(): void {
         this.clearTimers();
         const now = new Date();
+        this.adapter.log.debug(`Scheduler: (re)computing today's open/close times at ${now.toISOString()}.`);
 
         for (const area of this.areas) {
             if (!area.id) {
@@ -390,6 +391,9 @@ export class Scheduler {
         }
 
         const delayMs = target.getTime() - now.getTime();
+        this.adapter.log.debug(
+            `Scheduler: area "${area.name}" (${action}) scheduled for ${target.toISOString()} (in ${Math.round(delayMs / 60_000)} min).`,
+        );
         const timer = this.adapter.setTimeout(() => this.onTrigger(area, action), delayMs);
         if (timer) {
             this.timers.push(timer);

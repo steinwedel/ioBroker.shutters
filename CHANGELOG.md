@@ -1,4 +1,8 @@
 # Changelog
+## **WORK IN PROGRESS**
+
+* (steinwedel) **FIXED**: Skip a redundant Scheduler restart on a no-op holiday/iCal state rewrite, and log schedule computations/triggers for diagnosability
+
 ## 0.0.56 (2026-08-17)
 
 * (steinwedel) **FIXED**: Stabilize rain status and wind direction to prevent rain-protection oscillation
