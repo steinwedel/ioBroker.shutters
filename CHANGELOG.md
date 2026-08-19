@@ -1,5 +1,5 @@
 # Changelog
-## **WORK IN PROGRESS**
+## 0.0.58 (2026-08-19)
 * (Gerhard Steinwedel) **NEW**: Rain protection target position (covering height) now configurable in admin UI — `rainTargetPercent` field appears next to rain protection checkbox when enabled, matching the existing sun protection height field
 * (Gerhard Steinwedel) **FIXED**: Rain-protected coverings with wind-direction filters no longer close unconditionally when wind is too weak to determine direction reliably — once a direction filter is configured (orientation + tolerance), unmeasured or sub-threshold wind means that covering does not protect, rather than protecting regardless of configured direction (previous behavior caused all rain-protected coverings to close together during light rain below 5 km/h minimum). Coverings without a direction filter configured retain the original behavior of protecting on any rain
 
