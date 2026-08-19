@@ -91,15 +91,15 @@ describe('rain-protection', () => {
             ).to.equal(true);
         });
 
-        it('falls back to protecting unconditionally when the wind direction reading is unavailable', () => {
+        it('does not protect when the wind direction reading is unavailable, even with a filter configured', () => {
             expect(
                 evaluateRainProtection(
                     makeInputs({ windDirectionDeg: undefined, orientationDeg: 180, windDirectionToleranceDeg: 45 }),
                 ),
-            ).to.equal(true);
+            ).to.equal(false);
         });
 
-        it('applies the direction filter only at or above the configured minimum wind speed', () => {
+        it('applies the direction filter only at or above the configured minimum wind speed, and does not protect below it', () => {
             expect(
                 evaluateRainProtection(
                     makeInputs({
@@ -110,7 +110,7 @@ describe('rain-protection', () => {
                         windDirectionToleranceDeg: 45,
                     }),
                 ),
-            ).to.equal(true);
+            ).to.equal(false);
             expect(
                 evaluateRainProtection(
                     makeInputs({
@@ -124,7 +124,7 @@ describe('rain-protection', () => {
             ).to.equal(false);
         });
 
-        it('fails safe to protection when wind speed is unavailable', () => {
+        it('does not protect when wind speed is unavailable, even with a filter configured', () => {
             expect(
                 evaluateRainProtection(
                     makeInputs({
@@ -135,7 +135,7 @@ describe('rain-protection', () => {
                         windDirectionToleranceDeg: 45,
                     }),
                 ),
-            ).to.equal(true);
+            ).to.equal(false);
         });
     });
 });

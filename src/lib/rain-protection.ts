@@ -25,7 +25,8 @@ export interface IRainProtectionInputs {
      * `IShutterConfig.rainProtectionWindDirectionToleranceDeg`: tolerance (±°) around `orientationDeg`
      * counting as "wind is blowing rain toward this window". Undefined disables the wind-direction
      * filter entirely for this covering (previous, backwards-compatible behavior: protect on any rain,
-     * regardless of direction).
+     * regardless of direction). When set but the wind is currently too weak (or unmeasured) to trust
+     * a direction reading, this covering does *not* protect - see `evaluateRainProtection()`.
      */
     windDirectionToleranceDeg: number | undefined;
 }
@@ -38,17 +39,22 @@ export function evaluateRainProtection(inputs: IRainProtectionInputs): boolean {
     if (inputs.rain !== true) {
         return false;
     }
+    if (inputs.windDirectionToleranceDeg === undefined || inputs.orientationDeg === undefined) {
+        // No wind-direction filter configured for this covering (or it has no orientation to filter
+        // against) - protect on any rain, same as before the filter existed.
+        return true;
+    }
     if (
-        inputs.windDirectionToleranceDeg === undefined ||
-        inputs.orientationDeg === undefined ||
         inputs.windSpeedKmh === undefined ||
         inputs.windSpeedKmh < inputs.minWindSpeedForDirectionKmh ||
         inputs.windDirectionDeg === undefined
     ) {
-        // No filter configured, or a required input is currently unavailable - fail open towards
-        // protection (the previous default), not away from it: better to needlessly close a covering
-        // than to miss protecting one during genuine wind-driven rain.
-        return true;
+        // A wind-direction filter IS configured for this covering, but the wind is too weak (or its
+        // speed/direction is not currently measured) to trust a direction reading at all: assume the
+        // rain is not being blown toward this specific window rather than closing it just in case -
+        // closing every wind-direction-filtered covering whenever the wind happens to be calm would
+        // defeat the point of configuring the filter in the first place.
+        return false;
     }
     return isWithinOrientationWindow(
         inputs.windDirectionDeg,
