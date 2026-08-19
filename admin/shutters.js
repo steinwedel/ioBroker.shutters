@@ -1392,6 +1392,21 @@ function renderCoveringCard(covering, index) {
             onChangeFired();
         }, !orientationConfigured),
     );
+    if (covering.rainProtectionEnabled) {
+        rainProtectionGroup.appendChild(
+            makeText(
+                'cov-' + index + '-rainTargetPercent',
+                'rainTargetPercent',
+                covering.rainTargetPercent,
+                3,
+                function (v) {
+                    covering.rainTargetPercent = v;
+                    onChangeFired();
+                },
+                'number',
+            ),
+        );
+    }
     if (covering.rainProtectionEnabled && orientationConfigured) {
         rainProtectionGroup.appendChild(
             makeText(
