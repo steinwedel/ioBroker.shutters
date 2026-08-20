@@ -67,6 +67,7 @@ export class WeatherSource {
     private readonly values = new Map<string, ioBroker.StateValue | undefined>();
     private readonly idsToKeys = new Map<string, keyof IWeatherConfig>();
     private effectiveRain: boolean | undefined;
+    /** Only ever `false` (pending "rain has stopped") - rain starting is committed immediately, never debounced, see `setValue()`/`getRain()`. */
     private pendingRain: boolean | undefined;
     private pendingRainSinceMs: number | undefined;
     private readonly windDirectionSamples: { value: number; timestampMs: number }[] = [];
@@ -148,7 +149,12 @@ export class WeatherSource {
         return this.getNumber('windSpeedStateId');
     }
 
-    /** @returns The effective debounced rain status, or undefined before the first reading. */
+    /**
+     * @returns The effective rain status, or undefined before the first reading. Rain starting is
+     *   reflected immediately (see `setValue()`); only the transition back to dry is debounced by
+     *   `IWeatherConfig.rainStatusDebounceMs`, same asymmetric shape as `evaluateWindProtection()`'s
+     *   calm hysteresis - reacting fast to a shower matters far more than not flickering while it lasts.
+     */
     public getRain(): boolean | undefined {
         if (!this.config.rainStateId) {
             return undefined;
@@ -226,11 +232,22 @@ export class WeatherSource {
             } else if (rain === undefined) {
                 this.pendingRain = undefined;
                 this.pendingRainSinceMs = undefined;
+            } else if (rain === true) {
+                // Rain starting (or continuing) takes effect immediately, same as the wind-speed
+                // threshold in evaluateWindProtection(): a shower can be over well within a multi-
+                // minute debounce window, so waiting here would routinely mean reacting too late to
+                // protect anything. This also cancels any "about to become dry" countdown below.
+                this.effectiveRain = true;
+                this.pendingRain = undefined;
+                this.pendingRainSinceMs = undefined;
             } else if (rain === this.effectiveRain) {
                 this.pendingRain = undefined;
                 this.pendingRainSinceMs = undefined;
-            } else if (rain !== this.pendingRain) {
-                this.pendingRain = rain;
+            } else if (this.pendingRain !== false) {
+                // Rain has just stopped (raw reading is dry) while still effectively "raining" - only
+                // let this take effect once it has stayed dry continuously for the debounce duration,
+                // so a brief gap between drops mid-shower does not prematurely release protection.
+                this.pendingRain = false;
                 this.pendingRainSinceMs = Date.now();
             }
         }

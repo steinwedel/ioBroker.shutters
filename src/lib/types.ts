@@ -341,7 +341,7 @@ export interface IShuttersNativeConfig {
     /** How long wind speed must stay below `windCloseAllowedThreshold` before deactivating wind protection (hysteresis, plan section 7a). Default: 600000 (10 min). */
     windCalmMinDurationMs?: number;
 
-    /** How long a changed rain status must remain stable before it becomes effective. Default: 300000 (5 min). */
+    /** How long rain must have stopped (raw reading dry) before that becomes effective; rain starting is always effective immediately, regardless of this value - see `WeatherSource.getRain()`. Default: 300000 (5 min). */
     rainStatusDebounceMs?: number;
     /** Time window used to calculate the circular average of wind direction. Default: 300000 (5 min). */
     windDirectionSmoothingDurationMs?: number;

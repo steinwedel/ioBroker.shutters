@@ -264,7 +264,7 @@ describe('WeatherSource', () => {
     });
 
     describe('weather stabilization', () => {
-        it('makes the initial rain reading effective immediately, then debounces every transition', async () => {
+        it('makes rain starting effective immediately, but debounces the transition back to dry', async () => {
             const clock = sinon.useFakeTimers();
             try {
                 const { adapter, emitForeignStateChange } = createFakeAdapter({ 'foreign.rain': false });
@@ -279,16 +279,46 @@ describe('WeatherSource', () => {
                 await weather.start();
                 expect(weather.getRain()).to.equal(false);
 
+                // Rain starting takes effect immediately - a shower can be over well within a
+                // multi-minute debounce window, so waiting here would mean reacting too late.
                 emitForeignStateChange('foreign.rain', true);
+                expect(weather.getRain()).to.equal(true);
+
+                // Rain stopping is still debounced: stays effectively "raining" until it has been
+                // dry continuously for the full duration, same as before.
+                emitForeignStateChange('foreign.rain', false);
                 clock.tick(299_999);
-                expect(weather.getRain()).to.equal(false);
+                expect(weather.getRain()).to.equal(true);
                 clock.tick(1);
+                expect(weather.getRain()).to.equal(false);
+            } finally {
+                clock.restore();
+            }
+        });
+
+        it('cancels a pending "rain has stopped" debounce if rain resumes before it completes', async () => {
+            const clock = sinon.useFakeTimers();
+            try {
+                const { adapter, emitForeignStateChange } = createFakeAdapter({ 'foreign.rain': true });
+                const weather = new WeatherSource(
+                    adapter,
+                    { rainStateId: 'foreign.rain' },
+                    {
+                        rainStatusDebounceMs: 300_000,
+                        windDirectionSmoothingDurationMs: 300_000,
+                    },
+                );
+                await weather.start();
                 expect(weather.getRain()).to.equal(true);
 
                 emitForeignStateChange('foreign.rain', false);
                 clock.tick(120_000);
-                emitForeignStateChange('foreign.rain', true);
-                clock.tick(300_000);
+                expect(weather.getRain()).to.equal(true); // still within the debounce window
+
+                emitForeignStateChange('foreign.rain', true); // shower resumes mid-debounce
+                expect(weather.getRain()).to.equal(true);
+
+                clock.tick(300_000); // even a full debounce duration later, still raining
                 expect(weather.getRain()).to.equal(true);
             } finally {
                 clock.restore();
