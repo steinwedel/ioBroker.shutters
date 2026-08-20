@@ -1,5 +1,5 @@
 # Changelog
-## **WORK IN PROGRESS**
+## 0.0.60 (2026-08-20)
 
 * (Gerhard Steinwedel) **NEW**: Added `status.reasonDetail` per covering: a human-readable explanation of *why* it is currently open/closed/held (concrete thresholds and measurements behind the short `statusText` reason), updated every automation tick.
 

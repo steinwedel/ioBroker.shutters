@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.59",
+    "version": "0.0.60",
     "news": {
+      "0.0.60": {
+        "en": "**NEW**: Added `status.reasonDetail` per covering: a human-readable explanation of *why* it is currently open/closed/held (concrete thresholds and measurements behind the short `statusText` reason), updated every automation tick.",
+        "de": "**NEU**: `status.reasonDetail` pro Beschattung hinzugefügt: eine menschenlesbare Erklärung, *warum* sie aktuell geöffnet/geschlossen/gehalten wird (konkrete Schwellenwerte und Messwerte hinter dem kurzen `statusText`-Grund), wird bei jedem Automatisierungs-Tick aktualisiert.",
+        "ru": "**НОВОЕ**: Добавлено `status.reasonDetail` для каждого покрытия: понятное человеку объяснение, *почему* оно в данный момент открыто/закрыто/удерживается (конкретные пороговые значения и измерения, стоящие за кратким `statusText`), обновляется при каждом такте автоматизации.",
+        "pt": "**NOVO**: Adicionado `status.reasonDetail` por cobertura: uma explicação legível de *por que* está atualmente aberta/fechada/retida (limiares concretos e medições por trás da razão curta `statusText`), atualizado a cada ciclo de automação.",
+        "nl": "**NIEUW**: `status.reasonDetail` per bedekking toegevoegd: een leesbare uitleg van *waarom* deze momenteel open/gesloten/vastgehouden is (concrete drempelwaarden en metingen achter de korte `statusText`-reden), bijgewerkt bij elke automatiseringstick.",
+        "fr": "**NOUVEAU** : Ajout de `status.reasonDetail` par couverture : une explication lisible expliquant *pourquoi* elle est actuellement ouverte/fermée/maintenue (seuils concrets et mesures derrière la raison courte `statusText`), mise à jour à chaque cycle d'automatisation.",
+        "it": "**NOVITÀ**: Aggiunto `status.reasonDetail` per copertura: una spiegazione leggibile del *perché* è attualmente aperta/chiusa/trattenuta (soglie concrete e misurazioni dietro il breve motivo `statusText`), aggiornato ad ogni ciclo di automazione.",
+        "es": "**NUEVO**: Se agregó `status.reasonDetail` por cubierta: una explicación legible de *por qué* está actualmente abierta/cerrada/retenida (umbrales concretos y mediciones detrás de la razón corta `statusText`), actualizado en cada ciclo de automatización.",
+        "pl": "**NOWOŚĆ**: Dodano `status.reasonDetail` dla każdej osłony: czytelne dla człowieka wyjaśnienie, *dlaczego* jest obecnie otwarta/zamknięta/zatrzymana (konkretne progi i pomiary stojące za krótkim powodem `statusText`), aktualizowane przy każdym cyklu automatyzacji.",
+        "uk": "**НОВЕ**: Додано `status.reasonDetail` для кожного покриття: зрозуміле людині пояснення, *чому* воно зараз відкрите/закрите/утримується (конкретні порогові значення та вимірювання за коротким `statusText`), оновлюється при кожному такті автоматизації.",
+        "zh-cn": "**新增**：为每个遮阳设备添加了 `status.reasonDetail`：以人类可读的方式解释*为什么*当前处于打开/关闭/保持状态（简短的 `statusText` 原因背后的具体阈值和测量值），每次自动化周期更新。"
+      },
       "0.0.59": {
         "en": "**FIXED**: Rain protection now engages immediately when rain starts, instead of waiting up to 5 minutes — only the transition back to dry is still debounced (`rainStatusDebounceMs`), so a brief gap between drops mid-shower does not prematurely release protection. Same asymmetric hysteresis already used by wind protection's calm-down logic.",
         "de": "**BEHOBEN**: Der Regenschutz wird jetzt sofort aktiviert, wenn Regen einsetzt, anstatt bis zu 5 Minuten zu warten – nur der Übergang zurück zu trocken wird weiterhin entprellt (`rainStatusDebounceMs`), sodass eine kurze Pause zwischen Tropfen während eines Schauers den Schutz nicht vorzeitig aufhebt. Dieselbe asymmetrische Hysterese wird bereits von der Beruhigungslogik des Windschutzes verwendet.",
@@ -80,19 +93,6 @@
         "pl": "**ULEPSZONE**: Dodaj niestandardową ikonę adaptera rolety i usuń niedostępne odznaki repozytorium",
         "uk": "**ПОКРАЩЕНО**: Додано власну піктограму адаптера ролет та видалено недоступні значки репозиторію.",
         "zh-cn": "**增强功能**：添加自定义卷帘适配器图标并移除不可用的存储库徽章"
-      },
-      "0.0.53": {
-        "en": "**ENHANCED**: Remove all obsolete configuration migration and compatibility code; require canonical covering IDs, plan IDs, and orientation tolerance bounds",
-        "de": "**VERBESSERT**: Sämtlicher veralteter Konfigurationsmigrations- und Kompatibilitätscode wurde entfernt; kanonische Abdeckungs-IDs, Plan-IDs und Toleranzgrenzen für die Ausrichtung sind erforderlich.",
-        "ru": "**УЛУЧШЕНО**: Удален весь устаревший код миграции конфигурации и обеспечения совместимости; требуется использование канонических идентификаторов покрытий, идентификаторов планов и границ допуска ориентации.",
-        "pt": "**APRIMORADO**: Remove todo o código obsoleto de migração de configuração e compatibilidade; exige IDs de cobertura canônicos, IDs de plano e limites de tolerância de orientação.",
-        "nl": "**VERBETERD**: Verwijder alle verouderde configuratiemigratie- en compatibiliteitscode; vereis canonieke dekkings-ID's, plan-ID's en oriëntatietolerantiegrenzen.",
-        "fr": "**AMÉLIORÉ** : Suppression de tout le code obsolète de migration de configuration et de compatibilité ; exigence d’identifiants de couverture canoniques, d’identifiants de plan et de limites de tolérance d’orientation.",
-        "it": "**MIGLIORATO**: Rimossi tutti i codici obsoleti di migrazione e compatibilità della configurazione; richiesti ID di copertura canonici, ID di piano e limiti di tolleranza dell'orientamento",
-        "es": "**MEJORADO**: Eliminar todo el código obsoleto de migración y compatibilidad de configuraciones; requerir identificadores de cobertura canónicos, identificadores de plan y límites de tolerancia de orientación.",
-        "pl": "**ULEPSZONE**: Usuń cały przestarzały kod migracji konfiguracji i zgodności; wymagaj kanonicznych identyfikatorów obejmujących, identyfikatorów planów i ograniczeń tolerancji orientacji",
-        "uk": "**ПОКРАЩЕНО**: Видалено весь застарілий код міграції конфігурації та сумісності; потрібні канонічні ідентифікатори покриття, ідентифікатори плану та межі допуску орієнтації.",
-        "zh-cn": "**增强功能**：移除所有过时的配置迁移和兼容性代码；要求使用规范的覆盖 ID、计划 ID 和方向容差范围。"
       }
     },
     "titleLang": {
