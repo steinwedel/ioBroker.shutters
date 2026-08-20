@@ -1,5 +1,5 @@
 # Changelog
-## **WORK IN PROGRESS**
+## 0.0.59 (2026-08-20)
 * (Gerhard Steinwedel) **FIXED**: Rain protection now engages immediately when rain starts, instead of waiting up to 5 minutes — only the transition back to dry is still debounced (`rainStatusDebounceMs`), so a brief gap between drops mid-shower does not prematurely release protection. Same asymmetric hysteresis already used by wind protection's calm-down logic.
 
 ## 0.0.58 (2026-08-19)

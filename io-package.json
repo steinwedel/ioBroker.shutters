@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.58",
+    "version": "0.0.59",
     "news": {
+      "0.0.59": {
+        "en": "**FIXED**: Rain protection now engages immediately when rain starts, instead of waiting up to 5 minutes — only the transition back to dry is still debounced (`rainStatusDebounceMs`), so a brief gap between drops mid-shower does not prematurely release protection. Same asymmetric hysteresis already used by wind protection's calm-down logic.",
+        "de": "**BEHOBEN**: Der Regenschutz wird jetzt sofort aktiviert, wenn Regen einsetzt, anstatt bis zu 5 Minuten zu warten – nur der Übergang zurück zu trocken wird weiterhin entprellt (`rainStatusDebounceMs`), sodass eine kurze Pause zwischen Tropfen während eines Schauers den Schutz nicht vorzeitig aufhebt. Dieselbe asymmetrische Hysterese wird bereits von der Beruhigungslogik des Windschutzes verwendet.",
+        "ru": "**ИСПРАВЛЕНО**: Защита от дождя теперь срабатывает немедленно при начале дождя, вместо ожидания до 5 минут — только переход обратно к сухому состоянию по-прежнему использует задержку (`rainStatusDebounceMs`), чтобы короткий перерыв между каплями во время ливня не снимал защиту преждевременно. Та же асимметричная гистерезис уже используется логикой успокоения защиты от ветра.",
+        "pt": "**CORRIGIDO**: A proteção contra chuva agora é ativada imediatamente quando a chuva começa, em vez de esperar até 5 minutos — apenas a transição de volta para seco ainda tem debounce (`rainStatusDebounceMs`), para que uma breve pausa entre gotas durante a chuva não libere a proteção prematuramente. A mesma histerese assimétrica já é usada pela lógica de acalmia da proteção contra vento.",
+        "nl": "**OPGELOST**: Regenbescherming wordt nu onmiddellijk geactiveerd wanneer het begint te regenen, in plaats van tot 5 minuten te wachten — alleen de overgang terug naar droog wordt nog steeds gedebounced (`rainStatusDebounceMs`), zodat een korte pauze tussen druppels tijdens een bui de bescherming niet voortijdig opheft. Dezelfde asymmetrische hysterese wordt al gebruikt door de kalmeerlogica van windbescherming.",
+        "fr": "**CORRIGÉ** : La protection contre la pluie s'active désormais immédiatement lorsque la pluie commence, au lieu d'attendre jusqu'à 5 minutes — seule la transition vers l'état sec est encore anti-rebond (`rainStatusDebounceMs`), afin qu'une brève interruption entre les gouttes pendant une averse ne lève pas prématurément la protection. La même hystérésis asymétrique est déjà utilisée par la logique d'apaisement de la protection contre le vent.",
+        "it": "**RISOLTO**: La protezione dalla pioggia ora si attiva immediatamente quando inizia a piovere, invece di attendere fino a 5 minuti — solo la transizione verso l'asciutto è ancora debounced (`rainStatusDebounceMs`), in modo che una breve pausa tra le gocce durante un acquazzone non rilasci prematuramente la protezione. La stessa isteresi asimmetrica è già utilizzata dalla logica di calma della protezione dal vento.",
+        "es": "**CORREGIDO**: La protección contra lluvia ahora se activa inmediatamente cuando comienza a llover, en lugar de esperar hasta 5 minutos — solo la transición de vuelta a seco sigue teniendo debounce (`rainStatusDebounceMs`), para que una breve pausa entre gotas durante una lluvia no libere la protección prematuramente. La misma histéresis asimétrica ya es utilizada por la lógica de calma de la protección contra viento.",
+        "pl": "**NAPRAWIONO**: Ochrona przed deszczem jest teraz aktywowana natychmiast po rozpoczęciu deszczu, zamiast czekać do 5 minut — tylko przejście z powrotem do stanu suchego jest nadal wygładzane (`rainStatusDebounceMs`), aby krótka przerwa między kroplami podczas ulewy nie znosiła ochrony przedwcześnie. Ta sama asymetryczna histereza jest już używana przez logikę uspokajania ochrony przed wiatrem.",
+        "uk": "**ВИПРАВЛЕНО**: Захист від дощу тепер активується негайно, коли починається дощ, замість очікування до 5 хвилин — тільки перехід назад до сухого стану все ще має затримку (`rainStatusDebounceMs`), щоб коротка пауза між краплями під час зливи не знімала захист передчасно. Той самий асиметричний гістерезис вже використовується логікою заспокоєння захисту від вітру.",
+        "zh-cn": "**已修复**：雨水保护现在会在开始下雨时立即启动，而不是等待最多 5 分钟——只有转回干燥状态时仍会去抖动（`rainStatusDebounceMs`），这样在阵雨中雨滴之间的短暂间隙不会过早解除保护。与风保护的平静逻辑已使用的非对称滞后相同。"
+      },
       "0.0.58": {
         "en": "**NEW**: Rain protection target position (covering height) now configurable in admin UI — `rainTargetPercent` field appears next to rain protection checkbox when enabled, matching the existing sun protection height field\n**FIXED**: Rain-protected coverings with wind-direction filters no longer close unconditionally when wind is too weak to determine direction reliably — once a direction filter is configured (orientation + tolerance), unmeasured or sub-threshold wind means that covering does not protect, rather than protecting regardless of configured direction (previous behavior caused all rain-protected coverings to close together during light rain below 5 km/h minimum). Coverings without a direction filter configured retain the original behavior of protecting on any rain",
         "de": "**NEU**: Regenschutz-Zielposition (Behangshöhe) jetzt in der Admin-Oberfläche konfigurierbar — das Feld `rainTargetPercent` erscheint neben der Regenschutz-Checkbox, wenn diese aktiviert ist, analog zum bestehenden Feld für die Sonnenschutzhöhe **BEHOBEN**: Regengeschützte Behänge mit Windrichtungsfiltern schließen nicht mehr bedingungslos, wenn der Wind zu schwach ist, um die Richtung zuverlässig zu bestimmen — sobald ein Richtungsfilter konfiguriert ist (Ausrichtung + Toleranz), bedeutet nicht messbarer oder unterschwelliger Wind, dass der Behang nicht schützt, anstatt unabhängig von der konfigurierten Richtung zu schützen (das bisherige Verhalten führte dazu, dass alle regengeschützten Behänge bei leichtem Regen unter 5 km/h Minimum gemeinsam schlossen). Behänge ohne konfigurierten Richtungsfilter behalten das ursprüngliche Verhalten bei, bei jedem Regen zu schützen",
@@ -80,19 +93,6 @@
         "pl": "**ULEPSZONE**: Usuń cały przestarzały kod migracji konfiguracji i zgodności; wymagaj kanonicznych identyfikatorów obejmujących, identyfikatorów planów i ograniczeń tolerancji orientacji",
         "uk": "**ПОКРАЩЕНО**: Видалено весь застарілий код міграції конфігурації та сумісності; потрібні канонічні ідентифікатори покриття, ідентифікатори плану та межі допуску орієнтації.",
         "zh-cn": "**增强功能**：移除所有过时的配置迁移和兼容性代码；要求使用规范的覆盖 ID、计划 ID 和方向容差范围。"
-      },
-      "0.0.52": {
-        "en": "**ENHANCED**: Remove the unused JSONConfig admin artifact",
-        "de": "**VERBESSERT**: Entfernt das nicht verwendete JSONConfig-Admin-Artefakt.",
-        "ru": "**УЛУЧШЕНО**: Удален неиспользуемый административный артефакт JSONConfig.",
-        "pt": "**APRIMORADO**: Remove o artefato administrativo JSONConfig não utilizado.",
-        "nl": "**VERBETERD**: Verwijder het ongebruikte JSONConfig-beheerartefact.",
-        "fr": "**AMÉLIORÉ** : Suppression de l’artefact d’administration JSONConfig inutilisé",
-        "it": "**MIGLIORATO**: Rimossa la cartella amministrativa JSONConfig non utilizzata",
-        "es": "**MEJORADO**: Eliminar el artefacto de administración JSONConfig no utilizado",
-        "pl": "**ULEPSZONE**: Usuń nieużywany artefakt administratora JSONConfig",
-        "uk": "**ПОКРАЩЕНО**: Видалено невикористаний артефакт адміністратора JSONConfig",
-        "zh-cn": "**增强功能**：移除未使用的 JSONConfig 管理组件"
       }
     },
     "titleLang": {
