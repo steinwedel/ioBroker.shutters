@@ -167,6 +167,7 @@ describe('ShutterController', () => {
                 ack: true,
             });
             expect(getOwnState('shutters.shutter1.status.statusText')?.val).to.equal('Idle');
+            expect(getOwnState('shutters.shutter1.status.reasonDetail')?.val).to.be.a('string');
             expect(getOwnState('shutters.shutter1.status.state')).to.deep.equal({ val: 1, ack: true });
             expect(getOwnState('shutters.shutter1.configuration.orientation')).to.deep.equal({ val: 180, ack: true });
             expect(getOwnState('shutters.shutter1.configuration.area')).to.deep.equal({
@@ -235,6 +236,25 @@ describe('ShutterController', () => {
             await controller.setDoorProtectionActive(false);
             expect(getOwnState('shutters.shutter1.protection.doorProtectionActive')).to.deep.equal({
                 val: false,
+                ack: true,
+            });
+        });
+    });
+
+    describe('setReasonDetail', () => {
+        it('writes the reasonDetail state, unconditionally on every call', async () => {
+            const { adapter, getOwnState } = createFakeAdapter();
+            const controller = new ShutterController(adapter, makeConfig());
+
+            await controller.setReasonDetail('Sun protection: solar radiation 250 W/m² >= threshold 200 W/m².');
+            expect(getOwnState('shutters.shutter1.status.reasonDetail')).to.deep.equal({
+                val: 'Sun protection: solar radiation 250 W/m² >= threshold 200 W/m².',
+                ack: true,
+            });
+
+            await controller.setReasonDetail('Schedule: no protection currently active, following target 0%.');
+            expect(getOwnState('shutters.shutter1.status.reasonDetail')).to.deep.equal({
+                val: 'Schedule: no protection currently active, following target 0%.',
                 ack: true,
             });
         });

@@ -40,6 +40,7 @@ const STATE_CHANNELS: Record<string, ICoveringChannel> = {
     tiltActual: 'status',
     state: 'status',
     statusText: 'status',
+    reasonDetail: 'status',
     activityLog: 'status',
     doorProtectionActive: 'protection',
     sunProtectionEnabled: 'protection',
@@ -406,6 +407,18 @@ export class ShutterController {
             native: {},
         });
 
+        await adapter.setObjectNotExistsAsync(stateId('reasonDetail'), {
+            type: 'state',
+            common: {
+                name: `${config.name} - why the covering is currently open/closed/held (details behind statusText)`,
+                type: 'string',
+                role: 'text',
+                read: true,
+                write: false,
+            },
+            native: {},
+        });
+
         await adapter.setObjectNotExistsAsync(stateId('doorProtectionActive'), {
             type: 'state',
             common: {
@@ -545,6 +558,7 @@ export class ShutterController {
         await this.setProtectionActivityStates();
         await this.initializeState('state', 1);
         await this.initializeState('statusText', 'Idle');
+        await this.initializeState('reasonDetail', 'Idle - no automation decision evaluated yet.');
 
         await this.recoverPendingMove();
         await this.refreshPosition();
@@ -633,6 +647,21 @@ export class ShutterController {
         for (const name of PROTECTION_NAMES) {
             await this.writeState(`${name}Active`, active[name] ?? false, true);
         }
+    }
+
+    /**
+     * Writes `reasonDetail` (plan-adjacent to `statusText`/`activityLog`): a fuller, human-readable
+     * explanation of *why* the automation engine's current decision applies right now (the concrete
+     * thresholds/measurements involved, not just the short `statusText` keyword), so a user can
+     * understand an open/closed/held covering without having to inspect weather values and
+     * configuration by hand. Unlike `statusText`, this is written on every tick regardless of whether
+     * the winning reason actually changed, since the underlying numbers (e.g. current wind speed) are
+     * meaningful even while the decision itself has not changed.
+     *
+     * @param detail - Human-readable explanation, see `AutomationEngine`'s per-reason detail builders.
+     */
+    public async setReasonDetail(detail: string): Promise<void> {
+        await this.writeState('reasonDetail', detail, true);
     }
 
     /**

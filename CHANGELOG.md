@@ -1,4 +1,8 @@
 # Changelog
+## **WORK IN PROGRESS**
+
+* (Gerhard Steinwedel) **NEW**: Added `status.reasonDetail` per covering: a human-readable explanation of *why* it is currently open/closed/held (concrete thresholds and measurements behind the short `statusText` reason), updated every automation tick.
+
 ## 0.0.59 (2026-08-20)
 * (Gerhard Steinwedel) **FIXED**: Rain protection now engages immediately when rain starts, instead of waiting up to 5 minutes — only the transition back to dry is still debounced (`rainStatusDebounceMs`), so a brief gap between drops mid-shower does not prematurely release protection. Same asymmetric hysteresis already used by wind protection's calm-down logic.
 

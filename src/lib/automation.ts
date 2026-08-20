@@ -22,6 +22,21 @@ import type { WeatherSource } from './weather-source';
 const AUTOMATED_COMMAND_STAGGER_MS = 750;
 
 /**
+ * @param value - Value to format, or undefined if unmeasured.
+ * @param unit - Optional unit suffix, e.g. `' km/h'`.
+ * @returns `value` rounded to one decimal place plus `unit`, or `'n/a'` for undefined/non-finite -
+ *   used throughout `AutomationEngine`'s per-reason `reasonDetail` builders (see
+ *   `ShutterController.setReasonDetail()`) so an unmeasured input reads as "not available" rather
+ *   than as a misleading `0` or `NaN`.
+ */
+function fmt(value: number | undefined, unit = ''): string {
+    if (value === undefined || !Number.isFinite(value)) {
+        return 'n/a';
+    }
+    return `${Math.round(value * 10) / 10}${unit}`;
+}
+
+/**
  * Default wind/rain/frost protection availability per covering type; explicit
  * `windProtectionEnabled`/`rainProtectionEnabled`/`frostProtectionEnabled` always take precedence
  * (plan section 2a.5/7/7a/7b). `lamellen` is typically an indoor covering with no real weather
@@ -420,6 +435,11 @@ export class AutomationEngine {
             state.nightCoolingActive = false;
             state.sunActive = false;
             this.setProtectionActivityStates(id, controller, { windProtection: true });
+            this.setReasonDetail(
+                id,
+                controller,
+                `Wind protection: wind speed ${fmt(this.weather.getWindSpeed(), ' km/h')} ≥ threshold ${windOpenThreshold} km/h.`,
+            );
             this.applyTarget(id, controller, safePosition(config.coveringType), 'Wind protection', true);
             return;
         }
@@ -444,6 +464,15 @@ export class AutomationEngine {
             state.sunActive = false;
             this.setProtectionActivityStates(id, controller, { rainProtection: true });
             const target = config.rainTargetPercent ?? protectedPosition(config.coveringType);
+            const hasDirectionFilter =
+                config.rainProtectionWindDirectionToleranceDeg !== undefined && config.orientation !== undefined;
+            this.setReasonDetail(
+                id,
+                controller,
+                hasDirectionFilter
+                    ? `Rain protection: rain detected; wind ${fmt(this.weather.getWindSpeed(), ' km/h')} from ${fmt(this.weather.getWindDirection(), '°')} is within this window's configured direction filter (orientation ${config.orientation}°, tolerance ±${config.rainProtectionWindDirectionToleranceDeg}°).`
+                    : 'Rain protection: rain detected; no wind-direction filter configured for this covering, so it protects on any rain.',
+            );
             this.applyTarget(id, controller, target, 'Rain protection');
             return;
         }
@@ -480,6 +509,7 @@ export class AutomationEngine {
             sunOverrideActive,
             minTempSatisfied,
         );
+        let sunActivationDetail: string | undefined;
         if (!sunEligible) {
             state.sunHysteresis.reset();
             state.sunActive = false;
@@ -504,12 +534,27 @@ export class AutomationEngine {
                 this.options.sunProtectionClearSkyCloudCoverMaxPercent,
             );
             state.sunActive = radiationActive || cloudCoverActive;
+            sunActivationDetail = cloudCoverActive
+                ? `clear-sky trigger: cloud cover ${fmt(this.weather.getCloudCover(), '%')} ≤ threshold ${this.options.sunProtectionClearSkyCloudCoverMaxPercent}%`
+                : `solar radiation ${fmt(this.weather.getSolarRadiation(), ' W/m²')} ≥ threshold ${this.options.sunCloseThreshold} W/m²`;
         }
         if (state.sunActive) {
             state.frostActive = false;
             state.nightCoolingActive = false;
             this.setProtectionActivityStates(id, controller, { sunProtection: true });
             const target = config.sunTargetPercent ?? 70;
+            const sunPosition = this.options.location
+                ? getSunPosition(now, this.options.location.latitude, this.options.location.longitude)
+                : undefined;
+            this.setReasonDetail(
+                id,
+                controller,
+                `Sun protection: ${sunActivationDetail ?? 'active'}${
+                    sunPosition
+                        ? ` (sun azimuth ${fmt(sunPosition.azimuthDeg, '°')}, elevation ${fmt(sunPosition.elevationDeg, '°')}, orientation ${fmt(config.orientation, '°')}).`
+                        : '.'
+                }`,
+            );
             this.applyTarget(id, controller, target, 'Sun protection');
             return;
         }
@@ -530,12 +575,24 @@ export class AutomationEngine {
             // comfort feature.
             state.nightCoolingActive = false;
             this.setProtectionActivityStates(id, controller, { frostProtection: true });
+            const damp =
+                this.weather.getRain() === true ? 'raining' : `humidity ${fmt(this.weather.getHumidity(), '%')} ≥ 80%`;
+            this.setReasonDetail(
+                id,
+                controller,
+                `Frost protection: outdoor temperature ${fmt(this.weather.getOutdoorTemperature(), '°C')} ≤ threshold ${this.options.frostThreshold}°C and ${damp} - automated movement suppressed, covering left as-is.`,
+            );
             return;
         }
 
         if (state.manualOverrideActive) {
             state.nightCoolingActive = false;
             this.setProtectionActivityStates(id, controller, {});
+            this.setReasonDetail(
+                id,
+                controller,
+                'Manual override: a manual command was issued today, suspending schedule and sun protection for this covering until local midnight.',
+            );
             return;
         }
 
@@ -543,6 +600,7 @@ export class AutomationEngine {
         if (scheduleTarget === undefined) {
             state.nightCoolingActive = false;
             this.setProtectionActivityStates(id, controller, {});
+            this.setReasonDetail(id, controller, 'No schedule target configured for this covering yet.');
             return;
         }
 
@@ -564,6 +622,11 @@ export class AutomationEngine {
                 });
             if (state.nightCoolingActive) {
                 this.setProtectionActivityStates(id, controller, { nightCooling: true });
+                this.setReasonDetail(
+                    id,
+                    controller,
+                    `Night cooling: indoor ${fmt(indoorTempStateId ? this.indoorTempByStateId.get(indoorTempStateId) : undefined, '°C')} ≥ min ${this.options.nightCoolingIndoorMinTemp}°C and outdoor ${fmt(this.weather.getOutdoorTemperature(), '°C')} is at least ${this.options.nightCoolingMinDelta}°C cooler - held open instead of tonight's scheduled close.`,
+                );
                 this.applyTarget(id, controller, 0, 'Night cooling');
                 return;
             }
@@ -572,6 +635,11 @@ export class AutomationEngine {
         }
 
         this.setProtectionActivityStates(id, controller, {});
+        this.setReasonDetail(
+            id,
+            controller,
+            `Schedule: no protection currently active, following the scheduled target of ${scheduleTarget}%.`,
+        );
         this.applyTarget(id, controller, scheduleTarget, 'Schedule');
     }
 
@@ -584,6 +652,17 @@ export class AutomationEngine {
             this.adapter.log.error(
                 `Setting protection activity states for covering "${id}" failed: ${(err as Error).message}`,
             );
+        });
+    }
+
+    /**
+     * @param id - `IShutterConfig.id` of the affected covering.
+     * @param controller - The covering's controller.
+     * @param detail - See `ShutterController.setReasonDetail()`.
+     */
+    private setReasonDetail(id: string, controller: ShutterController, detail: string): void {
+        controller.setReasonDetail(detail).catch(err => {
+            this.adapter.log.error(`Setting reasonDetail for covering "${id}" failed: ${(err as Error).message}`);
         });
     }
 

@@ -58,6 +58,8 @@ interface IFakeControllerHandle {
     protectionActivityCalls: Partial<
         Record<'sunProtection' | 'rainProtection' | 'windProtection' | 'frostProtection' | 'nightCooling', boolean>
     >[];
+    /** Every value passed to `setReasonDetail()`, in call order. */
+    reasonDetailCalls: string[];
 }
 
 function createFakeController(config: IShutterConfig, persistedOverrideUntil = 0): IFakeControllerHandle {
@@ -71,6 +73,7 @@ function createFakeController(config: IShutterConfig, persistedOverrideUntil = 0
         hasPendingMove: false,
         doorProtectionActiveCalls: [],
         protectionActivityCalls: [],
+        reasonDetailCalls: [],
     };
     handle.controller = {
         onManualCommand: undefined as (() => void) | undefined,
@@ -91,6 +94,10 @@ function createFakeController(config: IShutterConfig, persistedOverrideUntil = 0
             >,
         ) => {
             handle.protectionActivityCalls.push(active);
+            return Promise.resolve();
+        },
+        setReasonDetail: (detail: string) => {
+            handle.reasonDetailCalls.push(detail);
             return Promise.resolve();
         },
         // eslint-disable-next-line @typescript-eslint/require-await -- intentionally synchronous test double for an async controller method
