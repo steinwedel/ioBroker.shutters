@@ -1,4 +1,6 @@
 # Changelog
+## **WORK IN PROGRESS**
+
 ## 0.0.61 (2026-08-21)
 
 * (Gerhard Steinwedel) **FIXED**: Sun protection no longer flaps a covering up/down repeatedly during scattered/broken clouds: once its combined sun-protection decision changes, it now holds for `sunActiveLockMs` (default 10 min) before it can change again, and solar radiation/cloud cover are averaged over `sunProtectionAveragingDurationMs` (default 10 min) instead of reacting to single readings.
