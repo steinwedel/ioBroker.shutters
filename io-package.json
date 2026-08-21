@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "shutters",
-    "version": "0.0.60",
+    "version": "0.0.61",
     "news": {
+      "0.0.61": {
+        "en": "**FIXED**: Sun protection no longer flaps a covering up/down repeatedly during scattered/broken clouds: once its combined sun-protection decision changes, it now holds for `sunActiveLockMs` (default 10 min) before it can change again, and solar radiation/cloud cover are averaged over `sunProtectionAveragingDurationMs` (default 10 min) instead of reacting to single readings.",
+        "de": "**BEHOBEN**: Sonnenschutz fährt eine Abdeckung bei wechselnder/aufgelockerter Bewölkung nicht mehr wiederholt auf und ab: Sobald sich die kombinierte Sonnenschutz-Entscheidung ändert, bleibt sie nun für `sunActiveLockMs` (Standard 10 Min.) bestehen, bevor sie sich erneut ändern kann, und Sonneneinstrahlung/Bewölkung werden über `sunProtectionAveragingDurationMs` (Standard 10 Min.) gemittelt, anstatt auf einzelne Messwerte zu reagieren.",
+        "ru": "**ИСПРАВЛЕНО**: Солнцезащита больше не поднимает/опускает покрытие многократно при переменной/рассеянной облачности: как только комбинированное решение о солнцезащите изменяется, оно теперь удерживается в течение `sunActiveLockMs` (по умолчанию 10 мин), прежде чем может измениться снова, а солнечная радиация/облачность усредняются за `sunProtectionAveragingDurationMs` (по умолчанию 10 мин) вместо реагирования на отдельные показания.",
+        "pt": "**CORRIGIDO**: A proteção solar já não movimenta repetidamente uma cobertura para cima/baixo durante nuvens dispersas/fragmentadas: uma vez que a decisão combinada de proteção solar muda, agora mantém-se durante `sunActiveLockMs` (padrão 10 min) antes de poder mudar novamente, e a radiação solar/cobertura de nuvens são calculadas em média durante `sunProtectionAveragingDurationMs` (padrão 10 min) em vez de reagir a leituras individuais.",
+        "nl": "**OPGELOST**: Zonwering beweegt een afdekking niet langer herhaaldelijk op/neer tijdens verspreide/gebroken bewolking: zodra de gecombineerde zonweringsbeslissing verandert, blijft deze nu gedurende `sunActiveLockMs` (standaard 10 min) gehandhaafd voordat deze opnieuw kan veranderen, en zonnestraling/bewolking worden gemiddeld over `sunProtectionAveragingDurationMs` (standaard 10 min) in plaats van te reageren op individuele metingen.",
+        "fr": "**CORRIGÉ** : La protection solaire ne fait plus monter/descendre de manière répétée une couverture lors de nuages épars/fragmentés : une fois que la décision combinée de protection solaire change, elle est maintenant maintenue pendant `sunActiveLockMs` (par défaut 10 min) avant de pouvoir changer à nouveau, et le rayonnement solaire/la couverture nuageuse sont moyennés sur `sunProtectionAveragingDurationMs` (par défaut 10 min) au lieu de réagir à des lectures individuelles.",
+        "it": "**RISOLTO**: La protezione solare non muove più ripetutamente una copertura su/giù durante nuvole sparse/frammentate: una volta che la decisione combinata di protezione solare cambia, ora rimane valida per `sunActiveLockMs` (predefinito 10 min) prima di poter cambiare di nuovo, e la radiazione solare/copertura nuvolosa vengono mediate su `sunProtectionAveragingDurationMs` (predefinito 10 min) invece di reagire a singole letture.",
+        "es": "**CORREGIDO**: La protección solar ya no mueve repetidamente una cubierta arriba/abajo durante nubes dispersas/fragmentadas: una vez que cambia la decisión combinada de protección solar, ahora se mantiene durante `sunActiveLockMs` (predeterminado 10 min) antes de poder cambiar nuevamente, y la radiación solar/cobertura de nubes se promedian durante `sunProtectionAveragingDurationMs` (predeterminado 10 min) en lugar de reaccionar a lecturas individuales.",
+        "pl": "**NAPRAWIONO**: Ochrona przeciwsłoneczna nie podnosi/opuszcza już wielokrotnie osłony podczas zmiennego/przerywanego zachmurzenia: gdy tylko połączona decyzja o ochronie przeciwsłonecznej się zmieni, jest teraz utrzymywana przez `sunActiveLockMs` (domyślnie 10 min) zanim będzie mogła się zmienić ponownie, a promieniowanie słoneczne/zachmurzenie są uśredniane przez `sunProtectionAveragingDurationMs` (domyślnie 10 min) zamiast reagować na pojedyncze odczyty.",
+        "uk": "**ВИПРАВЛЕНО**: Сонцезахист більше не піднімає/опускає покриття багаторазово під час розсіяної/фрагментованої хмарності: як тільки комбіноване рішення щодо сонцезахисту змінюється, воно тепер утримується протягом `sunActiveLockMs` (за замовчуванням 10 хв), перш ніж зможе змінитися знову, а сонячна радіація/хмарність усереднюються за `sunProtectionAveragingDurationMs` (за замовчуванням 10 хв) замість реагування на окремі показники.",
+        "zh-cn": "**已修复**：遮阳保护不再在零散/破碎云层期间反复上下移动遮盖物：一旦其综合遮阳保护决策发生变化，现在将在 `sunActiveLockMs`（默认 10 分钟）内保持不变，然后才能再次更改，并且太阳辐射/云层覆盖在 `sunProtectionAveragingDurationMs`（默认 10 分钟）内取平均值，而不是对单次读数做出反应。"
+      },
       "0.0.60": {
         "en": "**NEW**: Added `status.reasonDetail` per covering: a human-readable explanation of *why* it is currently open/closed/held (concrete thresholds and measurements behind the short `statusText` reason), updated every automation tick.",
         "de": "**NEU**: `status.reasonDetail` pro Beschattung hinzugefügt: eine menschenlesbare Erklärung, *warum* sie aktuell geöffnet/geschlossen/gehalten wird (konkrete Schwellenwerte und Messwerte hinter dem kurzen `statusText`-Grund), wird bei jedem Automatisierungs-Tick aktualisiert.",
@@ -80,19 +93,6 @@
         "pl": "**NAPRAWIONO**: Pokaż efektywne ustawienie ochrony przed deszczem i umieść jego tolerancję kierunku wiatru obok pola wyboru",
         "uk": "**ВИПРАВЛЕНО**: Відображати ефективне налаштування захисту від дощу та розміщувати його допуск напрямку вітру поруч із прапорцем.",
         "zh-cn": "**已修复**：显示有效的防雨设置，并将其风向容差值放在复选框旁边。"
-      },
-      "0.0.54": {
-        "en": "**ENHANCED**: Add a custom roller-shutter adapter icon and remove unavailable repository badges",
-        "de": "**VERBESSERT**: Ein benutzerdefiniertes Symbol für einen Rollladenadapter hinzufügen und die Abzeichen für nicht verfügbare Repositorys entfernen.",
-        "ru": "**УЛУЧШЕНО**: Добавлена пользовательская иконка адаптера для рольставней и удалены значки недоступного репозитория.",
-        "pt": "**APRIMORADO**: Adicionado um ícone personalizado para adaptador de persiana e removidos os avisos de repositório indisponível.",
-        "nl": "**VERBETERD**: Voeg een aangepast pictogram voor rolluikadapters toe en verwijder badges voor niet-beschikbare repositories.",
-        "fr": "**AMÉLIORÉ** : Ajout d’une icône personnalisée pour l’adaptateur de volet roulant et suppression des badges de dépôt indisponibles.",
-        "it": "**MIGLIORATO**: Aggiunta un'icona personalizzata per l'adattatore per tapparelle e rimozione dei badge del repository non disponibile.",
-        "es": "**MEJORADO**: Se agregó un ícono personalizado para el adaptador de persiana enrollable y se eliminaron las insignias de repositorio no disponibles.",
-        "pl": "**ULEPSZONE**: Dodaj niestandardową ikonę adaptera rolety i usuń niedostępne odznaki repozytorium",
-        "uk": "**ПОКРАЩЕНО**: Додано власну піктограму адаптера ролет та видалено недоступні значки репозиторію.",
-        "zh-cn": "**增强功能**：添加自定义卷帘适配器图标并移除不可用的存储库徽章"
       }
     },
     "titleLang": {
