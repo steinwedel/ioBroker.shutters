@@ -52,7 +52,7 @@ jobs:
               with:
                   node-version: '24.x'
                   build: true
-                  test-command: npm run test:integration
+                  integration-test-command: npm run test:integration
 
     deploy:
         needs: [check-and-lint, adapter-tests, integration-tests]
