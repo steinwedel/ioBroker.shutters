@@ -201,14 +201,16 @@ describe('WeatherSource', () => {
     });
 
     describe('live updates via stateChange', () => {
-        it('picks up a new value for a configured metric', async () => {
+        it('picks up a new value for a configured metric, averaged with the still-recent previous reading', async () => {
             const { adapter, emitForeignStateChange } = createFakeAdapter({ 'foreign.solar': 100 });
             const weather = new WeatherSource(adapter, { solarRadiationStateId: 'foreign.solar' });
             await weather.start();
 
             emitForeignStateChange('foreign.solar', 400);
 
-            expect(weather.getSolarRadiation()).to.equal(400);
+            // Averaged over the default 10-minute window (getSolarRadiation()), not the raw new
+            // reading in isolation - see the dedicated averaging tests below for that behavior.
+            expect(weather.getSolarRadiation()).to.equal(250);
         });
 
         it('ignores a state change for an unrelated/unconfigured state ID', async () => {
@@ -368,6 +370,53 @@ describe('WeatherSource', () => {
             expect(weather.getWindDirection()).to.be.undefined;
             emitForeignStateChange('foreign.direction', null);
             expect(weather.getWindDirection()).to.be.undefined;
+        });
+
+        it('averages solar radiation and cloud cover over sunProtectionAveragingDurationMs, and expires stale samples', async () => {
+            const clock = sinon.useFakeTimers();
+            try {
+                const { adapter, emitForeignStateChange } = createFakeAdapter({
+                    'foreign.solar': 100,
+                    'foreign.cloudCover': 60,
+                });
+                const weather = new WeatherSource(
+                    adapter,
+                    { solarRadiationStateId: 'foreign.solar', cloudCoverStateId: 'foreign.cloudCover' },
+                    { sunProtectionAveragingDurationMs: 600_000 },
+                );
+                await weather.start();
+                expect(weather.getSolarRadiation()).to.equal(100);
+                expect(weather.getCloudCover()).to.equal(60);
+
+                // A momentary spike (e.g. a single noisy reading) only shifts the average, not the
+                // reported value outright - the whole point of averaging away randomness.
+                clock.tick(60_000);
+                emitForeignStateChange('foreign.solar', 700);
+                emitForeignStateChange('foreign.cloudCover', 0);
+                expect(weather.getSolarRadiation()).to.equal(400); // (100 + 700) / 2
+                expect(weather.getCloudCover()).to.equal(30); // (60 + 0) / 2
+
+                // Once the first (spike-preceding) sample falls outside the averaging window, only the
+                // still-recent one remains.
+                clock.tick(600_000);
+                expect(weather.getSolarRadiation()).to.equal(700);
+                expect(weather.getCloudCover()).to.equal(0);
+            } finally {
+                clock.restore();
+            }
+        });
+
+        it('clears the solar-radiation/cloud-cover average for an invalid or unavailable reading, instead of keeping stale samples', async () => {
+            const { adapter, emitForeignStateChange } = createFakeAdapter({ 'foreign.solar': 100 });
+            const weather = new WeatherSource(adapter, { solarRadiationStateId: 'foreign.solar' });
+            await weather.start();
+            expect(weather.getSolarRadiation()).to.equal(100);
+
+            emitForeignStateChange('foreign.solar', null);
+            expect(weather.getSolarRadiation()).to.be.undefined;
+
+            emitForeignStateChange('foreign.solar', 250);
+            expect(weather.getSolarRadiation()).to.equal(250);
         });
     });
 

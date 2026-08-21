@@ -67,6 +67,8 @@ interface ICoveringAutomationState {
     sunOverrideUntilMs: number;
     /** Set by a manual position command and cleared at the next schedule trigger. */
     manualOverrideActive: boolean;
+    /** `Date.now()` the last time `sunActive` actually changed value, for the anti-flapping lock (`IAutomationOptions.sunActiveLockMs`); 0 = never changed yet (so the very first activation is never locked). */
+    sunActiveChangedAtMs: number;
 }
 
 /** Global thresholds/hysteresis durations for `AutomationEngine`. */
@@ -90,6 +92,12 @@ export interface IAutomationOptions {
      * only relevant while `sunProtectionCloudCoverTriggerEnabled` is `true`.
      */
     sunProtectionClearSkyCloudCoverMaxPercent: number;
+    /**
+     * Minimum time (ms) between two changes of a covering's combined sun-protection decision
+     * (see `evaluateCovering()`'s anti-flapping lock, requested after real-world flapping during
+     * scattered/broken clouds - the cloud-cover trigger above has no hysteresis of its own).
+     */
+    sunActiveLockMs: number;
     /** Wind speed (km/h) at/above which wind protection activates. */
     windOpenThreshold: number;
     /** Wind speed (km/h) below which wind protection may deactivate again, after `windCalmMinDurationMs`. */
@@ -187,6 +195,7 @@ export class AutomationEngine {
                 windHysteresis: new BelowThresholdHysteresis(),
                 sunOverrideUntilMs: 0,
                 manualOverrideActive: false,
+                sunActiveChangedAtMs: 0,
             });
             controller.onManualCommand = () => this.handleManualCommand(id);
         }
@@ -510,9 +519,10 @@ export class AutomationEngine {
             minTempSatisfied,
         );
         let sunActivationDetail: string | undefined;
+        let desiredSunActive: boolean;
         if (!sunEligible) {
             state.sunHysteresis.reset();
-            state.sunActive = false;
+            desiredSunActive = false;
         } else {
             const openAllowed = state.sunHysteresis.update(
                 this.weather.getSolarRadiation(),
@@ -533,10 +543,25 @@ export class AutomationEngine {
                 this.weather.getCloudCover(),
                 this.options.sunProtectionClearSkyCloudCoverMaxPercent,
             );
-            state.sunActive = radiationActive || cloudCoverActive;
+            desiredSunActive = radiationActive || cloudCoverActive;
             sunActivationDetail = cloudCoverActive
                 ? `clear-sky trigger: cloud cover ${fmt(this.weather.getCloudCover(), '%')} ≤ threshold ${this.options.sunProtectionClearSkyCloudCoverMaxPercent}%`
                 : `solar radiation ${fmt(this.weather.getSolarRadiation(), ' W/m²')} ≥ threshold ${this.options.sunCloseThreshold} W/m²`;
+        }
+        // Anti-flapping lock: once sunActive actually changes, hold that value for at least
+        // sunActiveLockMs before allowing another change, even if the triggers above already say
+        // otherwise - without this, the cloud-cover trigger's lack of its own hysteresis would drive
+        // the covering up/down on every tick during scattered/broken clouds (reported real-world
+        // behavior). `sunActiveChangedAtMs === 0` (never changed yet) is never locked, so the very
+        // first activation for a covering is never delayed by this.
+        let sunLockHeld = false;
+        if (desiredSunActive !== state.sunActive) {
+            if (state.sunActiveChangedAtMs !== 0 && nowMs - state.sunActiveChangedAtMs < this.options.sunActiveLockMs) {
+                sunLockHeld = true;
+            } else {
+                state.sunActive = desiredSunActive;
+                state.sunActiveChangedAtMs = nowMs;
+            }
         }
         if (state.sunActive) {
             state.frostActive = false;
@@ -546,15 +571,24 @@ export class AutomationEngine {
             const sunPosition = this.options.location
                 ? getSunPosition(now, this.options.location.latitude, this.options.location.longitude)
                 : undefined;
-            this.setReasonDetail(
-                id,
-                controller,
-                `Sun protection: ${sunActivationDetail ?? 'active'}${
-                    sunPosition
-                        ? ` (sun azimuth ${fmt(sunPosition.azimuthDeg, '°')}, elevation ${fmt(sunPosition.elevationDeg, '°')}, orientation ${fmt(config.orientation, '°')}).`
-                        : '.'
-                }`,
-            );
+            const clauses = [
+                sunActivationDetail ?? 'held active by the anti-flapping lock, no longer eligible on its own',
+            ];
+            if (sunPosition) {
+                clauses.push(
+                    `sun azimuth ${fmt(sunPosition.azimuthDeg, '°')}, elevation ${fmt(sunPosition.elevationDeg, '°')}, orientation ${fmt(config.orientation, '°')}`,
+                );
+            }
+            if (sunLockHeld) {
+                const remainingSeconds = Math.max(
+                    0,
+                    Math.ceil((this.options.sunActiveLockMs - (nowMs - state.sunActiveChangedAtMs)) / 1000),
+                );
+                clauses.push(
+                    `anti-flapping lock holds this active for ${remainingSeconds}s more before it can deactivate again`,
+                );
+            }
+            this.setReasonDetail(id, controller, `Sun protection: ${clauses.join('; ')}.`);
             this.applyTarget(id, controller, target, 'Sun protection');
             return;
         }

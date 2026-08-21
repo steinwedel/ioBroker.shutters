@@ -216,6 +216,14 @@ systemDictionary = {
         en: 'Clear/mostly clear sky threshold (cloud cover %)',
         de: 'Schwelle klarer/überwiegend klarer Himmel (Bewölkungsgrad %)',
     },
+    sunActiveLockMs: {
+        en: 'Sun protection anti-flapping lock (ms)',
+        de: 'Sonnenschutz-Sperrzeit gegen Flackern (ms)',
+    },
+    sunProtectionAveragingDurationMs: {
+        en: 'Sun protection measurement averaging (ms)',
+        de: 'Sonnenschutz-Messwertmittelung (ms)',
+    },
     windOpenThreshold: { en: 'Wind activate threshold (km/h)', de: 'Windschutz-Auslöseschwelle (km/h)' },
     windCloseAllowedThreshold: { en: 'Wind calm threshold (km/h)', de: 'Windschutz-Ruheschwelle (km/h)' },
     rainStatusDebounceMs: { en: 'Rain status stabilization (ms)', de: 'Regenstatus-Stabilisierung (ms)' },

@@ -176,6 +176,10 @@ const DEFAULT_OPTIONS: IAutomationOptions = {
     sunOpenMinDurationMs: 600_000,
     sunProtectionCloudCoverTriggerEnabled: false,
     sunProtectionClearSkyCloudCoverMaxPercent: 40,
+    // Disabled (0) here - the anti-flapping lock itself has dedicated tests below (see "sun-protection
+    // anti-flapping lock") that use sinon fake timers; every other test in this file exercises a single
+    // real-time transition per assertion and would otherwise be spuriously held by a non-zero lock.
+    sunActiveLockMs: 0,
     windOpenThreshold: 40,
     windCloseAllowedThreshold: 25,
     windCalmMinDurationMs: 600_000,
@@ -491,6 +495,92 @@ describe('AutomationEngine', () => {
             engine.evaluateNow();
 
             expect(controllerHandle.appliedCalls).to.deep.equal([]);
+        });
+    });
+
+    describe('sun-protection anti-flapping lock', () => {
+        it('holds sun protection active for sunActiveLockMs after the cloud-cover trigger flips off again, instead of reopening immediately', () => {
+            const weather = createFakeWeather();
+            weather.windSpeed = 0;
+            weather.rain = false;
+            weather.solarRadiation = 0; // never enough on its own to trigger via radiation
+            weather.cloudCover = 10; // clear sky - triggers via the cloud-cover trigger
+            const controllerHandle = createFakeController(
+                makeConfig({ sunProtectionEnabled: true, sunTargetPercent: 70 }),
+            );
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                {
+                    ...DEFAULT_OPTIONS,
+                    sunProtectionCloudCoverTriggerEnabled: true,
+                    sunActiveLockMs: 600_000,
+                },
+            );
+
+            engine.setScheduleTarget(controllerHandle.config.id, 0);
+            engine.evaluateNow();
+            expect(controllerHandle.appliedCalls.at(-1)).to.deep.equal({
+                percent: 70,
+                reason: 'Sun protection',
+                bypass: false,
+            });
+
+            // Clouds roll in (no longer "clear sky") - without the lock this would reopen right away.
+            weather.cloudCover = 90;
+            engine.evaluateNow();
+            expect(controllerHandle.appliedCalls.at(-1)).to.deep.equal({
+                percent: 70,
+                reason: 'Sun protection',
+                bypass: false,
+            });
+
+            // Scattered clouds clearing up again mid-lock must not matter either - still held.
+            clock.tick(300_000);
+            weather.cloudCover = 10;
+            engine.evaluateNow();
+            weather.cloudCover = 90;
+            engine.evaluateNow();
+            expect(controllerHandle.appliedCalls.at(-1)).to.deep.equal({
+                percent: 70,
+                reason: 'Sun protection',
+                bypass: false,
+            });
+
+            // Once the lock has fully elapsed, the now-stable "cloudy" reading finally takes effect.
+            clock.tick(300_001);
+            engine.evaluateNow();
+            expect(controllerHandle.appliedCalls.at(-1)).to.deep.equal({
+                percent: 0,
+                reason: 'Schedule',
+                bypass: false,
+            });
+        });
+
+        it('never locks the very first activation for a covering', () => {
+            const weather = createFakeWeather();
+            weather.windSpeed = 0;
+            weather.rain = false;
+            weather.solarRadiation = 500; // well above sunCloseThreshold (200)
+            const controllerHandle = createFakeController(
+                makeConfig({ sunProtectionEnabled: true, sunTargetPercent: 70 }),
+            );
+            const { adapter } = createFakeAdapter();
+            const engine = new AutomationEngine(
+                adapter,
+                new Map([[controllerHandle.config.id, controllerHandle.controller]]),
+                weather.weather,
+                { ...DEFAULT_OPTIONS, sunActiveLockMs: 600_000 },
+            );
+
+            engine.setScheduleTarget(controllerHandle.config.id, 0);
+            engine.evaluateNow();
+
+            expect(controllerHandle.appliedCalls).to.deep.equal([
+                { percent: 70, reason: 'Sun protection', bypass: false },
+            ]);
         });
     });
 

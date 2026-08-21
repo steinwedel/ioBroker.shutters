@@ -141,6 +141,7 @@ class Shutters extends utils.Adapter {
         this.weatherSource = new WeatherSource(this, this.config.weather ?? {}, {
             rainStatusDebounceMs: this.config.rainStatusDebounceMs ?? 300_000,
             windDirectionSmoothingDurationMs: this.config.windDirectionSmoothingDurationMs ?? 300_000,
+            sunProtectionAveragingDurationMs: this.config.sunProtectionAveragingDurationMs ?? 600_000,
         });
         await this.weatherSource.start();
 
@@ -182,6 +183,7 @@ class Shutters extends utils.Adapter {
             sunOpenMinDurationMs: this.config.sunOpenMinDurationMs ?? 600_000,
             sunProtectionCloudCoverTriggerEnabled: this.config.sunProtectionCloudCoverTriggerEnabled ?? false,
             sunProtectionClearSkyCloudCoverMaxPercent: this.config.sunProtectionClearSkyCloudCoverMaxPercent ?? 40,
+            sunActiveLockMs: this.config.sunActiveLockMs ?? 600_000,
             windOpenThreshold: this.config.windOpenThreshold ?? 40,
             windCloseAllowedThreshold: this.config.windCloseAllowedThreshold ?? 25,
             windCalmMinDurationMs: this.config.windCalmMinDurationMs ?? 600_000,

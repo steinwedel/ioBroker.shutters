@@ -1,4 +1,8 @@
 # Changelog
+## **WORK IN PROGRESS**
+
+* (Gerhard Steinwedel) **FIXED**: Sun protection no longer flaps a covering up/down repeatedly during scattered/broken clouds: once its combined sun-protection decision changes, it now holds for `sunActiveLockMs` (default 10 min) before it can change again, and solar radiation/cloud cover are averaged over `sunProtectionAveragingDurationMs` (default 10 min) instead of reacting to single readings.
+
 ## 0.0.60 (2026-08-20)
 
 * (Gerhard Steinwedel) **NEW**: Added `status.reasonDetail` per covering: a human-readable explanation of *why* it is currently open/closed/held (concrete thresholds and measurements behind the short `statusText` reason), updated every automation tick.

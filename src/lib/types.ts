@@ -333,6 +333,21 @@ export interface IShuttersNativeConfig {
     sunProtectionCloudCoverTriggerEnabled?: boolean;
     /** Maximum cloud cover (%) considered clear/mostly clear by the optional cloud-cover trigger. Default: 40. */
     sunProtectionClearSkyCloudCoverMaxPercent?: number;
+    /**
+     * Minimum time (ms) between two changes of a covering's combined sun-protection decision
+     * (radiation- or cloud-cover-triggered), regardless of cause - an anti-flapping lock on top of
+     * `sunOpenMinDurationMs`'s existing radiation-only hysteresis, since the cloud-cover trigger has
+     * no hysteresis of its own and would otherwise toggle the covering up/down on every tick during
+     * scattered/broken clouds. Default: 600000 (10 min).
+     */
+    sunActiveLockMs?: number;
+    /**
+     * Time window (ms) `WeatherSource` averages solar radiation and cloud cover readings over before
+     * sun protection sees them, to smooth out momentary sensor noise/randomness rather than reacting
+     * to individual readings - same idea as `windDirectionSmoothingDurationMs` for wind direction.
+     * Default: 600000 (10 min).
+     */
+    sunProtectionAveragingDurationMs?: number;
 
     /** Wind speed (km/h) at/above which wind protection activates. Default: 40. */
     windOpenThreshold?: number;

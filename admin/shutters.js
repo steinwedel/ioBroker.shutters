@@ -211,6 +211,9 @@ function shuttersEnsureDefaults(settings) {
     if (settings.sunProtectionCloudCoverTriggerEnabled === undefined) settings.sunProtectionCloudCoverTriggerEnabled = false;
     settings.sunProtectionClearSkyCloudCoverMaxPercent =
         settings.sunProtectionClearSkyCloudCoverMaxPercent != null ? settings.sunProtectionClearSkyCloudCoverMaxPercent : 40;
+    settings.sunActiveLockMs = settings.sunActiveLockMs != null ? settings.sunActiveLockMs : 600000;
+    settings.sunProtectionAveragingDurationMs =
+        settings.sunProtectionAveragingDurationMs != null ? settings.sunProtectionAveragingDurationMs : 600000;
     settings.windOpenThreshold = settings.windOpenThreshold != null ? settings.windOpenThreshold : 40;
     settings.windCloseAllowedThreshold =
         settings.windCloseAllowedThreshold != null ? settings.windCloseAllowedThreshold : 25;
@@ -2112,6 +2115,8 @@ function renderThresholds() {
         ['sunCloseThreshold', 'sunCloseThreshold'],
         ['sunOpenThreshold', 'sunOpenThreshold'],
         ['sunProtectionClearSkyCloudCoverMaxPercent', 'sunProtectionClearSkyCloudCoverMaxPercent'],
+        ['sunActiveLockMs', 'sunActiveLockMs'],
+        ['sunProtectionAveragingDurationMs', 'sunProtectionAveragingDurationMs'],
         ['windOpenThreshold', 'windOpenThreshold'],
         ['windCloseAllowedThreshold', 'windCloseAllowedThreshold'],
         ['rainStatusDebounceMs', 'rainStatusDebounceMs'],

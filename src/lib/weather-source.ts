@@ -52,6 +52,22 @@ export function isDateWithinMonthDayRange(
     return today >= start || today <= end;
 }
 
+/** See `IShuttersNativeConfig.rainStatusDebounceMs`/`windDirectionSmoothingDurationMs`/`sunProtectionAveragingDurationMs`. */
+export interface IWeatherStabilization {
+    /** See `IShuttersNativeConfig.rainStatusDebounceMs`. */
+    rainStatusDebounceMs: number;
+    /** See `IShuttersNativeConfig.windDirectionSmoothingDurationMs`. */
+    windDirectionSmoothingDurationMs: number;
+    /** See `IShuttersNativeConfig.sunProtectionAveragingDurationMs`. */
+    sunProtectionAveragingDurationMs: number;
+}
+
+const DEFAULT_STABILIZATION: IWeatherStabilization = {
+    rainStatusDebounceMs: 300_000,
+    windDirectionSmoothingDurationMs: 300_000,
+    sunProtectionAveragingDurationMs: 600_000,
+};
+
 /**
  * Central provider of weather measurements for the protection modules
  * (sun/rain/wind/frost). Reads configurable foreign states and caches the
@@ -71,20 +87,24 @@ export class WeatherSource {
     private pendingRain: boolean | undefined;
     private pendingRainSinceMs: number | undefined;
     private readonly windDirectionSamples: { value: number; timestampMs: number }[] = [];
+    /** Recent readings averaged by `getSolarRadiation()`, see `IWeatherStabilization.sunProtectionAveragingDurationMs`. */
+    private readonly solarRadiationSamples: { value: number; timestampMs: number }[] = [];
+    /** Recent readings averaged by `getCloudCover()`, same reasoning as `solarRadiationSamples`. */
+    private readonly cloudCoverSamples: { value: number; timestampMs: number }[] = [];
+    private readonly stabilization: IWeatherStabilization;
 
     /**
      * @param adapter - Adapter instance, used for foreign state access.
      * @param config - Configured foreign state IDs per weather metric.
-     * @param stabilization - Rain debounce and wind-direction smoothing durations in milliseconds.
+     * @param stabilization - Rain debounce, wind-direction smoothing and sun-protection-measurement
+     *   averaging durations in milliseconds; any omitted field falls back to `DEFAULT_STABILIZATION`.
      */
     public constructor(
         private readonly adapter: ioBroker.Adapter,
         private readonly config: IWeatherConfig,
-        private readonly stabilization = {
-            rainStatusDebounceMs: 300_000,
-            windDirectionSmoothingDurationMs: 300_000,
-        },
+        stabilization: Partial<IWeatherStabilization> = {},
     ) {
+        this.stabilization = { ...DEFAULT_STABILIZATION, ...stabilization };
         for (const key of Object.keys(config) as (keyof IWeatherConfig)[]) {
             const stateId = config[key];
             if (stateId) {
@@ -110,9 +130,13 @@ export class WeatherSource {
         this.adapter.removeListener('stateChange', this.handleForeignStateChange);
     }
 
-    /** @returns Current solar radiation in W/m², or undefined if not configured/not yet received. */
+    /**
+     * @returns Solar radiation in W/m², averaged over `sunProtectionAveragingDurationMs` to smooth out
+     *   momentary sensor noise (plan section 6, requested after real-world flapping during broken
+     *   clouds), or undefined if not configured/not yet received.
+     */
     public getSolarRadiation(): number | undefined {
-        return this.getNumber('solarRadiationStateId');
+        return this.getAveragedNumber('solarRadiationStateId', this.solarRadiationSamples);
     }
 
     /**
@@ -207,9 +231,13 @@ export class WeatherSource {
         return this.getNumber('humidityStateId');
     }
 
-    /** @returns Current cloud cover in % (0 = clear sky, 100 = fully overcast), or undefined if not configured/not yet received. */
+    /**
+     * @returns Cloud cover in % (0 = clear sky, 100 = fully overcast), averaged over
+     *   `sunProtectionAveragingDurationMs` (see `getSolarRadiation()`), or undefined if not
+     *   configured/not yet received.
+     */
     public getCloudCover(): number | undefined {
-        return this.getNumber('cloudCoverStateId');
+        return this.getAveragedNumber('cloudCoverStateId', this.cloudCoverSamples);
     }
 
     private getNumber(key: keyof IWeatherConfig): number | undefined {
@@ -219,6 +247,34 @@ export class WeatherSource {
         }
         const val = this.values.get(stateId);
         return typeof val === 'number' ? val : undefined;
+    }
+
+    /**
+     * @param key - Metric to read, see `getNumber()`.
+     * @param samples - This metric's sample buffer (`solarRadiationSamples`/`cloudCoverSamples`),
+     *   already pruned to `sunProtectionAveragingDurationMs` by `setValue()`.
+     * @returns The arithmetic mean of every sample within the averaging window, or undefined if the
+     *   metric is not configured or has no samples yet.
+     */
+    private getAveragedNumber(
+        key: keyof IWeatherConfig,
+        samples: { value: number; timestampMs: number }[],
+    ): number | undefined {
+        if (!this.config[key]) {
+            return undefined;
+        }
+        const cutoffMs = Date.now() - this.stabilization.sunProtectionAveragingDurationMs;
+        while (samples[0]?.timestampMs < cutoffMs) {
+            samples.shift();
+        }
+        if (samples.length === 0) {
+            return undefined;
+        }
+        let sum = 0;
+        for (const sample of samples) {
+            sum += sample.value;
+        }
+        return sum / samples.length;
     }
 
     private setValue(stateId: string, value: ioBroker.StateValue | undefined, initial = false): void {
@@ -257,6 +313,29 @@ export class WeatherSource {
             } else {
                 this.windDirectionSamples.length = 0;
             }
+        }
+        if (stateId === this.config.solarRadiationStateId) {
+            this.pushOrClearSample(this.solarRadiationSamples, value);
+        }
+        if (stateId === this.config.cloudCoverStateId) {
+            this.pushOrClearSample(this.cloudCoverSamples, value);
+        }
+    }
+
+    /**
+     * @param samples - Sample buffer to append to (or clear).
+     * @param value - Raw new reading; a non-finite/non-numeric value clears every existing sample
+     *   instead of just being skipped, same reasoning as `windDirectionSamples` above - an unavailable
+     *   reading should make the average unavailable too, not silently keep averaging stale samples.
+     */
+    private pushOrClearSample(
+        samples: { value: number; timestampMs: number }[],
+        value: ioBroker.StateValue | undefined,
+    ): void {
+        if (typeof value === 'number' && Number.isFinite(value)) {
+            samples.push({ value, timestampMs: Date.now() });
+        } else {
+            samples.length = 0;
         }
     }
 
